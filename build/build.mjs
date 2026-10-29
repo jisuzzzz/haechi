@@ -56,13 +56,14 @@ export const loadCore = (coreDir) => {
     agents.push({ file, ...parseFrontmatter(readFileSync(file, 'utf8'), file) })
   }
   const readOptional = (path) => (existsSync(join(coreDir, path)) ? readFileSync(join(coreDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
+  const tools = new Map(listDir(join(coreDir, 'tools')).filter((file) => file.endsWith('.mjs')).map((file) => [file, readOptional(`tools/${file}`)]))
   const hooks = {
     rulesTemplate: readOptional('hooks/rules.md'),
     rulesSource: readOptional('hooks/rules.ts'),
     claude: { 'register.ts': readOptional('connectors/claude/register.ts'), 'hooks.json': readOptional('connectors/claude/hooks.json') },
     codex: { 'inject.mjs': readOptional('connectors/codex/inject.mjs'), 'hooks.json': readOptional('connectors/codex/hooks.json') },
   }
-  return { plugin, principles, skills, agents, hooks }
+  return { plugin, principles, skills, agents, hooks, tools }
 }
 
 const lookup = (map, names = [], kind, file) =>
@@ -134,10 +135,16 @@ export const buildFiles = (core) => {
     files.set('codex/hooks/rules.md', hooks.rulesTemplate)
     // The Claude mod imports the TypeScript as is; the Codex hook runs on plain node, so it gets the types stripped
     files.set('claude/hooks/rules.ts', hooks.rulesSource)
-    files.set('codex/hooks/rules.mjs', stripTypeScriptTypes(hooks.rulesSource, { mode: 'strip' }).replace(/[ \t]+$/gm, ''))
+    // Plain-node tools (check-settings) import rules.mjs in both targets
+    const rulesJs = stripTypeScriptTypes(hooks.rulesSource, { mode: 'strip' }).replace(/[ \t]+$/gm, '')
+    files.set('claude/hooks/rules.mjs', rulesJs)
+    files.set('codex/hooks/rules.mjs', rulesJs)
     for (const target of ['claude', 'codex']) {
       for (const [name, text] of Object.entries(hooks[target])) files.set(`${target}/hooks/${name}`, text)
     }
+  }
+  for (const [name, text] of core.tools ?? []) {
+    for (const target of Object.keys(TARGETS)) files.set(`${target}/tools/${name}`, text)
   }
   return files
 }
