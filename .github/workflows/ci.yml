@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests
+        run: npm test
+      - name: dist matches core
+        run: npm run check
+      - name: No private words
+        run: npm run scan
+        env:
+          HAECHI_SCAN_PATTERNS: ${{ secrets.HAECHI_SCAN_PATTERNS }}

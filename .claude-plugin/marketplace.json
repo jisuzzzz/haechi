@@ -1,0 +1,14 @@
+{
+  "name": "haechi",
+  "description": "haechi: agent workflow plugin for Claude Code and Codex.",
+  "owner": {
+    "name": "jisuzzzz"
+  },
+  "plugins": [
+    {
+      "name": "haechi",
+      "source": "./dist/claude",
+      "description": "Agent workflow plugin: playbooks, subagents, and completion backed by evidence."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "haechi",
+  "version": "0.0.1",
+  "description": "Agent workflow plugin: playbooks, subagents, and completion backed by evidence.",
+  "author": { "name": "jisuzzzz" },
+  "license": "MIT",
+  "homepage": "https://github.com/jisuzzzz/haechi",
+  "repository": "https://github.com/jisuzzzz/haechi"
+}

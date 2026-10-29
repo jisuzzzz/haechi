@@ -1,0 +1,11 @@
+{
+  "name": "haechi",
+  "plugins": [
+    {
+      "name": "haechi",
+      "source": { "source": "local", "path": "./dist/codex" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}
