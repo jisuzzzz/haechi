@@ -1,6 +1,6 @@
 // User setup: report what is installed, logged in and trusted on this machine. Nothing is changed.
 // Usage: node check-user.mjs  → prints JSON
-import { execFileSync, execSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -25,15 +25,13 @@ export const parseCodexTrust = (configText, plugin = 'haechi') => {
 // Every host a CLI reports as logged in; `auth status` exits non-zero when any one host fails, so its exit code is not the answer
 export const loggedInHosts = (statusText) => [...statusText.matchAll(/Logged in to (\S+)/g)].map((match) => match[1])
 
-// Arguments here are fixed literals; on Windows the CLIs may be .cmd shims that need a shell
+// Arguments here are fixed literals; on Windows the CLIs may be .cmd shims that need a shell.
+// stderr is kept on success too: `glab auth status` prints its report there and exits 0
 const run = (command, args) => {
   const options = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
-  try {
-    const out = process.platform === 'win32' ? execSync([command, ...args].join(' '), options) : execFileSync(command, args, options)
-    return { ok: true, out: out.trim() }
-  } catch (error) {
-    return { ok: false, out: `${error.stdout ?? ''}${error.stderr ?? ''}`.trim() }
-  }
+  const result =
+    process.platform === 'win32' ? spawnSync([command, ...args].join(' '), { ...options, shell: true }) : spawnSync(command, args, options)
+  return { ok: result.status === 0, out: `${result.stdout ?? ''}${result.stderr ?? ''}`.trim() }
 }
 
 const version = (command) => {
