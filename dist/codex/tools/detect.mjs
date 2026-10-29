@@ -35,7 +35,7 @@ const detectStack = (snap, pkg) => {
   else if (all.react) found.push(['react-web', 'react dependency'])
   const py = pythonDependencies(snap)
   if (snap.files.includes('manage.py') || /\bdjango\b/.test(py)) found.push(['python-django', 'manage.py or django dependency'])
-  else if (/\bfastapi\b/.test(py)) found.push(['python-fastapi', 'fastapi dependency'])
+  if (/\bfastapi\b/.test(py)) found.push(['python-fastapi', 'fastapi dependency'])
   return found.length ? guess(found.map(([name]) => name), found.map(([, why]) => why).join('; ')) : unknown()
 }
 
@@ -52,6 +52,26 @@ const detectPythonRunner = (snap) => {
   if (snap.files.includes('uv.lock')) return 'uv'
   if (snap.files.includes('poetry.lock')) return 'poetry'
   return snap.pyproject || snap.requirements || snap.requirementsDev ? 'pip' : null
+}
+
+// These are command candidates, never authorization to prepare a database or start a daemon.
+const detectMigrations = (snap, py) => {
+  const prefix = PYTHON_RUNNERS[py]?.prefix ?? ''
+  const candidates = []
+  if (snap.files.includes('manage.py')) candidates.push(guess({
+    plan: `${prefix}python manage.py migrate --plan`,
+    apply: `${prefix}python manage.py migrate --noinput`,
+    check: `${prefix}python manage.py migrate --check`,
+  }, 'manage.py; select local/test database settings before use'))
+  if (snap.files.includes('alembic.ini')) candidates.push(guess({
+    plan: `${prefix}alembic current && ${prefix}alembic heads`,
+    apply: `${prefix}alembic upgrade head`,
+    check: `${prefix}alembic current --check-heads`,
+  }, 'alembic.ini; check requires Alembic >=1.17.1; inspect revisions and select local/test database before use'))
+  return {
+    migrations: candidates.length === 1 ? candidates[0] : unknown(candidates.length ? 'several migration tools; choose repository commands' : 'no manage.py or alembic.ini; do not infer migrations from the framework'),
+    migrationCandidates: candidates,
+  }
 }
 
 const detectCommands = (snap, pkg, pm, py) => {
@@ -146,13 +166,20 @@ export const detect = (snap) => {
   const pkg = snap.packageJson ? JSON.parse(snap.packageJson) : undefined
   const pm = detectPackageManager(snap, pkg)
   const py = detectPythonRunner(snap)
+  const stack = detectStack(snap, pkg)
+  const frameworks = (stack.value ?? []).filter((name) => name.startsWith('python-'))
   const commands = pkg ? detectCommands(snap, pkg, pm.value, py) : detectCommands(snap, { scripts: {} }, 'npm', py)
   const pythonInstall = py === 'pip' && snap.requirementsDev !== undefined
     ? `python -m venv .venv && .venv/bin/pip install ${snap.requirements === undefined ? '' : '-r requirements.txt '}-r requirements-dev.txt`
     : PYTHON_RUNNERS[py]?.install
   const sensitiveWords = snap.agentsMd?.match(/\b(PHI|PII|patient|personal data|payment)\b|환자|개인정보|결제/gi) ?? []
   return {
-    stack: detectStack(snap, pkg),
+    stack,
+    frameworks: frameworks.length ? guess(frameworks, stack.source) : unknown('no supported Python framework detected'),
+    ...detectMigrations(snap, py),
+    docker: unknown(snap.files.some((file) => /(^|\/)(Dockerfile(?:\.[^/]+)?|(?:docker-)?compose(?:\.[^/]+)?\.ya?ml)$/.test(file))
+      ? 'Docker files found; select an existing context and local provider commands if daemon management is wanted'
+      : 'no Docker files; daemon management is optional'),
     packageManager: pm,
     commands,
     forbidden: pkg ? detectForbidden(pkg, pm.value) : unknown(),

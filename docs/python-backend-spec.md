@@ -36,7 +36,7 @@ The verifier selects tests; it does not start databases, install dependencies, r
 
 ## Scope limits
 
-No Java or Go support, framework-specific workflow rules, migration automation, Docker daemon management, production database access, repository-wide test fallback, publishing or push. The sample proves the supported workflow, not compatibility with every FastAPI repository.
+The initial increment excluded framework-specific workflow rules, migration automation and Docker daemon management. These are now covered by the [backend extensions](backend-extensions.md). Java or Go support, production database access, repository-wide test fallback, publishing and push remain outside this scope. The sample proves the supported workflow, not compatibility with every FastAPI repository.
 
 ## Open questions
 

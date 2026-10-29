@@ -157,6 +157,50 @@ test('an empty folder gives unknowns, not guesses', () => {
   assert.equal(draft.commands.testOne.value, null)
   assert.equal(draft.git.host.value, null)
   assert.equal(draft.git.commit, undefined)
+  assert.equal(draft.frameworks.value, null)
+  assert.equal(draft.migrations.value, null)
+  assert.equal(draft.docker.value, null)
+})
+
+test('framework candidates include both Python frameworks without changing JS detection', () => {
+  const draft = detect({ ...reactRepo, requirements: 'django>=5\nfastapi>=0.115\n' })
+  assert.deepEqual(draft.stack.value, ['react-web', 'python-django', 'python-fastapi'])
+  assert.deepEqual(draft.frameworks.value, ['python-django', 'python-fastapi'])
+  assert.equal(draft.commands.testOne.value, 'yarn vitest run {file}')
+  assert.equal(draft.migrations.value, null)
+})
+
+test('Django migration candidates retain the Python runner without inventing a database target', () => {
+  for (const [lock, prefix] of [[undefined, ''], ['uv.lock', 'uv run '], ['poetry.lock', 'poetry run ']]) {
+    const draft = detect(snap({ files: ['manage.py', ...(lock ? [lock] : [])], requirements: 'django\n' }))
+    assert.deepEqual(draft.migrations.value, {
+      plan: `${prefix}python manage.py migrate --plan`,
+      apply: `${prefix}python manage.py migrate --noinput`,
+      check: `${prefix}python manage.py migrate --check`,
+    })
+    assert.equal(draft.migrations.value.environment, undefined)
+  }
+})
+
+test('Alembic needs its own configuration and competing tools remain unresolved', () => {
+  assert.equal(detect(snap({ requirements: 'fastapi\nalembic\n' })).migrations.value, null)
+  const draft = detect(snap({ files: ['alembic.ini', 'uv.lock'], requirements: 'fastapi\nalembic\n' }))
+  assert.equal(draft.migrations.value.apply, 'uv run alembic upgrade head')
+  assert.equal(draft.migrations.value.check, 'uv run alembic current --check-heads')
+  assert.match(draft.migrations.source, /1\.17\.1/)
+  const mixed = detect(snap({ files: ['manage.py', 'alembic.ini'] }))
+  assert.equal(mixed.migrations.value, null)
+  assert.equal(mixed.migrationCandidates.length, 2)
+})
+
+test('Docker files provide a hint without guessing a machine provider or overwriting settings', () => {
+  const settings = { frameworks: [], migrations: { apply: 'custom migration' }, docker: { context: 'team-local', start: 'custom start' } }
+  for (const file of ['Dockerfile', 'docker/Dockerfile.dev', 'compose.yml', 'docker-compose.test.yaml']) {
+    const draft = detect(snap({ files: [file], settingsJson: JSON.stringify(settings) }))
+    assert.equal(draft.docker.value, null)
+    assert.match(draft.docker.source, /Docker files found/)
+    assert.deepEqual(draft.existingSettings.value, settings)
+  }
 })
 
 

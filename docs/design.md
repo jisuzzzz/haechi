@@ -7,7 +7,7 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 - One workflow for Claude Code and Codex users across frontend (TypeScript, React, React Native) and backend (Python, FastAPI, Django) repositories.
 - Keep repository facts, authorization boundaries and completion evidence available. Load task guidance when it helps.
 - Work is called done only with evidence.
-- No stack-specific rule packs. Plugin rules target the defects agents actually produce. Anything that differs per repository is a setting the repository declares.
+- Keep shared rules focused on defects agents actually produce. Optional Django/FastAPI profiles add framework guidance; commands and environment choices remain repository settings.
 
 ## Layers
 
@@ -84,6 +84,8 @@ A repository can finish setup without `git.branch`, `git.commit` or `git.mrTempl
 Setup detects execution settings and returns existing settings alongside candidates. Independent machine and repository checks run together, and their results feed one confirmation batch. The agent reuses successful checks when their relevant inputs have not changed. A verifier that actually runs the configured test can satisfy the single-test proof too; a no-tests result cannot. On reruns, unavailable evidence stays unverified until checked. Instruction discovery stays within the repository and its ancestors.
 
 The default verifier uses `pythonTestMap` to select explicit test files for changed Python sources. A configured single-test command takes precedence over detected pytest. Skipped checks produce exit 2 rather than a successful verification result. The [Python backend guide](python-backends.md) defines path rules, command precedence and database prerequisites.
+
+The [backend extensions](backend-extensions.md) add optional framework profiles and explicit migration and Docker preparation tools. Hooks carry the selected profiles into main sessions and subagents. Preparation is separate from verification: starting a daemon or applying migrations requires an explicit action and the conversation's authorization for its target.
 
 ## Build and distribution
 

@@ -15,6 +15,7 @@ Status: v0 in progress — installable for trial. Expect breaking changes until 
 | Playbooks | Guide a task from start to finish: `bug`, `feature`, `refactor`, `perf`, `review`, `test-hardening`. |
 | Supporting skills | Handle individual steps such as planning (`spec`), bulk work (`sweep`), impact analysis (`impact-map`), writing (`plain`) and team requests (`request`). |
 | Git skills | Commit changes (`commit`), open GitHub PRs or GitLab MRs (`mr`), and watch GitLab CI through merge and cleanup (`ci-watch`). |
+| Python backend extensions | Apply Django/FastAPI workflow guidance (`python-backend`), run configured migrations (`migrate`), and check or manage a local Docker daemon (`docker`). |
 | Subagents | Implement changes, challenge tests, verify results, check screens, and run or audit experiments. |
 | Tools, principles and formats | Run repeatable checks, define implementation and review criteria, and structure answers. |
 
@@ -58,6 +59,8 @@ Run `/haechi:setup` once per machine and once per repository. Until a repository
 - `~/.haechi/user.json`, per person: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repository. `answerFormats: false` removes the format suggestions; hooks and playbooks do not force first-reply tables or labels.
 
 Team judgment rules (what is sensitive, where code goes) stay in the repository's `AGENTS.md`.
+
+Optional `frameworks`, `migrations` and `docker` settings enable the [Python backend extensions](docs/backend-extensions.md). Setup detects candidates and preserves custom commands. Migration application and Docker start/stop use explicit commands; ordinary verification does not prepare services or change the schema.
 
 Branch names and commit/MR formats are resolved when those operations happen. Existing `git.branch`, `git.commit` and `git.mrTemplate` settings remain valid, but setup does not require or infer them. The commit skill uses recent commits when no format is declared. The MR skill uses the repository template or a default Summary, Changes and Validation body; it does not routinely inspect merged PRs.
 
