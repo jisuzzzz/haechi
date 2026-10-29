@@ -57,8 +57,6 @@ Run `/haechi:setup` once per machine and once per repository. Until a repository
 - `.haechi.json` in the repository, committed and shared by the team: verify and single-test commands, commands that must never run on the whole repo, test layout, Git host and base/protected branches, optional Git format overrides, worktree setup.
 - `~/.haechi/user.json`, per person: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repository. `answerFormats: false` removes the format suggestions; hooks and playbooks do not force first-reply tables or labels.
 
-Python repositories can map changed source paths to explicit test files with `pythonTestMap`. See the [Python backend guide](docs/python-backends.md) and the runnable [FastAPI/MySQL example](examples/fastapi-mysql/README.md).
-
 Team judgment rules (what is sensitive, where code goes) stay in the repository's `AGENTS.md`.
 
 Branch names and commit/MR formats are resolved when those operations happen. Existing `git.branch`, `git.commit` and `git.mrTemplate` settings remain valid, but setup does not require or infer them. The commit skill uses recent commits when no format is declared. The MR skill uses the repository template or a default Summary, Changes and Validation body; it does not routinely inspect merged PRs.
@@ -73,7 +71,8 @@ Setup combines independent detection and machine checks, presents one draft and 
 | `build/` | Generates the Claude Code and Codex distributions from `core/`. |
 | `dist/claude/`, `dist/codex/` | Generated plugins that users install. |
 | `test/` | Tests for the tools, hooks and build. |
-| `docs/` | Detailed design and decisions. |
+| `docs/` | Design, configuration guides and verification records. |
+| `examples/` | Small runnable examples for trying the workflow. |
 
 ## Design
 
