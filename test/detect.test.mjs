@@ -11,6 +11,7 @@ const snap = (overrides = {}) => ({
   packageJson: undefined,
   pyproject: undefined,
   requirements: undefined,
+  requirementsDev: undefined,
   agentsMd: undefined,
   templateHeadings: [],
   templateSource: undefined,
@@ -109,6 +110,47 @@ test('a Django repo with uv and a self-hosted GitLab in Korean', () => {
   assert.equal(draft.git.mrTemplate, undefined)
 })
 
+test('FastAPI discovers dev-only pytest with the existing Python runner prefixes', () => {
+  for (const [lock, prefix] of [[undefined, ''], ['uv.lock', 'uv run '], ['poetry.lock', 'poetry run ']]) {
+    const draft = detect(snap({
+      files: ['requirements.txt', 'requirements-dev.txt', 'tests/test_api.py', ...(lock ? [lock] : [])],
+      requirements: 'fastapi==0.115.0\n',
+      requirementsDev: 'pytest==8.3.0\nruff==0.7.0\n',
+    }))
+    assert.deepEqual(draft.stack.value, ['python-fastapi'])
+    assert.equal(draft.commands.testOne.value, `${prefix}pytest {file}`)
+    assert.deepEqual(draft.testDirs.value, ['tests'])
+  }
+})
+
+test('a dev requirements file identifies Python without inventing pytest when absent', () => {
+  const draft = detect(snap({ requirementsDev: 'pytest==8.3.0\nruff==0.7.0\n' }))
+  assert.equal(draft.commands.testOne.value, 'pytest {file}')
+  assert.equal(detect(snap({ requirementsDev: 'ruff==0.7.0\n' })).commands.testOne.value, null)
+})
+
+test('pip worktree setup includes both runtime and dev requirements when present', () => {
+  const draft = detect(snap({ requirements: 'fastapi==0.115.0\n', requirementsDev: 'pytest==8.3.0\n' }))
+  assert.equal(draft.worktreeSetup.value, 'python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt')
+})
+
+test('pip worktree setup with only dev requirements does not invent a runtime file', () => {
+  const draft = detect(snap({ requirementsDev: 'pytest==8.3.0\n' }))
+  assert.equal(draft.worktreeSetup.value, 'python -m venv .venv && .venv/bin/pip install -r requirements-dev.txt')
+  const runtimeOnly = detect(snap({ requirements: 'fastapi==0.115.0\n' }))
+  assert.equal(runtimeOnly.worktreeSetup.value, 'python -m venv .venv && .venv/bin/pip install -r requirements.txt')
+})
+
+test('Python dev dependencies keep existing JS command priority and custom settings', () => {
+  const settings = {
+    commands: { verify: 'custom-check {files}', testOne: 'docker compose run api pytest {file}' },
+    pythonTestMap: [{ source: 'app/', tests: ['tests/test_api.py'] }],
+  }
+  const draft = detect({ ...reactRepo, requirementsDev: 'pytest==8.3.0\n', settingsJson: JSON.stringify(settings) })
+  assert.equal(draft.commands.testOne.value, 'yarn vitest run {file}')
+  assert.deepEqual(draft.existingSettings.value, settings)
+})
+
 test('an empty folder gives unknowns, not guesses', () => {
   const draft = detect(snap())
   assert.equal(draft.stack.value, null)
@@ -153,4 +195,18 @@ test('snapshot returns existing settings without reading PR templates', (t) => {
   assert.equal(facts.templateHeadings, undefined)
   assert.deepEqual(detect(facts).existingSettings.value, JSON.parse(settings))
   assert.equal(readFileSync(join(root, '.haechi.json'), 'utf8'), settings)
+})
+
+test('snapshot reads dev requirements so FastAPI setup discovers pytest from disk', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-python-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const requirements = 'fastapi==0.115.0\n'
+  const requirementsDev = 'pytest==8.3.0\nruff==0.7.0\n'
+  writeFileSync(join(root, 'requirements.txt'), requirements)
+  writeFileSync(join(root, 'requirements-dev.txt'), requirementsDev)
+  const facts = snapshot(root)
+  assert.equal(facts.requirements, requirements)
+  assert.equal(facts.requirementsDev, requirementsDev)
+  assert.deepEqual(detect(facts).stack.value, ['python-fastapi'])
+  assert.equal(detect(facts).commands.testOne.value, 'pytest {file}')
 })

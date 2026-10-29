@@ -26,13 +26,14 @@ const PYTHON_RUNNERS = {
 const WHOLE_REPO_SCRIPT = /^(test|lint|typecheck|format|coverage|e2e)(:|$)|:(watch|ui|full)$/
 
 const deps = (pkg) => ({ ...pkg?.dependencies, ...pkg?.devDependencies })
+const pythonDependencies = (snap) => [snap.pyproject, snap.requirements, snap.requirementsDev].filter(Boolean).join('\n').toLowerCase()
 
 const detectStack = (snap, pkg) => {
   const found = []
   const all = deps(pkg)
   if (all['react-native'] || all.expo) found.push(['react-native', 'react-native/expo dependency'])
   else if (all.react) found.push(['react-web', 'react dependency'])
-  const py = `${snap.pyproject ?? ''}\n${snap.requirements ?? ''}`.toLowerCase()
+  const py = pythonDependencies(snap)
   if (snap.files.includes('manage.py') || /\bdjango\b/.test(py)) found.push(['python-django', 'manage.py or django dependency'])
   else if (/\bfastapi\b/.test(py)) found.push(['python-fastapi', 'fastapi dependency'])
   return found.length ? guess(found.map(([name]) => name), found.map(([, why]) => why).join('; ')) : unknown()
@@ -50,7 +51,7 @@ const detectPackageManager = (snap, pkg) => {
 const detectPythonRunner = (snap) => {
   if (snap.files.includes('uv.lock')) return 'uv'
   if (snap.files.includes('poetry.lock')) return 'poetry'
-  return snap.pyproject || snap.requirements ? 'pip' : null
+  return snap.pyproject || snap.requirements || snap.requirementsDev ? 'pip' : null
 }
 
 const detectCommands = (snap, pkg, pm, py) => {
@@ -67,7 +68,7 @@ const detectCommands = (snap, pkg, pm, py) => {
   let testOne = unknown()
   if (all.vitest) testOne = guess(runner.exec('vitest run {file}'), 'vitest in devDependencies')
   else if (all.jest) testOne = guess(runner.exec('jest {file}'), 'jest in devDependencies')
-  else if (py && /\bpytest\b/i.test(`${snap.pyproject ?? ''}${snap.requirements ?? ''}`)) {
+  else if (py && /\bpytest\b/.test(pythonDependencies(snap))) {
     testOne = guess(`${PYTHON_RUNNERS[py].prefix}pytest {file}`, 'pytest dependency')
   }
 
@@ -146,6 +147,9 @@ export const detect = (snap) => {
   const pm = detectPackageManager(snap, pkg)
   const py = detectPythonRunner(snap)
   const commands = pkg ? detectCommands(snap, pkg, pm.value, py) : detectCommands(snap, { scripts: {} }, 'npm', py)
+  const pythonInstall = py === 'pip' && snap.requirementsDev !== undefined
+    ? `python -m venv .venv && .venv/bin/pip install ${snap.requirements === undefined ? '' : '-r requirements.txt '}-r requirements-dev.txt`
+    : PYTHON_RUNNERS[py]?.install
   const sensitiveWords = snap.agentsMd?.match(/\b(PHI|PII|patient|personal data|payment)\b|환자|개인정보|결제/gi) ?? []
   return {
     stack: detectStack(snap, pkg),
@@ -153,7 +157,7 @@ export const detect = (snap) => {
     commands,
     forbidden: pkg ? detectForbidden(pkg, pm.value) : unknown(),
     testDirs: detectTestDirs(snap),
-    worktreeSetup: pm.value ? guess(RUNNERS[pm.value].install, pm.source) : py ? guess(PYTHON_RUNNERS[py].install, py) : unknown(),
+    worktreeSetup: pm.value ? guess(RUNNERS[pm.value].install, pm.source) : py ? guess(pythonInstall, py) : unknown(),
     devServer: pkg?.scripts?.dev ? guess(RUNNERS[pm.value].run('dev'), 'package.json scripts.dev') : unknown(),
     screenCheck: snap.files.some((file) => /^playwright\.config\./.test(file))
       ? guess('playwright', 'playwright config')
@@ -187,6 +191,7 @@ export const snapshot = (root) => {
     packageJson: readIf(join(root, 'package.json')),
     pyproject: readIf(join(root, 'pyproject.toml')),
     requirements: readIf(join(root, 'requirements.txt')),
+    requirementsDev: readIf(join(root, 'requirements-dev.txt')),
     agentsMd: readIf(join(root, 'AGENTS.md')),
     settingsJson: readIf(join(root, '.haechi.json')),
     git: {
