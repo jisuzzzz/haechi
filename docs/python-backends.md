@@ -43,8 +43,6 @@ The [example](../examples/fastapi-mysql/README.md) contains an API, two HTTP ass
 
 The repository owns its database lifecycle. Setup identifies how to prepare services and environment variables, but the default verifier only runs checks. Keep credentials in the environment. Record migration and test database rules in the repository's existing instructions. A missing database is a failed or unverified check, not a skipped test reported as success.
 
-Optional [backend extensions](backend-extensions.md) add Django/FastAPI workflow guidance, migration automation and local Docker daemon management. Preparation uses separate commands, so enabling these settings does not change test selection or start services during verification.
-
 ## Validation record
 
 On 2026-10-29, the example ran on Python 3.12 with FastAPI 0.121.0, PyMySQL 1.1.2, pytest 8.4.2 and MySQL 8.3.0 in a new temporary data directory. The command was `node <haechi-tools>/verify-default.mjs app/main.py` with the example virtual environment active and its MySQL environment variables set.

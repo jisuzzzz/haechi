@@ -3,13 +3,11 @@
 {{repoLine}}
 {{#forbidden}}NEVER RUN: {{forbidden}} (whole-repo runs){{/forbidden}}
 {{#setupMissing}}REPO SETUP INCOMPLETE (missing: {{setupMissing}}): answer questions normally, but start no code change — run /haechi:setup first.{{/setupMissing}}
-{{#frameworkRules}}{{frameworkRules}}{{/frameworkRules}}
 
 WORKFLOW
 - Before substantial work, briefly state the intended outcome, scope and how you will check it. Reuse what the conversation already establishes; no fixed labels or repeated restatement are required.
 - Use the playbook that helps the task: bug for a mismatch with defined behavior, feature for intentional behavior changes, refactor for structure with unchanged behavior, review for findings without edits, test-hardening for tests only. Use perf only when the user asks for measurement or speed-up. Local copy, style, constant and comment corrections with no behavior or contract change need only the repo verify command.
 - Adapt the steps to the task while keeping the required evidence. Revise the approach as you learn. Use /haechi:spec for unresolved decisions that materially change behavior or scope, or when the user requests a spec; settled requirements do not need another approval or a separate document.
-- For Python backend work, use the configured `frameworks` in `.haechi.json` and /haechi:python-backend (the `skills/python-backend/SKILL.md` file beside this hooks folder). An explicit `frameworks: []` disables automatic framework guidance. Use /haechi:migrate for database preparation and /haechi:docker for daemon management only when the task needs them. The default verifier does not prepare databases or start Docker.
 
 DELEGATION
 - Work directly when the task is short, tightly coupled, or already fits the current context. Delegate when independent work, separate context or another review is likely to improve quality or save time. File and line counts are context, not triggers.

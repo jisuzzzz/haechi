@@ -182,21 +182,6 @@ test('CLI rejects malformed JSON and does not invoke a custom verify recursively
   assert.match(result.stderr, /settings|haechi.json/)
 })
 
-test('CLI runs only checks even when backend preparation commands are configured', (t) => {
-  const repo = fixture(t, {
-    ...mapped,
-    frameworks: ['python-django', 'python-fastapi'],
-    migrations: { environment: 'test', plan: 'pytest migration-plan', apply: 'pytest migration-apply', check: 'pytest migration-check' },
-    docker: { context: 'local', start: 'pytest docker-start', stop: 'pytest docker-stop' },
-  })
-  const result = repo.run()
-  assert.equal(result.status, 0, result.stdout + result.stderr)
-  assert.deepEqual(repo.calls(), [
-    { tool: 'ruff', args: ['check', 'app/api.py'] },
-    { tool: 'pytest', args: ['tests/test_api.py'] },
-  ])
-})
-
 test('CLI preserves paths with spaces in fallback and already-quoted custom commands', (t) => {
   const settings = { pythonTestMap: [{ source: 'app/', tests: ['tests/test api.py'] }] }
   const repo = fixture(t, settings)

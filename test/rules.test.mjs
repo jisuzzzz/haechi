@@ -72,62 +72,6 @@ test('missing settings file, broken JSON and partial settings are all reported',
   assert.deepEqual(missingRequired({ settings: complete }), [])
 })
 
-test('framework profiles are optional and duplicate selections normalize once', () => {
-  const withoutProfiles = parseSettings(JSON.stringify(complete))
-  const emptyProfiles = parseSettings(JSON.stringify({ ...complete, frameworks: [] }))
-  assert.deepEqual(missingRequired(emptyProfiles), [])
-  const renderFull = (loaded) => fullBlock({ template, loaded, user: {}, pluginRoot: '/p' })
-  assert.equal(renderFull(withoutProfiles), renderFull(emptyProfiles))
-  assert.equal(spawnAppendix(withoutProfiles, '/p'), spawnAppendix(emptyProfiles, '/p'))
-  assert.equal(reminderBlock({ loaded: withoutProfiles, pluginRoot: '/p' }), reminderBlock({ loaded: emptyProfiles, pluginRoot: '/p' }))
-
-  const loaded = parseSettings(JSON.stringify({ ...complete, frameworks: ['python-django', 'python-fastapi', 'python-django'] }))
-  assert.deepEqual(loaded.settings.frameworks, ['python-django', 'python-fastapi'])
-  assert.deepEqual(missingRequired(loaded), [])
-  const duplicateRaw = { settings: { ...complete, frameworks: ['python-django', 'python-fastapi', 'python-django'] } }
-  assert.equal(renderFull(loaded), renderFull(duplicateRaw))
-  assert.equal(spawnAppendix(loaded, '/p'), spawnAppendix(duplicateRaw, '/p'))
-})
-
-test('framework selection routes only the selected guidance to prompts and subagents', () => {
-  for (const [selected, included, excluded] of [
-    ['python-django', /Django: review affected models/, /FastAPI: verify request/],
-    ['python-fastapi', /FastAPI: verify request/, /Django: review affected models/],
-  ]) {
-    const loaded = parseSettings(JSON.stringify({ ...complete, frameworks: [selected] }))
-    for (const output of [fullBlock({ template, loaded, user: {}, pluginRoot: '/p' }), spawnAppendix(loaded, '/p')]) {
-      assert.match(output, included)
-      assert.doesNotMatch(output, excluded)
-      assert.match(output, /\/p\/skills\/python-backend\/SKILL\.md/)
-      assert.doesNotMatch(output, /REPO SETUP INCOMPLETE/)
-    }
-    const reminder = reminderBlock({ loaded, pluginRoot: '/p' })
-    assert.ok(reminder.includes(`FRAMEWORKS: ${selected}.`))
-    assert.match(reminder, /\/p\/skills\/python-backend\/SKILL\.md/)
-  }
-})
-
-test('malformed framework settings fail visibly before guidance is selected', () => {
-  for (const frameworks of [null, 'python-django', {}, ['django'], ['python-fastapi', 1], ['__proto__']]) {
-    const settings = { ...complete, frameworks }
-    const parsed = parseSettings(JSON.stringify(settings))
-    assert.equal(parsed.settings, undefined)
-    assert.match(parsed.error, /frameworks must be an array containing only/)
-    for (const loaded of [parsed, { settings }]) {
-      assert.deepEqual(missingRequired(loaded), [parsed.error])
-      const full = fullBlock({ template, loaded, user: {}, pluginRoot: '/p' })
-      const appendix = spawnAppendix(loaded, '/p')
-      assert.match(full, /REPO SETUP INCOMPLETE/)
-      assert.match(appendix, /REPO SETUP INCOMPLETE/)
-      assert.doesNotMatch(`${full}\n${appendix}`, /FRAMEWORKS:|Django: review|FastAPI: verify/)
-      assert.match(reminderBlock({ loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
-    }
-  }
-  for (const value of [null, [], 1, 'settings']) {
-    assert.deepEqual(missingRequired(parseSettings(JSON.stringify(value))), ['.haechi.json must contain a JSON object'])
-  }
-})
-
 test('full block on first prompt and after compaction, reminder otherwise', () => {
   let state = { shown: false, compacted: false }
   const modes = []
@@ -233,21 +177,4 @@ test('the built Codex hook prints the same block the shared rules render', async
   }
   handle('PostCompact', disabledInput, env)
   assert.equal(handle('UserPromptSubmit', disabledInput, env), disabledFirst)
-
-  const backendSettings = { ...executionSettings, frameworks: ['python-fastapi', 'python-django'] }
-  writeFileSync(join(repo, '.haechi.json'), JSON.stringify(backendSettings))
-  const backendInput = { ...input, session_id: 'backend' }
-  const backendLoaded = parseSettings(JSON.stringify(backendSettings))
-  const backendFull = fullBlock({ template, loaded: backendLoaded, user: { answerFormats: false }, pluginRoot: join(out, 'codex') })
-  assert.equal(handle('SessionStart', backendInput, env), backendFull)
-  assert.equal(handle('SubagentStart', backendInput, env), spawnAppendix(backendLoaded, join(out, 'codex')))
-  assert.equal(handle('UserPromptSubmit', backendInput, env), reminderBlock({ loaded: backendLoaded, pluginRoot: join(out, 'codex') }))
-  for (const target of ['claude', 'codex']) {
-    const builtRules = await import(pathToFileURL(join(out, target, 'hooks', 'rules.mjs')).href)
-    const targetInput = { template, loaded: backendLoaded, user: {}, pluginRoot: join(out, target) }
-    assert.equal(builtRules.fullBlock(targetInput), fullBlock(targetInput))
-    assert.equal(builtRules.spawnAppendix(backendLoaded, join(out, target)), spawnAppendix(backendLoaded, join(out, target)))
-    const guide = readFileSync(join(out, target, 'skills', 'python-backend', 'SKILL.md'), 'utf8')
-    assert.equal(guide, readFileSync(join(coreDir, 'skills', 'python-backend', 'SKILL.md'), 'utf8'))
-  }
 })
