@@ -1,9 +1,8 @@
 # Format A — choice
 
-Use it when a decision is needed and there are two or more approaches whose results really differ: they touch different files, change different contracts or add different features, or one is costly to undo.
-Do not use it for plain facts, choices a repo rule already settles, or trivial differences. Ask each open decision in this format, all of them in one message.
+Optional example for a decision with meaningful trade-offs. Use it when comparing options helps the user choose. Existing authorization and repo decisions still apply; the format itself never creates a need to ask.
 
-Compare options in a Markdown table with short cells. Put the recommendation and longer reasons below the table. Keep the labels below in their relative order when used; omit items that add no information. Write rendered Markdown, not a code block or text aligned with spaces.
+A table can make several options easier to compare. For a simple choice, use a sentence or short list. Adapt the labels and order below to the task. When answer formats are disabled, do not load or apply this example unless the user requests it.
 
 | Label | Meaning |
 |---|---|

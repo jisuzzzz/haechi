@@ -1,9 +1,8 @@
 # Format C — scenario
 
-Use it to explain a change (the done report), to answer "how does this work", and to report review defects.
-Do not use it for plain facts, simple questions or answers a rule already settles.
+Optional example for explaining a change or behavior. In a review, describe the observed problem and its consequence without implying a fix has been made.
 
-Start with a concrete example in one sentence, then use a Before/After Markdown table. Number steps when there are several and mark the changed ones. Keep cells short; put reasons and longer explanations below the table. Use the labels below only when needed, in their relative order. Omit empty or obvious sections. Write rendered Markdown, not a code block or text aligned with spaces.
+Use a concrete example when it helps. A Before/After table is useful for comparing several changes; prose or a list may be clearer for one. Adapt the labels below and omit unneeded sections. When answer formats are disabled, do not load or apply this example unless the user requests it.
 
 | Label | Meaning |
 |---|---|

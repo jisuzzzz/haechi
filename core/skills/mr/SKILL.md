@@ -39,7 +39,7 @@ Read `git diff <base>...HEAD` where the log and stat are not enough to describe 
 ## 3. Before creating
 
 - Push the branch: `git push -u origin <branch>`. This is part of the user's MR request.
-- Look for an MR on this branch: `glab mr list --source-branch <branch>` or `gh pr list --head <branch>`. One exists: update it instead of opening a second one. Ask before you overwrite its description.
+- Look for an MR on this branch: `glab mr list --source-branch <branch>` or `gh pr list --head <branch>`. One exists: update it instead of opening a second one. Ask before overwriting its description unless the user's request already authorizes that update.
 - Reviewer from `git.reviewer`:
   - a username: use it.
   - `previous-mr`: take the reviewer of the most recent merged MR into the base, and say which MR you took it from. GitLab: `glab mr list --merged --target-branch <base> --order merged_at --sort desc`, then `glab mr view <iid>` on the first one. GitHub: `gh pr list --state merged --base <base> --limit 1 --json number,reviewRequests,latestReviews`.

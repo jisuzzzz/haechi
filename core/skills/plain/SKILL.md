@@ -32,4 +32,4 @@ Readers rarely struggle with the content. They struggle with coined terms, force
 
 ## Output
 
-Return the revised draft only. Keep the meaning, the facts, the fixed labels and headings, code, names and numbers exactly as they were. Give a short list of what changed only when someone asks for it.
+Return the revised draft only. Keep the meaning, facts, code, names, numbers and any required artifact schema or repository template. Other labels and headings may change for clarity. Give a short list of what changed only when someone asks for it.

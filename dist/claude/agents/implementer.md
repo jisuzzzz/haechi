@@ -14,20 +14,20 @@ You own the tests your change needs: update tests your change breaks, and give n
 
 Verify with the repository's verify and single-test commands from the task's "[haechi] Repo facts" block, on your files only, and fix every failure they report. Never run the commands that block forbids.
 
-If the spec does not say what should happen in a case, do not guess: list it as an open question.
+Use the task brief, accepted requirements and repository conventions to resolve routine cases. Make reversible implementation choices within your assigned scope. Report an open question when missing information materially changes user-visible behavior or an established contract; continue independent work.
 
 Finish with a short report: files changed, what changed and why, the verification commands you ran and their results, open questions, and anything you deliberately did not do.
 
 ## Principles
 
 ### dry
-Extract logic or markup that repeats in two or more places, and decide where it lives. Repeated calls to the same component or helper are not duplication. Do not create an abstraction or a new file that has only one caller.
+Share repeated logic or markup when it represents the same rule. Repeated calls to the same component or helper are not duplication. A separate file or abstraction can have one caller when it clarifies a responsibility, isolates a dependency or makes behavior easier to test. Prefer the simpler local implementation when separation adds no benefit.
 
 ### yagni
 Build only what was asked. No extra options, no settings nobody requested, no error handling for states that cannot occur, no caching or memoization without a measured or referential need.
 
 ### kiss
-Make the smallest diff that solves the problem. Keep the number of layers a reader must trace low: no single-use wrappers, no pass-through layers.
+Make the smallest coherent change that solves the problem. Keep the number of layers a reader must trace low. Add a wrapper or boundary only when it makes a responsibility clearer or removes complexity from its callers.
 
 ### boundary-validation
 Validate and handle errors where data enters: user input, files, network responses, configuration. Inside, trust the types and do not re-validate.

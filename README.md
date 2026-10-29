@@ -2,7 +2,7 @@
 
 An agent workflow plugin for Claude Code and Codex.
 
-Haechi is a creature from Korean folklore that tells right from wrong. This plugin does the same for agent work: it routes each request to a playbook, delegates to subagents when that pays off, and calls work done only with evidence.
+Haechi is a creature from Korean folklore that tells right from wrong. This plugin gives agents task guidance, repository facts and verification tools. The agent chooses how to work and calls the task done only with evidence.
 
 Status: v0 in progress — installable for trial. Expect breaking changes until v0.1.
 
@@ -22,22 +22,15 @@ Playbooks are skills too; the distinction is their scope. Subagent roles are `im
 
 ## How it works
 
-The **main agent** (the AI in your current conversation) selects the playbook and skills, decides what to do directly or delegate at each step, and reviews the results. It asks you when requirements are unclear or approval is needed.
+The **main agent** (the AI in your current conversation) selects useful playbooks and skills, decides what to do directly or delegate, and reviews the results. When delegating, it writes a task-specific request with the objective, relevant context, scope and expected evidence. It asks about consequential unresolved choices and actions you have not authorized.
 
-You ask: "The due date shows the next day for users in UTC-5." The first reply restates the task and says how it will run:
+You ask: "The due date shows the next day for users in UTC-5." The agent might reply: "I'll reproduce the date shift, fix the conversion, and check that time displays stay unchanged." It can use a table if that makes the explanation clearer; no fixed first-reply format is required.
 
-| Item | Content |
-|---|---|
-| Current | `formatDate('2024-02-29')` shows Mar 1 in UTC-5. |
-| Target | Display the stored date without shifting it, as the spec requires. |
-| Keep | Time display and other formats. |
-| Proof | A test that fails now and passes after the fix. |
+The bug playbook supplies the evidence to collect: reproduction, cause, a failing test, the fix and passing verification. The agent adapts the work to the task and commits completed changes locally. Push and merge requests require authorization, which can already be present in your request.
 
-**Verdict:** type bug (units 1) · run direct · worktree no · effort default
+Independent work can go to subagents when parallelism or separate context helps. File and line counts do not force delegation. Parallel edits never share files, and independent review is chosen for risk or shared contracts. "Done" needs verify output from after the last change; missing evidence is reported as "implemented · unverified".
 
-Then the bug playbook runs: reproduce, find the first wrong decision, write the failing test, fix at the cause, run the repo's verify command, and commit locally. Push and merge requests wait for your yes.
-
-Larger work goes to subagents. Parallel units never share files, and a verifier reviews big or contract-sharing changes. "Done" needs verify output from after the last change; missing evidence is reported as "implemented · unverified".
+Clear requirements can stay in the conversation. A separate spec is useful for consequential unresolved behavior or scope decisions, or when you request one. Routine implementation choices do not need another approval.
 
 ## Install
 
@@ -62,7 +55,7 @@ Run `/haechi:setup` once per machine and once per repository. Until a repository
 ## Settings
 
 - `.haechi.json` in the repository, committed and shared by the team: verify and single-test commands, commands that must never run on the whole repo, test layout, Git host and base/protected branches, optional Git format overrides, worktree setup.
-- `~/.haechi/user.json`, per person: budget, model overrides, answer formats on or off, and a notes folder for anything that must stay out of the repository.
+- `~/.haechi/user.json`, per person: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repository. `answerFormats: false` removes the format suggestions; hooks and playbooks do not force first-reply tables or labels.
 
 Team judgment rules (what is sensitive, where code goes) stay in the repository's `AGENTS.md`.
 

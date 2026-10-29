@@ -15,6 +15,6 @@ You own the tests your change needs: update tests your change breaks, and give n
 
 Verify with the repository's verify and single-test commands from the task's "[haechi] Repo facts" block, on your files only, and fix every failure they report. Never run the commands that block forbids.
 
-If the spec does not say what should happen in a case, do not guess: list it as an open question.
+Use the task brief, accepted requirements and repository conventions to resolve routine cases. Make reversible implementation choices within your assigned scope. Report an open question when missing information materially changes user-visible behavior or an established contract; continue independent work.
 
 Finish with a short report: files changed, what changed and why, the verification commands you ran and their results, open questions, and anything you deliberately did not do.

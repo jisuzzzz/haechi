@@ -5,7 +5,7 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 ## Goals
 
 - One workflow for Claude Code and Codex users across frontend (TypeScript, React, React Native) and backend (Python, FastAPI, Django) repositories.
-- Rules apply on every prompt, not only when the model remembers a skill.
+- Keep repository facts, authorization boundaries and completion evidence available. Load task guidance when it helps.
 - Work is called done only with evidence.
 - No stack-specific rule packs. Plugin rules target the defects agents actually produce. Anything that differs per repository is a setting the repository declares.
 
@@ -14,9 +14,9 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 ```
 [0] setup     user setup (budget, notes folder, install check)
               repo setup (detect, ask what cannot be detected, prove commands run, write .haechi.json)
-[1] hooks     every prompt: principle index + routing rules + repo settings summary
+[1] hooks     first prompt and after compaction: guidance + repo facts; reminders otherwise
               Claude Code: a mod (function hooks). Codex: command hooks. Both call one core.
-[2] main      the main session orchestrates: restate, classify, split into units, delegate, judge, report
+[2] main      the main session chooses the approach, delegates when useful, checks evidence and reports
 [3] playbooks bug · feature · refactor · perf · review · test hardening, plus spec and sweep procedures
 [4] agents    implementer · adversarial-tester · verifier · screen-design-checker · screen-parity-checker
               · experiment-runner · experiment-auditor
@@ -26,37 +26,31 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 
 ## Request flow
 
-1. The hook injects the rules.
-2. The first reply to a code-change request restates the task in four labeled lines and a verdict line:
-   ```
-   Current: what is true now
-   Target:  what must be true when done
-   Keep:    what must not change
-   Proof:   how completion will be shown
-   Verdict: type · run (direct / implementer ×N) · worktree · effort raises
-   ```
-3. Questions and small fixes skip playbooks. Everything else runs a playbook.
-4. Delegated units run in parallel only when they share no files and do not depend on each other. Shared contracts are committed first.
-5. Review, outside-behavior checks, then completion with evidence, then a local commit. Push and merge requests are asked for.
+1. The hook supplies repository commands, authorization boundaries and task guidance. Full rules appear at session start and after compaction; other prompts get a short reminder.
+2. For substantial work, the agent briefly explains the outcome, scope and check method. It reuses decisions already made in the conversation. No fixed table, labels or verdict line are required.
+3. The agent loads the playbook that helps the task and adapts its steps while preserving the required evidence.
+4. It delegates independent work when parallelism, separate context or an independent review is useful. Parallel edits have separate file ownership, and shared contracts are settled before dependent work starts.
+5. Completed changes need verification, diff review and a local commit. Read-only work produces findings and evidence without a commit. External actions require authorization; an explicit request can already provide it.
 
 ## Classification
 
-- Small fix: at most two files, no new file, no change to anything another module, service or user can observe, and only copy, styles, constants, comments or typos.
-- Bug: behavior differs from a defined one, at any size. Feature: new or deliberately changed behavior. Refactor: same outside behavior, new structure. Perf: only when measurement or speed-up is asked for. Review: judge only. Test hardening: strengthen existing tests.
-- Re-classifying upward is automatic and announced. Downward needs the user's OK.
+- Local copy, style, constant and comment corrections with no behavior or contract change need only the repo verify command.
+- Bug: behavior differs from a defined one. Feature: new or deliberately changed behavior. Refactor: same outside behavior, new structure. Perf: only when measurement or speed-up is asked for. Review: findings without edits. Test hardening: strengthen existing tests.
+- Classification helps choose guidance. The agent can revise its approach as it learns, without asking merely to change a label. Changes to requested scope or verification still follow the authorization boundary.
 
 ## Delegation
 
-- Logic lines exclude imports, blank lines, whitespace-only changes, pure moves and tests.
-- Direct work below five files and 150 logic lines, or when iterating with the user. Otherwise an implementer.
-- A verifier reviews when the task has 400+ logic lines or implementers share a contract. Parallel units are reviewed one by one as they finish, then once together.
-- The adversarial tester attacks sibling paths and runs mutation checks when behavior changes at implementer size.
+- File and line counts describe scope; they do not trigger delegation or a reviewer.
+- Work directly for short or tightly coupled tasks. Delegate independent work when it saves time or benefits from separate context. Each brief states the objective, relevant context, file ownership, constraints and expected evidence; the worker chooses its method.
+- Use a verifier or adversarial tester when risk, uncertainty or shared contracts justify an independent check. Roles are capabilities, not mandatory stages.
+- Check changed UI in a real render. A separate screen checker helps when there is a useful design or behavior comparison.
 
 ## Playbooks and documents
 
-- Each playbook is a skill the main session loads after classifying: `bug`, `feature`, `refactor`, `perf`, `review`, `test-hardening`. They hold only what is specific to that kind of work; the shared rules stay in the hook.
-- `spec` runs before features, big refactors and requests that can be read two ways. `sweep` splits many-unit work into non-overlapping units with one commit each.
-- Lasting documents are filled as JSON and rendered by a script, so the shape never drifts: `render-doc.mjs` for specs and requests to other teams, `screen-report.mjs` for screen-check results as one HTML page. `plain` is the last pass on any written draft.
+- Task playbooks are `bug`, `feature`, `refactor`, `perf`, `review` and `test-hardening`. Their procedures are guidance; repository permissions and required evidence remain constraints.
+- `spec` helps resolve consequential behavior or scope decisions, or produce an explicitly requested spec. Accepted requirements and checkable outcomes can stay in chat. File counts, a new screen or an export change alone do not require a formal document or another approval.
+- `sweep` coordinates many independent units when splitting helps. Change units get commits; read-only units return findings and use conversation evidence to resume.
+- `render-doc.mjs` is available for a formal spec and formats requests to other teams. `screen-report.mjs` builds screen reports. These artifact schemas stay fixed for their tools; optional chat formats do not control them. `plain` improves lasting prose.
 - Requests to other teams and screen reports live in the user's notes folder, never in the repository.
 
 ## Git
@@ -66,20 +60,22 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 
 ## When to ask
 
-Stop and ask before anything that leaves the machine or is hard to undo (push, merge, publish, migrations, deletes), when two readings change different files or contracts, when expected behavior is undefined, before skipping verification, and before costly work nobody asked for. Otherwise state the assumption and continue. Subagents never ask; they report open questions.
+Use authorization already given. Ask before an unauthorized external action or destructive operation, before unrequested costly work, and before skipping required verification. Ask about unresolved choices that materially change the outcome, scope or an established contract. Resolve facts from the repository and make reversible implementation choices within scope. Subagents report consequential open questions to the main agent.
 
 ## Done means
 
-Verify output run after the last change, the diff read, each request item mapped to the diff, no open questions, temporary files and worktrees cleaned, one local commit per unit. Bugs also need failing-before and passing-after output. Missing evidence is reported as "implemented, unverified".
+Verify output from after the last change, the diff reviewed, each requested outcome mapped to evidence or marked incomplete, task-created temporary resources cleaned up, and one local commit per completed change unit. Bugs also need failing-before and passing-after output. Missing evidence is reported as "implemented, unverified". Read-only work does not require a commit.
 
-## Writing
+## Writing and design judgment
 
-No coined terms and no forced translation: keep the English term developers know. Concrete example first, rule after. One idea per sentence. Three answer formats with fixed labels: choice (Options, Fastest, Root fix, Recommend), problem (Symptom, Cause with evidence level, Fix, Expected), scenario (Example, Before → After, Also applies, Unchanged, Why).
+Use concise, concrete language. Choice, problem and scenario formats are optional examples; the agent chooses prose, lists or tables to fit the content. The hook adds suggestions only when answer formats are enabled. The recovery document contains no format suggestions, so rereading it cannot bypass `answerFormats: false`. Playbooks do not reintroduce mandatory chat layouts.
+
+A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; screen-design-checker is reserved for its supported visual references.
 
 ## Settings
 
 - `.haechi.json` in the repo: commands (verify, single test, typecheck), forbidden whole-repo commands, test layout, Git host and base/protected branches, optional Git format overrides, worktree setup and teardown, optional risk paths.
-- `~/.haechi/user.json`: budget, model overrides, answer formats on or off, and a notes folder for anything that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks).
+- `~/.haechi/user.json`: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks).
 
 ## Setup scope
 

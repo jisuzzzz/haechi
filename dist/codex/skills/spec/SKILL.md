@@ -1,37 +1,34 @@
 ---
 name: spec
-description: Writes a spec (what and why, approved by the user) before a feature, a large refactor or an ambiguous request, with all decisions asked at once and throwaway screen variants when words are not enough. Use for /haechi:spec, when a playbook says to write a spec, or when the user asks for one.
+description: Clarifies consequential behavior or scope choices and records acceptance criteria, with an optional saved spec. Use for /haechi:spec, when the user asks for a spec, or when unresolved requirements need a decision before implementation.
 ---
 
 # Write a spec
 
 Only the main session runs this skill. Subagents cannot ask the user anything, so they never write a spec; they report open questions to you.
 
-A spec answers **what and why**: problem, goal, scope, expected behavior, edge-case decisions, acceptance criteria, constraints. The user approves it, and it outlives the code change — tests, reviews and the done check are judged against it. A plan answers **how and in what order**: files, type sketches, units, delegation, checks, risks. The plan is yours and is not approved.
+A spec answers **what and why**: problem, goal, scope, expected behavior, edge-case decisions, acceptance criteria, constraints. Requirements already established in the conversation or repository can serve as the spec; they need no repeated approval. A plan answers **how and in what order**: files, type sketches, units, delegation, checks, risks. Choose the implementation plan yourself.
 
-**When.** The feature playbook asks for a spec when there are two or more decisions, a new screen, an external contract change or two or more units. Large refactors and requests that can be read in two ways also get one. Skip it for a small-fix. A bug gets no spec, only one question that confirms the expected behavior.
+**When.** Use this skill when the user requests a spec or consequential behavior or scope choices remain unresolved after reading the available context. A new screen, changed export or multiple units does not by itself require a document or approval. Decide reversible implementation details yourself. A bug with an established expected behavior needs no separate spec.
 
 The haechi tools folder is two levels above this skill's folder (`<this skill's folder>/../../tools/`). Run tools with `node`.
 
 ## Steps
 
-1. **Restatement.** Start from the Current / Target / Keep / Proof lines of the session rules. For a new feature Target (who, in what situation, what scope) carries the most weight; for an improvement it is Keep.
-2. **Collect every decision, then ask once.** Read the code and the docs first, so you ask only what they cannot answer. Put each decision in format A (choice) and send them all in one message. A decision already recorded in the repo is quoted, not asked again.
-3. **Variants for what words cannot settle.** For layout or interaction decisions, offer 2–3 throwaway variants. Building them is costly work, so this is an ask item; once the user agrees:
-   - Give each variant to its own `implementer` in its own worktree, in parallel. Run `worktreeSetup` from `.haechi.json` in each.
-   - Start one dev server per variant with `devServer.command`, each on its own free port. Never use a port in `devServer.forbiddenPorts` or one already in use.
-   - Run `screen-design-checker` in variants mode with every variant's URL and the states to capture; it writes `kind: "variants"` result files. Build one comparison report from them: `node <tools>/screen-report.mjs --out <notesDir>/screen-reports/<task>/variants.html <result.json>...` (`notesDir` from `~/.haechi/user.json`).
-   - Give the user each variant's real URL and the report path. Open the report only when `openReports` is on.
-   - After the user picks: stop every server, then from the main checkout run `node <tools>/cleanup-merged.mjs <variant branch> --discard` for each variant. It only lists. Show all the to-delete and skipped lines and ask once — picking a variant is not a yes to deleting the others. On yes, rerun each with `--yes`. A variant skipped for uncommitted changes or an upstream stays; tell the user. The tool unlinks links inside the worktree first (a linked dependency folder would otherwise lead the deletion into the main checkout) and runs `worktreeTeardown`. Never `git worktree remove --force` by hand. Only the decision survives, as a Decision log row.
-4. **Write the spec.** Write the fields as JSON to a file in the system temp folder (tool input only; delete it once the spec is approved), then run `node <tools>/render-doc.mjs spec <fields.json> --out <file.md>`. Fields: `title`, `date`, `status`, `problem`, `goal`, `inScope[]`, `outOfScope[]`, `behavior[]`, `edgeCases[] {case, decision}`, `acceptance[]`, `constraints[]`, `openQuestions[] {question, answer?}`, `decisions[] {date, item, decision, note?}`. Every list is required; pass `[]` when empty. Exit 2 lists every bad field at once — fix them all and run it again.
-   - Each acceptance criterion must be checkable: a test name, a screen state or a response someone can look at.
-   - Use status `Draft` until the user approves, then `Approved`.
-5. **Run /haechi:plain on the draft** before you show it. Put its edits into the fields JSON and render again, so the file and the JSON stay the same.
-6. **Approval.** Show the spec. Ask for approval only when every open question has an answer. Otherwise ask the open questions first, put each answer and its Decision log row into the fields JSON, and render again.
-7. **Plan.** Write the plan yourself and summarize it in the Verdict notice of the session rules. It needs no approval.
+1. **Establish the requirements.** Identify the intended outcome, scope, behavior that must stay unchanged and acceptance criteria. A brief conversation summary is enough unless a saved spec is requested or useful. Fixed labels and tables are optional.
+2. **Resolve consequential decisions.** Read the code, docs and prior conversation first. Batch the questions that remain and explain meaningful alternatives. Reuse accepted decisions without asking again. Continue work that does not depend on an unanswered question.
+3. **Optional visual variants.** Use a supplied reference when available. If the user asks you to design, create a draft using repository patterns and the stated requirements. Offer variants when they would resolve a consequential layout or interaction choice; multiple agents and worktrees are optional and should have a clear benefit. Ask before substantial extra work not covered by the request.
+   - If variants need separate worktrees, run their configured setup, use free dev-server ports and avoid `devServer.forbiddenPorts`.
+   - For a comparison report, screen-design-checker can write `kind: "variants"` results, and `node <tools>/screen-report.mjs --out <notesDir>/screen-reports/<task>/variants.html <result.json>...` renders them (`notesDir` from `~/.haechi/user.json`). Give the user the actual variant URLs and report path. Open the report only when `openReports` is on.
+   - Stop servers when finished. For a disposable variant worktree, first run `node <tools>/cleanup-merged.mjs <variant branch> --discard` to list what would be removed. Delete only when the user's authorization covers it; otherwise show the list and ask before rerunning with `--yes`. Preserve skipped work and report it. Never use `git worktree remove --force` by hand. Record the selected behavior.
+4. **Optional saved spec.** Use the repository's document convention. The renderer is available when its structured format helps: write fields JSON in the system temp folder, then run `node <tools>/render-doc.mjs spec <fields.json> --out <file.md>`. Fields: `title`, `date`, `status`, `problem`, `goal`, `inScope[]`, `outOfScope[]`, `behavior[]`, `edgeCases[] {case, decision}`, `acceptance[]`, `constraints[]`, `openQuestions[] {question, answer?}`, `decisions[] {date, item, decision, note?}`. When using the renderer, every list is required; pass `[]` when empty. Exit 2 lists bad fields to fix together. Remove temporary inputs when finished.
+   - Each acceptance criterion must be checkable: a test name, a screen state or an observable response.
+   - Use `Draft` for proposed decisions and `Approved` only when the conversation establishes the user's acceptance. Do not require another approval for an accurate record of already accepted requirements.
+5. **Review the wording.** For a saved draft, use /haechi:plain before showing it. If using fields JSON, put edits there and render again so both copies agree.
+6. **Proceed on existing authorization.** Ask only about consequential unresolved decisions or actions outside the user's authorization. Do not add a formal approval round merely because a document was written. When the user explicitly requests a review before implementation, wait for that review.
+7. **Plan.** Choose the implementation order and delegation. Summarize it when useful; it needs no separate approval.
 
 ## Where it lives
 
-- Save the spec as `<specDir>/YYYY-MM-DD-<slug>.md`, with `specDir` from `.haechi.json`. Fill any placeholder in it, such as `{feature}`, from the task.
-- `specDir` missing: ask once where specs go, then suggest adding it with /haechi:setup.
-- After the change is implemented, move only the conclusion (the final behavior and the decisions) into the feature's canonical doc. Delete the dated spec once the change is merged; the history stays in the commits.
+- When saving a spec, honor an explicit path, the repository convention or `specDir` from `.haechi.json`; fill placeholders such as `{feature}` from the task. Missing `specDir` does not block work or require setup. Choose a reversible location inside the repository when needed.
+- After implementation, keep final behavior and decisions in the feature's canonical doc. A temporary dated spec may be removed after merge when cleanup is authorized; the history stays in the commits.

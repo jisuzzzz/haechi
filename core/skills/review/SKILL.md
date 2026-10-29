@@ -1,27 +1,27 @@
 ---
 name: review
-description: Review playbook — judge a diff or an area of existing code without changing it, using review-diff for the judging and a verifier for large diffs. Use for /haechi:review, when the user asks to review a merge request, a branch, uncommitted changes or an area of code.
+description: Review playbook — judge a diff or an area of existing code without changing it, using review-diff for the evidence standard and independent reviewers when useful. Use for /haechi:review, when the user asks to review a merge request, a branch, uncommitted changes or an area of code.
 ---
 
 # Review playbook
 
-The main session runs these steps. Classification, delegation, the ask list and the DONE rules are in the session rules. How to judge — the order to look in, the three buckets, the evidence each needs, the report shape — is all in /haechi:review-diff, so that a main-session review, a verifier review and a user-requested review use the same bar. This file adds only what is specific to a review request. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **evidence-levels** and **behavior-tests** apply.
+The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules. How to judge — the order to look in, the three buckets, the evidence each needs, the report shape — is all in /haechi:review-diff, so that a main-session review, a verifier review and a user-requested review use the same bar. This file adds only what is specific to a review request. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **evidence-levels** and **behavior-tests** apply.
 
-## Restatement focus
+## Task focus
 
-The key line is **Keep: no code edits**. The easy mistake is fixing what you find during the review. Example: "Keep: no edits to `src/invoices` — findings only; the user decides what to fix."
+Review without code edits. The easy mistake is fixing what you find during the review. Example: "Review `src/invoices` and report findings; the user decides what to fix."
 
 ## Steps
 
 1. **Pick the mode.**
    - Diff review (default): a merge request, a branch against its base, or uncommitted changes.
    - Area review: existing code with no diff, for example "review `src/orders`". Defects and risks only, no style. Raise a structural problem only with a concrete case where it made a change hard or caused a bug.
-2. **Restate.** Current = the target and the intent of the change (merge request description, commit messages). Target = the defect list and a verdict. Keep = no code edits. Proof = a scenario and evidence for every finding. If you cannot tell the intent, ask.
+2. **Establish scope.** Read the target and its intent from the request, merge request description or commit messages. Report findings with a scenario and evidence for each, without code edits. Ask only when unresolved intent would materially change the review; continue independent checks.
 3. **Set the focus.** Default: logic defects, excess (code that does more than needed), sensitive data and safety. If the user names a focus, use that instead.
 4. **Run.**
-   - Diff review: count with `node <tools>/count-logic-lines.mjs --base <base> .` (the haechi tools folder is two levels above this skill's folder, `<this skill's folder>/../../tools/`). Under 400 logic lines, the main session runs /haechi:review-diff. At 400 or more, one verifier. Note the size and the number of defects found; if a large diff yields oddly few defects, consider splitting it then.
-   - Area review: split the area with /haechi:sweep, then /haechi:review-diff per unit.
-5. **Report.** In the shape /haechi:review-diff defines. "No defects" is a valid verdict.
+   - Diff review: use /haechi:review-diff. Choose a verifier when risk or separate context makes independent review useful. File and line counts may help estimate scope but do not decide delegation.
+   - Area review: review directly unless independent areas benefit from separate context. In that case use /haechi:sweep in read-only mode and /haechi:review-diff for each unit. Read-only units produce findings, never commits.
+5. **Report.** Use the evidence and content requirements in /haechi:review-diff; choose the clearest presentation. "No defects" is a valid verdict.
 6. **Follow-up.** Fix nothing during the review. The user decides what to fix; fixes run through /haechi:bug or /haechi:refactor. Posting merge request comments or filing issues is on the ask list.
 
 ## Optional: are the tests strong enough?

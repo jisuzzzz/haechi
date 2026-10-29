@@ -15,7 +15,7 @@ Read existing user settings once. Run `node <tools>/detect.mjs <repo root>` and,
 
 Reuse these results throughout this setup. Read a source file only when its reported value or source leaves a decision unresolved. Limit `AGENTS.md` discovery to the repository and its ancestor directories; read nested instructions only for paths you will change. Never search the entire home directory for instructions.
 
-Combine machine and repository findings in one draft table, then ask all outstanding questions in one batch. An answer already given in this session satisfies its confirmation; do not ask again. Tool checks detect installed versions, not install Node or Python. Branch names, commit formats and MR templates are resolved when those operations happen, not investigated during setup.
+Combine machine and repository findings in one draft, using a table when helpful, then ask all outstanding questions in one batch. An answer already given in this session satisfies its confirmation; do not ask again. Tool checks detect installed versions, not install Node or Python. Branch names, commit formats and MR templates are resolved when those operations happen, not investigated during setup.
 
 ## A. User setup (once per machine)
 
@@ -25,7 +25,7 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
 2. Add these preferences to the combined question batch, each with a recommended default:
    - budget: small / **normal** / large (moves every role's effort one step)
    - notes folder for files that must stay out of repos (requests, raw measurements, screen reports): default `~/.haechi/notes`
-   - answer formats A/B/C: **on** / off
+   - optional answer-format examples A/B/C: **on** / off (on makes examples available; it does not require their labels or tables)
    - in a terminal only: open screen reports in the browser automatically: **yes** / no
 3. Write `~/.haechi/user.json`:
    ```json
@@ -37,7 +37,7 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
 ## B. Repo setup (once per repo, again when it changes)
 
 1. **Use the detection result.** Every candidate has a `value` (or null) and a `source`. Setup requires execution commands, test locations, forbidden commands, the sensitive-data rule, Git host, base and protected branches. Do not inspect branch/commit history, MR templates or merged PRs for setup. `git.branch`, `git.commit` and `git.mrTemplate` are optional overrides; preserve existing values and omit them from a new setup unless the user supplied them.
-2. **Show the combined draft** as one table: setting, value, where it came from. Include machine results when user setup is needed. Mark guesses and unknowns.
+2. **Show the combined draft** with each setting, its value and where it came from. A table is optional. Include machine results when user setup is needed. Mark guesses and unknowns.
 3. **Ask only what is unknown or still needs confirmation**, together with user preferences in one batch:
    - sensitive data: patient data / personal data / payment data / none — require user confirmation; quote what `AGENTS.md` already says if it says anything. Reuse a confirmation already given for this repository
    - the forbidden whole-repo commands: confirm or edit the detected list
@@ -83,4 +83,4 @@ Do not invent prior verification evidence from a saved command. If earlier succe
 
 ## Report
 
-Use the scenario format: what each setting is now and where it came from, what was proven to run, what was left unverified and why, what the user still has to do.
+Report what each setting is now and where it came from, what was proven to run, what was left unverified and why, what the user still has to do.

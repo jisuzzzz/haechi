@@ -20,7 +20,7 @@ The haechi tools folder is two levels above this skill's folder (`<this skill's 
    - `openQuestions[] {question, answer?}`, `decisions[] {date, item, decision, note?}` — `[]` when empty
 3. **Write each request so it can be answered without a meeting.**
    - `contract`: the expected response shape, what each field means, whether it can be null, and an example payload.
-   - `alternatives`: only when the request is costly for the other team. A short format A (choice) of what else would work.
+   - `alternatives`: only when the request is costly for the other team. Briefly compare other workable options; a table is optional.
    - `rollout`: only for a breaking change. The order in which both sides deploy.
    - `proof`: how both sides will know it is done, for example "`GET /api/orders/42` returns `"currency": "EUR"`".
    - Item status starts as `Pending`. Allowed values: `Pending` · `Accepted` · `Accepted with changes` · `Rejected` · `On hold`.
@@ -31,7 +31,7 @@ The haechi tools folder is two levels above this skill's folder (`<this skill's 
 
 - Save it as `<notesDir>/requests/YYYY-MM-DD-<slug>.md` (fields next to it as `.json`), with `notesDir` from `~/.haechi/user.json`. If `notesDir` is missing, ask once where notes go.
 - Never inside a repository. A request is a record of a conversation between teams, often with chat quotes, parts of the other side's code and talk about their production systems.
-- The user asking for the request covers writing these two files. **Sending it** — by chat, email, issue or anywhere else — is an ask item: show the file and ask.
+- The user asking for the request covers writing these two files. **Sending it** — by chat, email, issue or anywhere else — requires authorization for that action. Reuse explicit authorization already given; otherwise show the file and ask before sending.
 
 ## When answers come back
 
@@ -42,4 +42,4 @@ The user pastes or relays an answer, from chat or anywhere else. Update the requ
 - each item's status in the Requests table,
 - the document status: `In progress` once the other team starts answering, `Done` when no item is `Pending` or `On hold`.
 
-Then tell the user in format C (scenario) what changed for the feature: what is now unblocked, what still waits, and any change to the plan.
+Then tell the user what changed for the feature: what is now unblocked, what still waits, and any change to the plan.

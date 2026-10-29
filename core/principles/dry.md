@@ -3,7 +3,7 @@ name: dry
 ---
 
 ## Do
-Extract logic or markup that repeats in two or more places, and decide where it lives. Repeated calls to the same component or helper are not duplication. Do not create an abstraction or a new file that has only one caller.
+Share repeated logic or markup when it represents the same rule. Repeated calls to the same component or helper are not duplication. A separate file or abstraction can have one caller when it clarifies a responsibility, isolates a dependency or makes behavior easier to test. Prefer the simpler local implementation when separation adds no benefit.
 
 ## Check
-Quote both copies of a repeated block and say where it should live. Flag a new file, wrapper or layer that has one caller or only passes arguments through, and name the existing module it belongs in.
+For harmful duplication, quote both copies and explain which shared rule can drift. For an unnecessary layer, explain the extra work it causes and where the logic fits better. Caller count alone is not a defect.

@@ -52,7 +52,7 @@ EOF
 
 ## 5. After the commit
 
-- Push only when the user asks. Pushing is an ask item.
+- Push only with user authorization. Reuse authorization already given for this push; otherwise ask first.
 - Merging into the base or a protected branch is not part of this skill. Merge requests go through /haechi:mr.
 
 ## Report

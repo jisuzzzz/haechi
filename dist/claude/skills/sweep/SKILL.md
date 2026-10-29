@@ -1,6 +1,6 @@
 ---
 name: sweep
-description: Runs many independent units of the same kind of work — splits by non-overlapping files, previews the cost, runs agents in parallel, reviews and commits each unit as it finishes, and resumes from git log. Use for /haechi:sweep, when a playbook hands over many units (test hardening, a large refactor, a bulk migration, a codemod rollout, an area review).
+description: Coordinates independent units of work when separate context or parallel execution helps, with findings for read-only reviews and commits for completed changes. Use for /haechi:sweep when a task benefits from splitting into independent units.
 ---
 
 # Sweep
@@ -9,13 +9,13 @@ The main session runs this, because agents cannot ask the user, start other agen
 
 ## Steps
 
-1. **Split into units.** No two units share a file. A unit is small enough for one agent to finish within its context. Example for test hardening: `src/utils/formatDate.ts` plus `test/utils/formatDate.test.ts` is one unit.
+1. **Choose units and mode.** Delegate units when independence or separate context offers a clear benefit; keep tightly coupled work together. Editing units must not write the same files concurrently. Read-only units may inspect shared context but should have distinct review questions. Example for test hardening: `src/utils/formatDate.ts` plus `test/utils/formatDate.test.ts` is one unit.
 2. **Order.** Use the priority the calling playbook gives — risky places first.
-3. **Preview the cost.** Units × expected time per unit. For test hardening: mutants per file × the test run time. Example: "14 units × about 6 min = about 1.5 h." If it is large, ask whether to narrow the scope before starting.
-4. **Run in parallel.** Follow the delegation rules: units with no dependency and no shared file run at the same time, with no fixed cap on the count. Review each unit as soon as it finishes — do not wait for all of them.
-5. **Commit per unit.** One local commit per reviewed unit. Put the unit's metric in the message, in the repo's commit convention. Example: `test(formatDate): surviving mutants 4 → 1 (1 equivalent) · 2 tests added, 1 changed`.
-6. **Resume.** Keep no progress file. After an interruption, read `git log` for the units already committed and continue with the rest. Work committed before the break stays done.
+3. **Preview material cost.** Estimate effort when it affects the user's decision. For test hardening, use mutants per file and test run time. Ask before substantial extra work outside existing authorization; do not repeat an accepted cost decision.
+4. **Run.** Parallelize independent units when useful within the available resources. Keep dependent work sequential. Review each unit as it finishes.
+5. **Record each unit.** Editing mode: one local commit per completed, reviewed unit, using the repo's convention and any relevant metric. Read-only mode: return findings and evidence in the conversation; make no edits or commits.
+6. **Resume.** Reuse completed findings and checks from the conversation. For editing work, also read `git log` for completed units. Do not create a progress file unless the task needs one.
 
 ## Report
 
-The calling playbook's report, plus: units done, units left and why (skipped, failed, out of time), and the total time against the preview.
+The calling playbook's report, plus units completed, units left and why. Compare actual effort with a cost preview when one was useful; no fixed report format is required.

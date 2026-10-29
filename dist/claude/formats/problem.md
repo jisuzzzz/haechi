@@ -1,15 +1,14 @@
 # Format B — problem
 
-Use it when behavior differs from what was expected: a bug, an error or log line and "why does this happen", a CI failure's cause.
-Do not use it for plain facts or for explaining a change (that is format C).
+Optional example for explaining a bug or failure. Include the symptom, the evidence for its cause, and what would resolve it.
 
-Use a two-column Markdown table for a short overview. Keep the labels below in their relative order when used; omit empty items. Keep cells short and put longer reasoning below the table. Use format A when the fix needs a choice. Write rendered Markdown, not a code block or text aligned with spaces.
+A table can help with several findings; a short paragraph often explains one problem better. Adapt the labels and omit unneeded sections. When answer formats are disabled, do not load or apply this example unless the user requests it.
 
 | Label | Meaning |
 |---|---|
 | Symptom | What was observed, and the conditions that reproduce it. |
 | Cause | The cause, tagged with how far it is proven: guess, code evidence, or ran it. |
-| Fix | The proposed fix; use format A (choice) when the user needs to choose. |
+| Fix | The proposed fix and any decision the user needs to make. |
 | Expected | What will be different after the fix, and how to check it. |
 
 ## Example

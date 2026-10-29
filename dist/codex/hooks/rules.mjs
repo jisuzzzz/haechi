@@ -109,20 +109,22 @@ export const fullBlock = (input
 
  )         => {
   const missing = missingRequired(input.loaded)
-  return render(input.template, {
+  const rules = render(input.template, {
     pluginRoot: input.pluginRoot,
     repoLine: repoLine(input.loaded.settings),
     forbidden: joined(input.loaded.settings?.forbidden),
     setupMissing: missing.length ? missing.join(', ') : undefined,
     riskPaths: joined(input.loaded.settings?.riskPaths),
-    answerFormats: input.user.answerFormats !== false,
   })
+  // Keep optional guidance out of the recovery document, which is read without user settings.
+  if (input.user.answerFormats === false) return rules
+  return `${rules}\n\nANSWER FORMATS: optional examples in ${input.pluginRoot}/formats/ cover choices, problems and scenarios. Use a table when comparison is clearer; use prose or a list when it reads better. Adapt labels and omit unneeded sections. These examples never require an approval or another workflow step.`
 }
 
 export const reminderBlock = (input                                                )         => {
   const missing = missingRequired(input.loaded)
   const setup = missing.length ? ' REPO SETUP INCOMPLETE — no code changes before /haechi:setup.' : ''
-  return `[haechi] Code-change request? First reply: Current/Target/Keep/Proof + Verdict line. Full rules: ${input.pluginRoot}/hooks/rules.md — re-read it if the first block is gone.${setup}`
+  return `[haechi] Continue within the agreed scope and authorization; keep verification evidence. Rules if needed: ${input.pluginRoot}/hooks/rules.md.${setup}`
 }
 
 // Subagents never see prompt-time context, so their task message carries the repo facts they act on
