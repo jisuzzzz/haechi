@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { detect } from '../core/tools/detect.mjs'
+import { detect, snapshot } from '../core/tools/detect.mjs'
 
 const snap = (overrides = {}) => ({
   files: [],
@@ -45,15 +48,15 @@ test('a React web repo: stack, runner, single test, whole-repo scripts, mirror t
   assert.equal(draft.preCommit.value, true)
 })
 
-test('git conventions come from the remote and recent history', () => {
+test('setup detects Git host and branches without inferring operation formats', () => {
   const { git } = detect(reactRepo)
   assert.equal(git.host.value, 'github')
   assert.equal(git.cli.value, 'gh')
   assert.equal(git.base.value, 'main')
   assert.deepEqual(git.protected.value, ['main'])
-  assert.equal(git.branch.value, '{type}/{slug}')
-  assert.equal(git.commit.value, 'en: type(scope): summary')
-  assert.equal(git.mrTemplate.value, null)
+  assert.equal(git.branch, undefined)
+  assert.equal(git.commit, undefined)
+  assert.equal(git.mrTemplate, undefined)
 })
 
 test('sensitive data is never decided, only hinted from AGENTS.md', () => {
@@ -102,8 +105,8 @@ test('a Django repo with uv and a self-hosted GitLab in Korean', () => {
   assert.equal(draft.git.host.value, 'gitlab')
   assert.equal(draft.git.host.source, '.gitlab-ci.yml')
   assert.deepEqual(draft.git.protected.value, ['develop', 'master'])
-  assert.equal(draft.git.commit.value, 'ko: type(scope): summary')
-  assert.deepEqual(draft.git.mrTemplate.value, ['## 개요', '## 주요 변경'])
+  assert.equal(draft.git.commit, undefined)
+  assert.equal(draft.git.mrTemplate, undefined)
 })
 
 test('an empty folder gives unknowns, not guesses', () => {
@@ -111,5 +114,43 @@ test('an empty folder gives unknowns, not guesses', () => {
   assert.equal(draft.stack.value, null)
   assert.equal(draft.commands.testOne.value, null)
   assert.equal(draft.git.host.value, null)
-  assert.equal(draft.git.commit.value, null)
+  assert.equal(draft.git.commit, undefined)
+})
+
+
+test('setup preserves declared Git formats and custom settings beside fresh candidates', () => {
+  const settings = {
+    git: { base: 'release', branch: 'team/{slug}', commit: 'ko: concise subject', mrTemplate: ['## Purpose'] },
+    commands: { verify: 'custom-check {files}' },
+    team: { owner: 'synthetic-team' },
+  }
+  const draft = detect({ ...reactRepo, settingsJson: JSON.stringify(settings) })
+  assert.deepEqual(draft.existingSettings, { value: settings, source: '.haechi.json' })
+  assert.equal(draft.git.base.value, 'main')
+  assert.equal(draft.commands.verify.value, 'node scripts/verify-changed.mjs')
+  assert.deepEqual(detect(snap()).existingSettings, { value: null, source: 'no .haechi.json' })
+})
+
+test('invalid existing settings are reported for repair, not treated as absent', () => {
+  for (const settingsJson of ['', '{oops', 'null', '[]', '"text"']) {
+    const draft = detect(snap({ settingsJson }))
+    assert.equal(draft.existingSettings.value, null)
+    assert.equal(draft.existingSettings.source, '.haechi.json')
+    assert.match(draft.existingSettings.error, /valid JSON object.*repair/)
+  }
+})
+
+test('snapshot returns existing settings without reading PR templates', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const settings = '{"git":{"mrTemplate":["## Keep"]},"custom":true}'
+  writeFileSync(join(root, '.haechi.json'), settings)
+  // A directory at the template path would fail if setup tried to read it as a file.
+  mkdirSync(join(root, '.github', 'pull_request_template.md'), { recursive: true })
+  const facts = snapshot(root)
+  assert.equal(facts.settingsJson, settings)
+  assert.equal(facts.git.subjects, undefined)
+  assert.equal(facts.templateHeadings, undefined)
+  assert.deepEqual(detect(facts).existingSettings.value, JSON.parse(settings))
+  assert.equal(readFileSync(join(root, '.haechi.json'), 'utf8'), settings)
 })

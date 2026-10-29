@@ -28,6 +28,40 @@ const complete = {
   riskPaths: ['src/payments'],
 }
 
+
+const executionSettings = { ...complete, git: { host: 'github', base: 'main', protected: ['main'] } }
+
+test('optional Git formats do not block setup, full prompts or reminders', () => {
+  for (const optional of [{}, { branch: '', commit: null, mrTemplate: [] }, complete.git]) {
+    const loaded = parseSettings(JSON.stringify({ ...executionSettings, git: { ...executionSettings.git, ...optional } }))
+    assert.deepEqual(missingRequired(loaded), [])
+    assert.doesNotMatch(fullBlock({ template, loaded, user: {}, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
+    assert.doesNotMatch(reminderBlock({ loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
+    if (optional === complete.git) assert.deepEqual(loaded.settings.git, complete.git)
+  }
+})
+
+test('execution requirements still block setup when Git formats are absent', () => {
+  const required = [
+    ['commands', 'verify', 'verify command'],
+    ['commands', 'testOne', 'single-test command'],
+    [null, 'forbidden', 'forbidden commands'],
+    [null, 'testDirs', 'test location'],
+    [null, 'sensitiveData', 'sensitive data rule'],
+    ['git', 'host', 'git host'],
+    ['git', 'base', 'base branch'],
+    ['git', 'protected', 'protected branches'],
+  ]
+  for (const [parent, key, label] of required) {
+    const settings = structuredClone(executionSettings)
+    delete (parent ? settings[parent] : settings)[key]
+    const loaded = { settings }
+    assert.deepEqual(missingRequired(loaded), [label])
+    assert.match(fullBlock({ template, loaded, user: {}, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
+    assert.match(reminderBlock({ loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
+  }
+})
+
 test('missing settings file, broken JSON and partial settings are all reported', () => {
   assert.deepEqual(missingRequired(parseSettings(undefined)), ['.haechi.json'])
   assert.deepEqual(missingRequired(parseSettings('{oops')), ['.haechi.json is not valid JSON'])
@@ -93,17 +127,17 @@ test('the built Codex hook prints the same block the shared rules render', async
   }
   const repo = mkdtempSync(join(tmpdir(), 'haechi-repo-'))
   mkdirSync(join(repo, 'src'))
-  writeFileSync(join(repo, '.haechi.json'), JSON.stringify(complete))
+  writeFileSync(join(repo, '.haechi.json'), JSON.stringify(executionSettings))
   const home = mkdtempSync(join(tmpdir(), 'haechi-home-'))
   const env = { home, dataDir: mkdtempSync(join(tmpdir(), 'haechi-data-')) }
   const { handle } = await import(pathToFileURL(join(out, 'codex', 'hooks', 'inject.mjs')).href)
 
   const input = { session_id: 's1', cwd: join(repo, 'src') }
   const first = handle('SessionStart', input, env)
-  const expected = fullBlock({ template, loaded: { settings: complete }, user: {}, pluginRoot: join(out, 'codex') })
+  const expected = fullBlock({ template, loaded: { settings: executionSettings }, user: {}, pluginRoot: join(out, 'codex') })
   assert.equal(first, expected)
   assert.match(handle('UserPromptSubmit', input, env), /^\[haechi\] Code-change request\?/)
   assert.equal(handle('PostCompact', input, env), undefined)
   assert.equal(handle('UserPromptSubmit', input, env), expected)
-  assert.equal(handle('SubagentStart', input, env), spawnAppendix({ settings: complete }, join(out, 'codex')))
+  assert.equal(handle('SubagentStart', input, env), spawnAppendix({ settings: executionSettings }, join(out, 'codex')))
 })

@@ -43,9 +43,6 @@ const REQUIRED                                  = [
   ['git.host', 'git host'],
   ['git.base', 'base branch'],
   ['git.protected', 'protected branches'],
-  ['git.branch', 'branch naming'],
-  ['git.commit', 'commit format'],
-  ['git.mrTemplate', 'merge request template'],
 ]
 
 const valueAt = (source         , path        )          =>

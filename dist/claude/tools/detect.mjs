@@ -1,8 +1,8 @@
-// Repo setup, step 1: guess every setting from the repo and say where each guess came from.
+// Repo setup, step 1: detect execution settings and preserve existing settings for comparison.
 // Usage: node detect.mjs [repo-root]  → prints a JSON draft. Nothing is written.
 // detect() is pure (it takes a snapshot); snapshot() does the reading.
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -24,10 +24,6 @@ const PYTHON_RUNNERS = {
 
 // Scripts that sweep the whole repo, rewrite files, or never exit; agents run single files instead
 const WHOLE_REPO_SCRIPT = /^(test|lint|typecheck|format|coverage|e2e)(:|$)|:(watch|ui|full)$/
-
-const HANGUL = /[가-힣]/
-const CONVENTIONAL = /^(feat|fix|chore|refactor|docs|test|style|perf|build|ci)(\([^)]*\))?!?: /
-const BRANCH_TYPE = /^(feat|fix|chore|refactor|docs|test|style|perf|hotfix|release)\//
 
 const deps = (pkg) => ({ ...pkg?.dependencies, ...pkg?.devDependencies })
 
@@ -126,32 +122,22 @@ const detectGit = (snap) => {
     ? guess([...new Set([base.value, ...['main', 'master'].filter((name) => snap.git.remoteBranches.includes(name))])], 'base + main/master on origin')
     : unknown()
 
-  const typed = snap.git.remoteBranches.filter((name) => BRANCH_TYPE.test(name))
-  const branch =
-    snap.git.remoteBranches.length && typed.length / snap.git.remoteBranches.length >= 0.5
-      ? guess('{type}/{slug}', `${typed.length} of ${snap.git.remoteBranches.length} recent branches`)
-      : unknown('no clear branch pattern')
-
-  const subjects = snap.git.subjects
-  const conventional = subjects.filter((subject) => CONVENTIONAL.test(subject)).length
-  const korean = subjects.filter((subject) => HANGUL.test(subject)).length
-  const commit =
-    subjects.length && conventional / subjects.length >= 0.6
-      ? guess(`${korean / subjects.length >= 0.5 ? 'ko' : 'en'}: type(scope): summary`, `${conventional} of ${subjects.length} recent commits`)
-      : unknown('no clear commit pattern')
-
-  const mrTemplate = snap.templateHeadings.length
-    ? guess(snap.templateHeadings, snap.templateSource)
-    : unknown('no MR/PR template file — read recent merge requests')
-
   return {
     host,
     cli: host.value === 'github' ? guess('gh', 'host') : host.value === 'gitlab' ? guess('glab', 'host') : unknown(),
     base,
     protected: protectedBranches,
-    branch,
-    commit,
-    mrTemplate,
+  }
+}
+
+const existingSettings = (text) => {
+  if (text === undefined) return unknown('no .haechi.json')
+  try {
+    const settings = JSON.parse(text)
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('expected an object')
+    return guess(settings, '.haechi.json')
+  } catch {
+    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object; repair it before writing settings' })
   }
 }
 
@@ -180,6 +166,7 @@ export const detect = (snap) => {
       : unknown('always ask the user'),
     agentsMd: guess(Boolean(snap.agentsMd), snap.agentsMd ? 'AGENTS.md' : 'no AGENTS.md'),
     git: detectGit(snap),
+    existingSettings: existingSettings(snap.settingsJson),
   }
 }
 
@@ -193,21 +180,6 @@ const git = (root, args) => {
 
 const readIf = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined)
 
-const templateHeadings = (root) => {
-  const candidates = [
-    '.github/pull_request_template.md',
-    '.github/PULL_REQUEST_TEMPLATE.md',
-    ...(existsSync(join(root, '.gitlab/merge_request_templates'))
-      ? readdirSync(join(root, '.gitlab/merge_request_templates')).map((name) => `.gitlab/merge_request_templates/${name}`)
-      : []),
-  ]
-  const found = candidates.find((path) => existsSync(join(root, path)))
-  return {
-    templateSource: found,
-    templateHeadings: found ? readFileSync(join(root, found), 'utf8').split(/\r?\n/).filter((line) => /^#{1,3} /.test(line)) : [],
-  }
-}
-
 export const snapshot = (root) => {
   const originHead = git(root, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']).replace(/^origin\//, '') || undefined
   return {
@@ -216,7 +188,7 @@ export const snapshot = (root) => {
     pyproject: readIf(join(root, 'pyproject.toml')),
     requirements: readIf(join(root, 'requirements.txt')),
     agentsMd: readIf(join(root, 'AGENTS.md')),
-    ...templateHeadings(root),
+    settingsJson: readIf(join(root, '.haechi.json')),
     git: {
       remote: git(root, ['remote', 'get-url', 'origin']).replace(/\/\/[^@/]*@/, '//') || undefined,
       originHead,
@@ -225,7 +197,6 @@ export const snapshot = (root) => {
         .map((name) => name.replace(/^origin\//, ''))
         .filter((name) => name && name !== 'origin' && name !== 'HEAD')
         .slice(0, 40),
-      subjects: originHead ? git(root, ['log', `origin/${originHead}`, '-50', '--no-merges', '--format=%s']).split('\n').filter(Boolean) : [],
     },
   }
 }

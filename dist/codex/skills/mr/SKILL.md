@@ -27,8 +27,10 @@ Read `git diff <base>...HEAD` where the log and stat are not enough to describe 
 
 ## 2. Title and body
 
-- Title: the `git.commit` format and language. Example: `fix(orders): keep the time zone when formatting due dates`.
-- Body: exactly the headings in `git.mrTemplate`, in that order. Drop a section the template marks optional when you have nothing for it. Not sure whether a section is optional: keep it.
+- Title: honor explicit repository instructions and `git.commit` when set. Otherwise follow the commit subjects collected in Analyze; with no established format, use a concise description of the change. Example: `fix(orders): keep the time zone when formatting due dates`.
+- Body: honor explicit repository instructions. Use the headings in an existing `git.mrTemplate` override, in that order. Without an override, read the repository's PR/MR template when preparing this MR: GitHub templates under `.github/`, the root or `docs/`; GitLab templates under `.gitlab/merge_request_templates/`. Follow the template's instructions, not just its headings. If several templates apply and repository guidance does not choose one, ask which one to use.
+- Without an override or repository template, use `## Summary`, `## Changes` and `## Validation`. State why the change is needed, what changes and how it was checked. Drop a section only if the selected template marks it optional and it has no content.
+- Do not scan merged PR/MR history to infer a body format unless the user asks to match previous requests. Missing format settings do not require setup.
 - Group changes by module or area, not by file. Example: one bullet group for `src/orders/` and one for `src/api/orders.ts`, each bullet one change.
 - Closing keyword: if the branch name, a commit or the conversation names an issue the change resolves, add `Closes #12`. Partly addresses it: `Related to #12`.
 - Run /haechi:plain on the body.

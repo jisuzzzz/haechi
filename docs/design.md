@@ -78,8 +78,14 @@ No coined terms and no forced translation: keep the English term developers know
 
 ## Settings
 
-- `.haechi.json` in the repo: commands (verify, single test, typecheck), forbidden whole-repo commands, test layout, git conventions, worktree setup and teardown, optional risk paths.
+- `.haechi.json` in the repo: commands (verify, single test, typecheck), forbidden whole-repo commands, test layout, Git host and base/protected branches, optional Git format overrides, worktree setup and teardown, optional risk paths.
 - `~/.haechi/user.json`: budget, model overrides, answer formats on or off, and a notes folder for anything that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks).
+
+## Setup scope
+
+A repository can finish setup without `git.branch`, `git.commit` or `git.mrTemplate`. These optional overrides are preserved if already set. Branch creation follows explicit naming rules or the environment default. Commit resolves its format from explicit rules or recent commits. MR resolves its body from an override, the repository template, or Summary, Changes and Validation sections. Merged PR history is consulted for formatting only when requested.
+
+Setup detects execution settings and returns existing settings alongside candidates. Independent machine and repository checks run together, and their results feed one confirmation batch. The agent reuses successful checks when their relevant inputs have not changed. A verifier that actually runs the configured test can satisfy the single-test proof too; a no-tests result cannot. On reruns, unavailable evidence stays unverified until checked. Instruction discovery stays within the repository and its ancestors.
 
 ## Build and distribution
 

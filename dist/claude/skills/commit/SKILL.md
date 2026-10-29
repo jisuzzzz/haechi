@@ -29,7 +29,7 @@ No changes: say so and stop.
 
 ## 3. Message
 
-- Format and language come from `git.commit`. Example: `en: type(scope): summary` gives `fix(orders): keep the time zone when formatting due dates`. No `git.commit`: copy the style of the recent log.
+- Honor explicit repository instructions and the optional `git.commit` setting. Example: `en: type(scope): summary` gives `fix(orders): keep the time zone when formatting due dates`. If neither defines a format, use the recent log already collected in Review. With no history, use a concise imperative subject describing the change. Resolve this here; missing format settings do not require setup.
 - The subject says what changed. The body is optional and says why.
 - One commit per unit of work. Split only when the kinds of diff differ — a file move and a behavior change go in separate commits, as the refactor playbook says (/haechi:refactor).
 - End with the attribution trailer the environment asks for, if any.
