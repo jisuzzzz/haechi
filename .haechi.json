@@ -1,0 +1,26 @@
+{
+  "commands": {
+    "verify": "npm run check",
+    "testOne": "node --test {file}",
+    "typecheck": null
+  },
+  "forbidden": ["npm test", "npm run test"],
+  "testDirs": ["test"],
+  "sensitiveData": "none — do not add real personal, patient, or payment data",
+  "generated": ["dist/claude", "dist/codex"],
+  "devServer": null,
+  "worktreeSetup": null,
+  "worktreeTeardown": null,
+  "git": {
+    "host": "github",
+    "cli": "gh",
+    "base": "main",
+    "protected": ["main"],
+    "branch": "codex/{slug}",
+    "commit": "en: concise imperative subject, matching recent history",
+    "mrTemplate": ["## Summary", "## Changes", "## Validation"],
+    "reviewer": null,
+    "autoMerge": false
+  },
+  "riskPaths": []
+}
