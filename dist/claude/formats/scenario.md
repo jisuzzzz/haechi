@@ -15,12 +15,18 @@ Fixed labels in this order. Write `—` for an empty slot.
 
 ## Example
 
-```
-Example:        A user marks "Pay invoice #7" done in a list with 4 open todos.
-Before → After: 1. Click the checkbox                     | 1. Click the checkbox
-                2. The todo moves to the bottom            | 2. The todo moves to "Done"  (changed)
-                3. The counter still says 4 open           | 3. The counter says 3 open   (changed)
-Also applies:   Marking done from the search results and from the keyboard shortcut.
-Unchanged:      Undo, sorting of open todos, the API call.
-Why:            The counter read a cached list instead of the updated one — todos/useOpenCount.ts.
-```
+**Example:** A user marks "Pay invoice #7" done in a list with 4 open todos.
+
+**Before → After**
+
+| Step | Before | After |
+|---|---|---|
+| 1 | Click the checkbox | Click the checkbox |
+| 2 | The todo moves to the bottom | The todo moves to "Done" (changed) |
+| 3 | The counter still says 4 open | The counter says 3 open (changed) |
+
+**Also applies:** Marking done from the search results and from the keyboard shortcut.
+
+**Unchanged:** Undo, sorting of open todos, the API call.
+
+**Why:** The counter read a cached list instead of the updated one (`todos/useOpenCount.ts`).

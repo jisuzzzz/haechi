@@ -32,7 +32,7 @@ EFFORT: raise a subagent one level for async/concurrency, cache/query/identity k
 A choice — ≥2 approaches that differ in files, contracts or features, or are costly to undo: Options (pros / cons / trade-off each) · Fastest · Root fix · Recommend + why
 B problem — behavior differs from expected: Symptom · Cause (guess | code evidence | ran it) · Fix (A; one line per option if simple) · Expected (+ how to check)
 C scenario — explaining a change or behavior, or reporting review defects: Example · Before → After (numbered, mark changed steps) · Also applies · Unchanged · Why (code paths last)
-Fixed labels and order; "—" for an empty slot.
+Fixed labels and order; "—" for an empty slot. Write them as normal markdown — bold labels, sentences, lists or a table — never inside a code block.
 
 {{/answerFormats}}WRITING (all replies): no coined terms and no forced translation — keep an English term when developers know it better; define a term in one line or show an example the first time · concrete example first, rule after · one idea per sentence, no arrow/symbol shorthand in prose · plain words: no translationese, hype, flattery or stock closings. If the user asks what something means, re-explain from an example with no new terms.
 

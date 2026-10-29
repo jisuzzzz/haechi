@@ -14,10 +14,12 @@ Fixed labels in this order. Write `—` for an empty slot.
 
 ## Example
 
-```
-Symptom:   On /api/orders?page=2 the first order of page 2 is the last order of page 1. Happens on every page after the first.
-Cause:     `offset = page * size - 1` in orders/list.ts:41 (code evidence; ran it with page=2, size=20 → offset 39).
-Fix:       ① Use `(page - 1) * size` — Fastest = Root fix.
-           ② Switch to cursor paging — out of scope.
-Expected:  Page 2 starts at order 21. Check: the new test "page 2 starts after page 1" passes, and it fails on the old line.
-```
+**Symptom:** On `/api/orders?page=2` the first order of page 2 is the last order of page 1. It happens on every page after the first.
+
+**Cause:** `offset = page * size - 1` in `orders/list.ts:41` (ran it: page 2 with size 20 gives offset 39).
+
+**Fix:**
+1. Use `(page - 1) * size`. Fastest = Root fix.
+2. Switch to cursor paging. Out of scope.
+
+**Expected:** Page 2 starts at order 21. To check, the new test "page 2 starts after page 1" passes, and it fails on the old line.

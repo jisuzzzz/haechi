@@ -14,12 +14,12 @@ Fixed labels in this order. Write `—` for an empty slot.
 
 ## Example
 
-```
-Options:    ① Format the date in each of the 3 screens that show `dueDate`
-               pros: no shared change / cons: 3 copies drift apart / trade-off: fast now, costly later
-            ② Change `formatDate` to take the user's locale and use it in all 3
-               pros: one rule / cons: touches a shared helper and its 12 callers' tests
-Fastest:    ①
-Root fix:   ②
-Recommend:  ② — the 3 screens already disagree on the day-month order, so a fourth copy would repeat the bug.
-```
+**Options**
+1. Format the date in each of the 3 screens that show `dueDate`. Pros: no shared change. Cons: 3 copies drift apart. Trade-off: fast now, costly later.
+2. Change `formatDate` to take the user's locale and use it in all 3. Pros: one rule. Cons: touches a shared helper and its 12 callers' tests.
+
+**Fastest:** 1
+
+**Root fix:** 2
+
+**Recommend:** 2, because the 3 screens already disagree on the day-month order and a fourth copy would repeat the bug.
