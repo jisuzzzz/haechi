@@ -36,7 +36,7 @@ It takes each changed line that guards, compares, deduplicates or normalizes, an
 ### mutation-check
 Run `node <tools>/mutation-check.mjs --file <source> --tests <test files> --test-cmd "<single-test command with {tests}>" [--base <base>] [--limit 20]` (the tools folder is in the task's "[haechi] Repo facts" block, or two levels above this skill's folder; the single-test command is in the same block). Add `--json` for machine-readable output.
 
-It changes one changed line at a time — flips a comparison, swaps `&&` and `||`, flips a boolean, shifts a number by one, drops a call — runs the tests, and restores the file. It refuses to run when the tests already fail.
+It changes one changed line at a time — flips a comparison, swaps `&&` and `||`, flips a boolean, shifts a number by one, drops a call — runs the tests, and restores the file. It refuses to run when the tests already fail. It runs the tests once per mutant, so give the shell a long enough timeout or run it in the background; if a run is killed anyway, the next run restores the file before it starts.
 
 For each **survived** mutant decide:
 - **A real gap** — the change alters behavior a user could observe and no test noticed. Strengthen an assertion or add a case that kills it.

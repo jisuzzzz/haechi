@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { addedLines, applyMutant, generateMutants, parseArgs, parseLineRanges } from '../core/tools/mutation-check.mjs'
+import { addedLines, applyMutant, generateMutants, parseArgs, parseLineRanges, recoverInterrupted, saveBackup } from '../core/tools/mutation-check.mjs'
 
 const tool = join(import.meta.dirname, '..', 'core', 'tools', 'mutation-check.mjs')
 const summarize = (mutants) => mutants.map(({ line, operator, before, after }) => `${line} ${operator} ${before}→${after}`)
@@ -58,10 +58,12 @@ test('Python operators, strings, comments and drop-call', () => {
   const text = ['if a == 1 and not b:  # x == 2', '    s = "a or b" + """c == d', '    True"""', '    run(x)', 'y = z if n < 3 else False', ''].join('\n')
   assert.deepEqual(summarize(generateMutants(text, null, 'python')), [
     '1 comparison ==→!=',
+    '1 integer 1→2',
     '1 logical and→or',
     '1 negation not →',
     '4 drop-call run(x)→pass',
     '5 comparison <→<=',
+    '5 integer 3→4',
     '5 boolean False→True',
   ])
 })
@@ -134,4 +136,26 @@ test('end to end: a failing baseline is refused with exit 2 and nothing is mutat
   assert.equal(result.status, 2)
   assert.equal(JSON.parse(result.stdout).baseline, 'fail')
   assert.equal(readFileSync(join(dir, 'one.mjs'), 'utf8'), source)
+})
+
+test('a source left mutated by a killed run is restored by the next run, a live run is left alone', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'haechi-mutation-'))
+  const backups = join(dir, 'backups')
+  const killed = join(dir, 'killed.mjs')
+  const live = join(dir, 'live.mjs')
+  writeFileSync(killed, 'export const a = 1\n')
+  writeFileSync(live, 'export const b = 1\n')
+  saveBackup(killed, readFileSync(killed), backups)
+  saveBackup(live, readFileSync(live), backups)
+  writeFileSync(killed, 'export const a = 2\n')
+  writeFileSync(live, 'export const b = 2\n')
+  const deadPid = spawnSync(process.execPath, ['-e', '']).pid
+  for (const name of readdirSync(backups)) {
+    const backup = JSON.parse(readFileSync(join(backups, name), 'utf8'))
+    if (backup.path === killed) writeFileSync(join(backups, name), JSON.stringify({ ...backup, pid: deadPid }))
+  }
+  assert.deepEqual(recoverInterrupted(backups), [killed])
+  assert.equal(readFileSync(killed, 'utf8'), 'export const a = 1\n')
+  assert.equal(readFileSync(live, 'utf8'), 'export const b = 2\n')
+  assert.equal(readdirSync(backups).length, 1)
 })

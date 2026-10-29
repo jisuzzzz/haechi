@@ -3,9 +3,13 @@
 // Usage: node mutation-check.mjs --file <source> --test-cmd "<command containing {tests}>" --tests <test files...>
 //          [--lines <a-b,…>] [--base <rev>] [--limit 20] [--timeout 120] [--json]
 // Without --lines it mutates the lines of --file changed against --base (default HEAD); an untracked file uses every line.
-// The source file is always restored, also on Ctrl+C. Exit 0 with survivors (information), 2 on bad arguments or failing tests.
+// The source file is restored when the run ends or is interrupted with Ctrl+C; after a hard kill (taskkill /F, a shell
+// timeout) the next run restores it first. Exit 0 with survivors (information), 2 on bad arguments or failing tests.
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const JS_REGEX_BEFORE = /[(,=:[!&|?{};+\-*%<>~^]/
@@ -84,6 +88,7 @@ const OPERATORS = {
     { operator: 'logical', pattern: /\b(and|or)\b/g, swap: { and: 'or', or: 'and' } },
     { operator: 'boolean', pattern: /(?<![\w.])(True|False)(?!\w)/g, swap: { True: 'False', False: 'True' } },
     { operator: 'negation', pattern: /\bnot\s+/g, swap: () => '' },
+    { operator: 'integer', pattern: /(?<![\w.])\d+(?![\w.])/g, swap: (token) => String(Number(token) + 1) },
   ],
 }
 
@@ -205,6 +210,42 @@ const changedLines = (file, base) => {
   }
 }
 
+// A hard kill skips every exit and signal handler, so the original also waits on disk until it is put back
+const BACKUP_DIR = join(tmpdir(), 'haechi-mutation-check')
+
+const isAlive = (pid) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error.code === 'EPERM'
+  }
+}
+
+// Written to a temp name and renamed, so a kill during the write never leaves a half backup behind
+export const saveBackup = (file, original, dir = BACKUP_DIR) => {
+  mkdirSync(dir, { recursive: true })
+  const path = resolve(file)
+  const backup = join(dir, `${createHash('sha1').update(path).digest('hex')}.json`)
+  writeFileSync(`${backup}.tmp`, JSON.stringify({ pid: process.pid, path, content: original.toString('base64') }))
+  renameSync(`${backup}.tmp`, backup)
+  return backup
+}
+
+// Puts back the sources of runs that died before restoring them; a backup whose run is still alive is left alone
+export const recoverInterrupted = (dir = BACKUP_DIR) => {
+  const restored = []
+  for (const name of existsSync(dir) ? readdirSync(dir).filter((entry) => entry.endsWith('.json')) : []) {
+    const backup = join(dir, name)
+    const { pid, path, content } = JSON.parse(readFileSync(backup, 'utf8'))
+    if (isAlive(pid)) continue
+    writeFileSync(path, Buffer.from(content, 'base64'))
+    rmSync(backup)
+    restored.push(path)
+  }
+  return restored
+}
+
 const killTree = (child) => {
   if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
   else {
@@ -297,6 +338,7 @@ const main = async () => {
   }
   const command = options.testCmd.replaceAll('{tests}', options.tests.map((test) => `"${test.replaceAll('"', '\\"')}"`).join(' '))
   const timeoutMs = options.timeout * 1000
+  for (const path of recoverInterrupted()) console.error(`mutation-check: restored ${path}, left mutated by an interrupted run`)
   const original = readFileSync(options.file)
   const text = original.toString('utf8')
   const lines = options.lines ?? changedLines(options.file, options.base)
@@ -313,11 +355,12 @@ const main = async () => {
     return
   }
 
+  const backup = saveBackup(options.file, original)
   let dirty = false
   const restore = () => {
-    if (!dirty) return
-    writeFileSync(options.file, original)
+    if (dirty) writeFileSync(options.file, original)
     dirty = false
+    rmSync(backup, { force: true })
   }
   const abort = () => {
     if (running) killTree(running)
