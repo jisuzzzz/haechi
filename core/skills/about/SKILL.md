@@ -7,4 +7,4 @@ description: Explains what the haechi plugin is and what this build includes. Us
 
 haechi is an agent workflow plugin for Claude Code and Codex. It routes each request to a playbook, delegates to subagents when that pays off, and calls work done only with evidence.
 
-This build is a skeleton: it proves the plugin installs. Playbooks, subagents and setup arrive in later releases.
+This build has setup (`/haechi:setup`), the playbooks (`bug`, `feature`, `refactor`, `perf`, `review`, `test-hardening`), the procedures they call (`spec`, `sweep`, `plain`, `request`, `review-diff`, `impact-map`, `mutation-check`, `sibling-path-map`) and seven subagents. Git skills (commit, merge request, CI watch) arrive in a later release.

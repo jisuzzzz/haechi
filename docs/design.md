@@ -52,6 +52,13 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 - A verifier reviews when the task has 400+ logic lines or implementers share a contract. Parallel units are reviewed one by one as they finish, then once together.
 - The adversarial tester attacks sibling paths and runs mutation checks when behavior changes at implementer size.
 
+## Playbooks and documents
+
+- Each playbook is a skill the main session loads after classifying: `bug`, `feature`, `refactor`, `perf`, `review`, `test-hardening`. They hold only what is specific to that kind of work; the shared rules stay in the hook.
+- `spec` runs before features, big refactors and requests that can be read two ways. `sweep` splits many-unit work into non-overlapping units with one commit each.
+- Lasting documents are filled as JSON and rendered by a script, so the shape never drifts: `render-doc.mjs` for specs and requests to other teams, `screen-report.mjs` for screen-check results as one HTML page. `plain` is the last pass on any written draft.
+- Requests to other teams and screen reports live in the user's notes folder, never in the repository.
+
 ## When to ask
 
 Stop and ask before anything that leaves the machine or is hard to undo (push, merge, publish, migrations, deletes), when two readings change different files or contracts, when expected behavior is undefined, before skipping verification, and before costly work nobody asked for. Otherwise state the assumption and continue. Subagents never ask; they report open questions.
@@ -85,7 +92,7 @@ No coined terms and no forced translation: keep the English term developers know
 
 ## Roadmap
 
-P0 verification spikes (done) → P1 skeleton and build → P2 core rules and hooks → P3 setup → P4 agents and principles → P5 playbooks → P6 git skills → P7 real use on one repository → P8 v0.1 release.
+P0 verification spikes → P1 skeleton and build → P2 core rules and hooks → P3 setup → P4 agents and principles (P0–P4 done) → P5 playbooks → P6 git skills → P7 real use on one repository → P8 v0.1 release.
 
 ## Credits
 
