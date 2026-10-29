@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build/build.mjs",
-    "check": "node build/build.mjs --check",
+    "build": "node --no-warnings build/build.mjs",
+    "check": "node --no-warnings build/build.mjs --check",
     "test": "node --test \"test/*.test.mjs\"",
     "scan": "node scripts/scan-public.mjs"
   },

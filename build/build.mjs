@@ -1,5 +1,6 @@
 // Builds dist/claude and dist/codex from core/. Run with --check to fail when the committed dist is stale.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { stripTypeScriptTypes } from 'node:module'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -54,7 +55,14 @@ export const loadCore = (coreDir) => {
     const file = join(coreDir, 'agents', name)
     agents.push({ file, ...parseFrontmatter(readFileSync(file, 'utf8'), file) })
   }
-  return { plugin, principles, skills, agents }
+  const readOptional = (path) => (existsSync(join(coreDir, path)) ? readFileSync(join(coreDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
+  const hooks = {
+    rulesTemplate: readOptional('hooks/rules.md'),
+    rulesSource: readOptional('hooks/rules.ts'),
+    claude: { 'register.ts': readOptional('connectors/claude/register.ts'), 'hooks.json': readOptional('connectors/claude/hooks.json') },
+    codex: { 'inject.mjs': readOptional('connectors/codex/inject.mjs'), 'hooks.json': readOptional('connectors/codex/hooks.json') },
+  }
+  return { plugin, principles, skills, agents, hooks }
 }
 
 const lookup = (map, names = [], kind, file) =>
@@ -119,6 +127,17 @@ export const buildFiles = (core) => {
     files.set(`claude/agents/${agent.fields.name}.md`, claudeAgent(agent, core))
     // Codex plugins cannot carry agents, so setup installs these TOML files (P0 finding)
     files.set(`codex/agents/${agent.fields.name}.toml`, codexAgent(agent, core))
+  }
+  const { hooks } = core
+  if (hooks?.rulesSource) {
+    files.set('claude/hooks/rules.md', hooks.rulesTemplate)
+    files.set('codex/hooks/rules.md', hooks.rulesTemplate)
+    // The Claude mod imports the TypeScript as is; the Codex hook runs on plain node, so it gets the types stripped
+    files.set('claude/hooks/rules.ts', hooks.rulesSource)
+    files.set('codex/hooks/rules.mjs', stripTypeScriptTypes(hooks.rulesSource, { mode: 'strip' }).replace(/[ \t]+$/gm, ''))
+    for (const target of ['claude', 'codex']) {
+      for (const [name, text] of Object.entries(hooks[target])) files.set(`${target}/hooks/${name}`, text)
+    }
   }
   return files
 }

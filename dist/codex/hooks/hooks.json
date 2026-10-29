@@ -1,0 +1,8 @@
+{
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs SessionStart" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs UserPromptSubmit" }] }],
+    "PostCompact": [{ "hooks": [{ "type": "command", "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs PostCompact" }] }],
+    "SubagentStart": [{ "hooks": [{ "type": "command", "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs SubagentStart" }] }]
+  }
+}
