@@ -33,6 +33,7 @@
 
 
 
+
 // Setup is complete only when every one of these is present — they are the "required" grade of repo setup
 const REQUIRED                                  = [
   ['commands.verify', 'verify command'],

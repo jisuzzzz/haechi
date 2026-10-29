@@ -5,6 +5,7 @@ export interface RepoSettings {
   commands?: { verify?: string; testOne?: string; typecheck?: string | null }
   forbidden?: string[]
   testDirs?: string[]
+  pythonTestMap?: { source: string; tests: string[] }[]
   sensitiveData?: string
   git?: {
     host?: string
