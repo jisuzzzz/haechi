@@ -1,0 +1,2 @@
+fastapi==0.121.0
+PyMySQL==1.1.2

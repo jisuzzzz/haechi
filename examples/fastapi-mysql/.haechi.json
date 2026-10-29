@@ -1,0 +1,8 @@
+{
+  "commands": {
+    "testOne": "python -m pytest -q {file}"
+  },
+  "pythonTestMap": [
+    { "source": "app/", "tests": ["tests/test_api.py"] }
+  ]
+}

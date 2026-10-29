@@ -1,6 +1,6 @@
 # Python backend verification
 
-Status: Accepted scope; implementation details chosen under the user's request to write the spec and proceed.
+Status: Implemented. Scope accepted through the user's request to write the spec and proceed; validation is recorded in `python-backends.md`.
 Date: 2026-10-29
 
 ## Problem and goal
@@ -13,6 +13,7 @@ Changing `app/orders.py` currently runs Ruff but does not select `tests/test_ord
 - Example: `{"source":"app/","tests":["tests/test_api.py"]}` selects the API test when any Python file under `app/` changes.
 - The default verifier combines all matching entries with changed Python test files and removes duplicates. Directory matches respect path boundaries. It never invents a whole-repository pytest command.
 - A configured `commands.testOne` takes precedence over detected pytest. It must contain `{file}` and runs once per selected file. Existing options, environment setup and Docker wrappers remain part of that command. A custom `commands.verify` remains the setup choice; the default verifier never invokes it recursively.
+- A placeholder inside a quoted shell snippet must have its own quotes. Ambiguous nested quoting is rejected before execution rather than risking a split filename.
 - Without `commands.testOne`, use the detected uv, Poetry or pip pytest command. Python dependencies declared in `requirements-dev.txt` participate in setup detection as they already do in the default verifier.
 - Unmapped sources, unavailable tools and other skipped checks are listed. The CLI exits 2 for incomplete verification, 1 for a failed check or invalid configuration, and 0 only when planned checks pass with no skips. Documentation-only changes with no checks remain a successful no-op. JS lint and test selection commands stay the same; skipped JS checks also become incomplete instead of successful.
 - Invalid map shapes, unsafe paths and selected test files missing from the repository fail before checks run. No test path may resolve outside the repository. Configuration is optional and does not make existing setup incomplete.
