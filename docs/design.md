@@ -59,6 +59,11 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 - Lasting documents are filled as JSON and rendered by a script, so the shape never drifts: `render-doc.mjs` for specs and requests to other teams, `screen-report.mjs` for screen-check results as one HTML page. `plain` is the last pass on any written draft.
 - Requests to other teams and screen reports live in the user's notes folder, never in the repository.
 
+## Git
+
+- `commit` works the same on every host. `mr` opens merge requests on GitLab (glab) and pull requests on GitHub (gh) from the repo's title and body conventions. `ci-watch` (GitLab only for now) waits for the pipeline in the background, fixes failures in the session that opened the merge request, stops after the same job fails twice, and never passes a gate by suppressing it.
+- After a merge, `cleanup-merged.mjs` lists the local branch, worktree and leftover remote branch, and deletes them only after one yes. It unlinks links inside a worktree first, so deletion cannot follow them into the main checkout.
+
 ## When to ask
 
 Stop and ask before anything that leaves the machine or is hard to undo (push, merge, publish, migrations, deletes), when two readings change different files or contracts, when expected behavior is undefined, before skipping verification, and before costly work nobody asked for. Otherwise state the assumption and continue. Subagents never ask; they report open questions.
@@ -92,7 +97,7 @@ No coined terms and no forced translation: keep the English term developers know
 
 ## Roadmap
 
-P0 verification spikes → P1 skeleton and build → P2 core rules and hooks → P3 setup → P4 agents and principles (P0–P4 done) → P5 playbooks → P6 git skills → P7 real use on one repository → P8 v0.1 release.
+P0 verification spikes → P1 skeleton and build → P2 core rules and hooks → P3 setup → P4 agents and principles → P5 playbooks (P0–P5 done) → P6 git skills → P7 real use on one repository → P8 v0.1 release.
 
 ## Credits
 

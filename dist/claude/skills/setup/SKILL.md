@@ -37,7 +37,7 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
    - the changed-files verifier: pick among `commands.verifyCandidates`, or the default verifier `node <tools>/verify-default.mjs {files}`
    - base and protected branches: confirm
    - any other required item whose value is null
-   Recommended items get a "later" option: dev server command and ports the agent must not use, worktree dependencies (fresh install or link to the main checkout — linking is faster but must be unlinked before the worktree is deleted), spec and measurement record folders.
+   Recommended items get a "later" option: dev server command and ports the agent must not use, worktree dependencies (fresh install or link to the main checkout — linking is faster but must be unlinked before the worktree is deleted), spec and measurement record folders, the merge request reviewer (a username, `previous-mr` to reuse the last merged one's, or none), whether CI watching may set auto-merge without asking (`git.autoMerge`). `worktreeTeardown` is an extra shell command run inside a worktree before it is removed. Worktrees are always removed through `cleanup-merged.mjs`, which unlinks every link inside the worktree first, so linked dependencies need no teardown; set it only for other steps (stopping a local database, for example).
 4. **Prove each command runs**, on the smallest scope:
    - single test: one small existing test file
    - verify: one changed file. Many verifiers check only files that differ from HEAD; on a clean tree they exit 0 having checked nothing. Report that as "runs, checked nothing" (unverified), not as proven — prove it later on the first real change.
@@ -54,12 +54,13 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
      "generated": [],
      "devServer": { "command": "yarn dev", "forbiddenPorts": [5173] },
      "worktreeSetup": "yarn install --frozen-lockfile",
-     "worktreeTeardown": "unlink-reparse-points",
+     "worktreeTeardown": null,
      "specDir": "docs/{feature}",
      "perf": { "recordsDir": "docs/{area}/perf" },
      "git": {
        "host": "gitlab", "cli": "glab", "base": "develop", "protected": ["develop", "main"],
-       "branch": "{type}/{slug}", "commit": "en: type(scope): summary", "mrTemplate": ["## Summary", "## Changes"]
+       "branch": "{type}/{slug}", "commit": "en: type(scope): summary", "mrTemplate": ["## Summary", "## Changes"],
+       "reviewer": "previous-mr", "autoMerge": false
      },
      "riskPaths": []
    }
