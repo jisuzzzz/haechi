@@ -129,14 +129,14 @@ export const reminderBlock = (input: { loaded: LoadedSettings; pluginRoot: strin
 }
 
 // Subagents never see prompt-time context, so their task message carries the repo facts they act on
-export const spawnAppendix = (loaded: LoadedSettings): string => {
+export const spawnAppendix = (loaded: LoadedSettings, pluginRoot: string): string => {
   const settings = loaded.settings
-  const lines = ['[haechi] Repo facts for this task:']
+  const lines = ['[haechi] Repo facts for this task:', `- haechi tools: ${pluginRoot}/tools/`]
   if (settings?.commands?.verify) lines.push(`- verify: \`${settings.commands.verify}\``)
   if (settings?.commands?.testOne) lines.push(`- single test: \`${settings.commands.testOne}\``)
   if (settings?.forbidden?.length) lines.push(`- never run: ${settings.forbidden.join(', ')}`)
   if (settings?.testDirs?.length) lines.push(`- tests live in: ${settings.testDirs.join(', ')}`)
-  if (lines.length === 1) lines.push('- repo setup is missing: ask the orchestrator for commands instead of guessing')
+  if (lines.length === 2) lines.push('- repo setup is missing: ask the orchestrator for commands instead of guessing')
   lines.push('- report open questions to the orchestrator; do not ask the user')
   return lines.join('\n')
 }

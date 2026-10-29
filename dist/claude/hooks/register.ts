@@ -54,6 +54,6 @@ export const register: Register = (on) => {
   // prompt.submit context does not reach subagents; their task message is the only way in
   on('agent.spawn', async ($, e, next) => {
     const { loaded } = await load($)
-    return next({ ...e, prompt: `${e.prompt}\n\n${spawnAppendix(loaded)}` })
+    return next({ ...e, prompt: `${e.prompt}\n\n${spawnAppendix(loaded, $.plugin.root)}` })
   })
 }

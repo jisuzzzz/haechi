@@ -77,11 +77,12 @@ test('reminder warns about setup only when it is incomplete', () => {
   assert.match(reminderBlock({ loaded: {}, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
 })
 
-test('subagent appendix carries commands, or says setup is missing', () => {
-  const withSettings = spawnAppendix({ settings: complete })
+test('subagent appendix carries the tools folder and commands, or says setup is missing', () => {
+  const withSettings = spawnAppendix({ settings: complete }, '/p')
+  assert.match(withSettings, /haechi tools: \/p\/tools\//)
   assert.match(withSettings, /single test: `npx vitest run \{file\}`/)
   assert.match(withSettings, /never run: npm test, npm run lint/)
-  assert.match(spawnAppendix({}), /repo setup is missing/)
+  assert.match(spawnAppendix({}, '/p'), /repo setup is missing/)
 })
 
 test('the built Codex hook prints the same block the shared rules render', async () => {
@@ -104,5 +105,5 @@ test('the built Codex hook prints the same block the shared rules render', async
   assert.match(handle('UserPromptSubmit', input, env), /^\[haechi\] Code-change request\?/)
   assert.equal(handle('PostCompact', input, env), undefined)
   assert.equal(handle('UserPromptSubmit', input, env), expected)
-  assert.equal(handle('SubagentStart', input, env), spawnAppendix({ settings: complete }))
+  assert.equal(handle('SubagentStart', input, env), spawnAppendix({ settings: complete }, join(out, 'codex')))
 })

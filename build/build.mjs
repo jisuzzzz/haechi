@@ -72,6 +72,12 @@ const lookup = (map, names = [], kind, file) =>
     return [name, map.get(name)]
   })
 
+// A skill body nests under "### <name>" inside an agent: drop its own title and push its headings below that level
+export const demoteHeadings = (body) =>
+  body
+    .replace(/^# [^\n]*\n+/, '')
+    .replace(/^(#{1,4}) /gm, (_, hashes) => `${'#'.repeat(hashes.length + 2)} `)
+
 // The agent's own body, then the principles, checks and procedures named in its frontmatter
 export const agentBody = (agent, core, target) => {
   const parts = [agent.body]
@@ -80,7 +86,7 @@ export const agentBody = (agent, core, target) => {
   const skills = lookup(core.skills, agent.fields.skills, 'skill', agent.file)
   if (principles.length) parts.push('## Principles', ...principles.map(([name, p]) => `### ${name}\n${p.do}`))
   if (checks.length) parts.push('## Checks', ...checks.map(([name, p]) => `### ${name}\n${p.check}`))
-  if (skills.length) parts.push('## Procedures', ...skills.map(([name, s]) => `### ${name}\n${s.body}`))
+  if (skills.length) parts.push('## Procedures', ...skills.map(([name, s]) => `### ${name}\n${demoteHeadings(s.body)}`))
   return parts.join('\n\n').replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot)
 }
 
@@ -120,6 +126,10 @@ export const buildFiles = (core) => {
   const files = new Map()
   for (const target of Object.keys(TARGETS)) {
     files.set(`${target}/${TARGETS[target].manifest}`, `${JSON.stringify(manifest(core.plugin, target), null, 2)}\n`)
+    // The hook's principle index points the main session at these files
+    for (const [name, principle] of core.principles) {
+      files.set(`${target}/principles/${name}.md`, `# ${name}\n\n## Do\n${principle.do}\n\n## Check\n${principle.check}\n`)
+    }
     for (const [name, skill] of core.skills) {
       files.set(`${target}/skills/${name}/SKILL.md`, skill.text.replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot))
     }

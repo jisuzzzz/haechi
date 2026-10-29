@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { buildFiles, codexAgent, diffTree, loadCore, parseFrontmatter } from '../build/build.mjs'
+import { buildFiles, codexAgent, demoteHeadings, diffTree, loadCore, parseFrontmatter } from '../build/build.mjs'
 
 const write = (root, path, text) => {
   mkdirSync(join(root, path, '..'), { recursive: true })
@@ -72,6 +72,10 @@ test('manifests carry the version for both tools', () => {
   const files = buildFiles(loadCore(makeCore()))
   assert.equal(JSON.parse(files.get('claude/.claude-plugin/plugin.json')).version, '1.2.3')
   assert.equal(JSON.parse(files.get('codex/.codex-plugin/plugin.json')).skills, './skills/')
+})
+
+test('inlined procedures sit below their ### heading', () => {
+  assert.equal(demoteHeadings('# Review\n\nIntro\n\n## Order\n1. a\n### Detail\nb'), 'Intro\n\n#### Order\n1. a\n##### Detail\nb')
 })
 
 test('check reports missing, stale and extra files', () => {

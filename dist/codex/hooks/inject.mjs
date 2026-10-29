@@ -45,7 +45,7 @@ export const handle = (event, input, env) => {
     writeState(path, { ...readState(path), compacted: true })
     return undefined
   }
-  if (event === 'SubagentStart') return spawnAppendix(loaded)
+  if (event === 'SubagentStart') return spawnAppendix(loaded, pluginRoot)
 
   const step = nextInjection(readState(path))
   writeState(path, step.state)
