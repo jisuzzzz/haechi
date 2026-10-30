@@ -44,11 +44,16 @@ export const loadSource = (sourceDir) => {
     principles.set(name.replace(/\.md$/, ''), { do: section(body, 'Do', file), check: section(body, 'Check', file) })
   }
   const skills = new Map()
+  const skillReferences = new Map()
   for (const name of listDir(join(sourceDir, 'skills'))) {
     const file = join(sourceDir, 'skills', name, 'SKILL.md')
     if (!existsSync(file)) continue
     const text = readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
     skills.set(name, { text, ...parseFrontmatter(text, file) })
+    const references = join(sourceDir, 'skills', name, 'references')
+    for (const reference of listDir(references).filter((file) => file.endsWith('.md'))) {
+      skillReferences.set(`${name}/references/${reference}`, readFileSync(join(references, reference), 'utf8').replace(/\r\n/g, '\n'))
+    }
   }
   const agents = []
   for (const name of listDir(join(sourceDir, 'agents')).filter((file) => file.endsWith('.md'))) {
@@ -63,7 +68,7 @@ export const loadSource = (sourceDir) => {
     claude: { 'register.ts': readOptional('hooks/claude/register.ts'), 'hooks.json': readOptional('hooks/claude/hooks.json') },
     codex: { 'inject.mjs': readOptional('hooks/codex/inject.mjs'), 'hooks.json': readOptional('hooks/codex/hooks.json') },
   }
-  return { plugin, principles, skills, agents, hooks, tools }
+  return { plugin, principles, skills, skillReferences, agents, hooks, tools }
 }
 
 const lookup = (map, names = [], kind, file) =>
@@ -132,6 +137,9 @@ export const buildFiles = (core) => {
     }
     for (const [name, skill] of core.skills) {
       files.set(`${target}/skills/${name}/SKILL.md`, skill.text.replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot))
+    }
+    for (const [path, text] of core.skillReferences ?? []) {
+      files.set(`${target}/skills/${path}`, text.replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot))
     }
   }
   for (const agent of core.agents) {
