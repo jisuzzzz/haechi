@@ -18,10 +18,6 @@ export interface RepoSettings {
   riskPaths?: string[]
 }
 
-export interface UserSettings {
-  answerFormats?: boolean
-}
-
 export interface LoadedSettings {
   settings?: RepoSettings
   error?: string
@@ -41,9 +37,6 @@ const REQUIRED: [path: string, label: string][] = [
   ['forbidden', 'forbidden commands'],
   ['testDirs', 'test location'],
   ['sensitiveData', 'sensitive data rule'],
-  ['git.host', 'git host'],
-  ['git.base', 'base branch'],
-  ['git.protected', 'protected branches'],
 ]
 
 const valueAt = (source: unknown, path: string): unknown =>
@@ -61,19 +54,12 @@ export const parseSettings = (text: string | undefined): LoadedSettings => {
   }
 }
 
-export const parseUserSettings = (text: string | undefined): UserSettings => {
-  if (text === undefined) return {}
-  try {
-    return JSON.parse(text) as UserSettings
-  } catch {
-    return {}
-  }
-}
-
 export const missingRequired = (loaded: LoadedSettings): string[] => {
   if (loaded.error) return [loaded.error]
   if (!loaded.settings) return ['.haechi.json']
-  return REQUIRED.filter(([path]) => !isPresent(valueAt(loaded.settings, path))).map(([, label]) => label)
+  return REQUIRED.filter(([path]) =>
+    path === 'forbidden' ? !Array.isArray(valueAt(loaded.settings, path)) : !isPresent(valueAt(loaded.settings, path)),
+  ).map(([, label]) => label)
 }
 
 // Full block on the first prompt and on the first prompt after a compaction; a reminder otherwise
@@ -106,20 +92,16 @@ const joined = (items: string[] | undefined) => (items?.length ? items.join(', '
 export const fullBlock = (input: {
   template: string
   loaded: LoadedSettings
-  user: UserSettings
   pluginRoot: string
 }): string => {
   const missing = missingRequired(input.loaded)
-  const rules = render(input.template, {
+  return render(input.template, {
     pluginRoot: input.pluginRoot,
     repoLine: repoLine(input.loaded.settings),
     forbidden: joined(input.loaded.settings?.forbidden),
     setupMissing: missing.length ? missing.join(', ') : undefined,
     riskPaths: joined(input.loaded.settings?.riskPaths),
   })
-  // Keep optional guidance out of the recovery document, which is read without user settings.
-  if (input.user.answerFormats === false) return rules
-  return `${rules}\n\nANSWER FORMATS: optional examples in ${input.pluginRoot}/formats/ cover choices, problems and scenarios. Use a table when comparison is clearer; use prose or a list when it reads better. Adapt labels and omit unneeded sections. These examples never require an approval or another workflow step.`
 }
 
 export const reminderBlock = (input: { loaded: LoadedSettings; pluginRoot: string }): string => {

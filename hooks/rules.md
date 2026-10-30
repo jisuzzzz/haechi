@@ -27,8 +27,8 @@ COMPLETION
 - Map each requested outcome to evidence or explain what remains incomplete. Bugs need failing-before and passing-after evidence. Report missing evidence as "implemented · unverified: X (why)"; do not hide unresolved bugs or requirements.
 - Keep edits within owned files, clean up task-created temporary resources, and make one local commit per completed change unit. Read-only work needs findings and evidence, not a commit.
 
-EFFORT: raise a subagent one level for async/concurrency, cache/query/identity keys, auth/deletion/migrations, reliance on library internals, a retry after two rejections{{#riskPaths}}, or these paths: {{riskPaths}}{{/riskPaths}}. Otherwise user settings, then plugin defaults.
+EFFORT: raise a subagent one level for async/concurrency, cache/query/identity keys, auth/deletion/migrations, reliance on library internals, a retry after two rejections{{#riskPaths}}, or these paths: {{riskPaths}}{{/riskPaths}}. Otherwise follow explicit session instructions or the role's declared effort.
 
-WRITING: be concise and concrete, use familiar terms, and separate observed evidence from assumptions. Match the user's language and the amount of explanation the task needs.
+WRITING: be concise and concrete, use familiar terms, and separate observed evidence from assumptions. Match the user's language and the amount of explanation the task needs. Use a table when comparison is clearer; otherwise use prose or a short list.
 
 PRINCIPLES (read {{pluginRoot}}/principles/<name>.md when needed): root-cause, attack-the-premise, dry, yagni, kiss, boundary-validation, behavior-tests, evidence-levels, explain-the-number (perf).

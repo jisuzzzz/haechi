@@ -30,10 +30,6 @@
 
 
 
-
-
-
-
 // Setup is complete only when every one of these is present — they are the "required" grade of repo setup
 const REQUIRED                                  = [
   ['commands.verify', 'verify command'],
@@ -41,9 +37,6 @@ const REQUIRED                                  = [
   ['forbidden', 'forbidden commands'],
   ['testDirs', 'test location'],
   ['sensitiveData', 'sensitive data rule'],
-  ['git.host', 'git host'],
-  ['git.base', 'base branch'],
-  ['git.protected', 'protected branches'],
 ]
 
 const valueAt = (source         , path        )          =>
@@ -61,19 +54,12 @@ export const parseSettings = (text                    )                 => {
   }
 }
 
-export const parseUserSettings = (text                    )               => {
-  if (text === undefined) return {}
-  try {
-    return JSON.parse(text)
-  } catch {
-    return {}
-  }
-}
-
 export const missingRequired = (loaded                )           => {
   if (loaded.error) return [loaded.error]
   if (!loaded.settings) return ['.haechi.json']
-  return REQUIRED.filter(([path]) => !isPresent(valueAt(loaded.settings, path))).map(([, label]) => label)
+  return REQUIRED.filter(([path]) =>
+    path === 'forbidden' ? !Array.isArray(valueAt(loaded.settings, path)) : !isPresent(valueAt(loaded.settings, path)),
+  ).map(([, label]) => label)
 }
 
 // Full block on the first prompt and on the first prompt after a compaction; a reminder otherwise
@@ -107,19 +93,15 @@ export const fullBlock = (input
 
 
 
-
  )         => {
   const missing = missingRequired(input.loaded)
-  const rules = render(input.template, {
+  return render(input.template, {
     pluginRoot: input.pluginRoot,
     repoLine: repoLine(input.loaded.settings),
     forbidden: joined(input.loaded.settings?.forbidden),
     setupMissing: missing.length ? missing.join(', ') : undefined,
     riskPaths: joined(input.loaded.settings?.riskPaths),
   })
-  // Keep optional guidance out of the recovery document, which is read without user settings.
-  if (input.user.answerFormats === false) return rules
-  return `${rules}\n\nANSWER FORMATS: optional examples in ${input.pluginRoot}/formats/ cover choices, problems and scenarios. Use a table when comparison is clearer; use prose or a list when it reads better. Adapt labels and omit unneeded sections. These examples never require an approval or another workflow step.`
 }
 
 export const reminderBlock = (input                                                )         => {

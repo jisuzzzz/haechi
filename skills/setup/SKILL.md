@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Sets up haechi for this user and this repository — detects execution commands and base/protected branches, asks only what cannot be detected, proves each command runs, and writes .haechi.json. Use for /haechi:setup, when the haechi block says REPO SETUP INCOMPLETE, or when the user asks to set up or refresh haechi.
+description: Sets up haechi for this user and this repository — detects execution settings, asks only what cannot be detected, proves each command runs, and writes .haechi.json. Use for /haechi:setup, when the haechi block says REPO SETUP INCOMPLETE, or when the user asks to set up or refresh haechi.
 ---
 
 # haechi setup
@@ -23,27 +23,24 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
 
 1. Use the collected `check-user.mjs` result: tools found, logins per host, plugin installed in Claude Code / Codex, Codex hooks trusted.
 2. Add these preferences to the combined question batch, each with a recommended default:
-   - budget: small / **normal** / large (moves every role's effort one step)
    - notes folder for files that must stay out of repos (requests, raw measurements, screen reports): default `~/.haechi/notes`
-   - optional answer-format examples A/B/C: **on** / off (on makes examples available; it does not require their labels or tables)
    - in a terminal only: open screen reports in the browser automatically: **yes** / no
 3. Write `~/.haechi/user.json`:
    ```json
-   { "budget": "normal", "notesDir": "~/.haechi/notes", "answerFormats": true, "openReports": true, "repos": {} }
+   { "notesDir": "~/.haechi/notes", "openReports": true }
    ```
-   Model overrides are not asked; people who want them edit the file.
+   Preserve existing unknown keys when updating this file.
 4. If Codex is installed and `codexHooks.missing` is not empty: tell the user to open a new terminal, run `codex`, open `/hooks` and trust the haechi entries. A Codex that was open before the install does not list new hooks. Then recheck the hook trust entries in the Codex config. The hooks count as trusted only when the config says so, not when the user says so. Other successful tool checks do not need to be repeated.
 
 ## B. Repo setup (once per repo, again when it changes)
 
-1. **Use the detection result.** Every candidate has a `value` (or null) and a `source`. Setup requires execution commands, test locations, forbidden commands, the sensitive-data rule, Git host, base and protected branches. Do not inspect branch/commit history, MR templates or merged PRs for setup. `git.branch`, `git.commit` and `git.mrTemplate` are optional overrides; preserve existing values and omit them from a new setup unless the user supplied them.
+1. **Use the detection result.** Every candidate has a `value` (or null) and a `source`. Setup requires `commands.verify`, `commands.testOne`, nonempty `testDirs`, `sensitiveData` and a `forbidden` list. Use `[]` when no commands are forbidden. Git settings are optional: retain explicit values and include known host/base/protected-branch candidates with their source, but do not ask for missing Git values during setup. Resolve them when a Git operation needs them. Do not inspect branch/commit history, MR templates or merged PRs for setup. Preserve existing `git.branch`, `git.commit` and `git.mrTemplate`; omit them from a new setup unless the user supplied them.
 2. **Show the combined draft** with each setting, its value and where it came from. A table is optional. Include machine results when user setup is needed. Mark guesses and unknowns.
 3. **Ask only what is unknown or still needs confirmation**, together with user preferences in one batch:
    - sensitive data: patient data / personal data / payment data / none — require user confirmation; quote what `AGENTS.md` already says if it says anything. Reuse a confirmation already given for this repository
    - the forbidden whole-repo commands: confirm or edit the detected list
    - the changed-files verifier: pick among `commands.verifyCandidates`, or the default verifier `node <tools>/verify-default.mjs {files}`
      For Python with the default verifier, use explicit `pythonTestMap` entries to connect source paths to existing test files. A source is an exact file or a directory ending in `/`; `tests` contains Python file paths, not globs or directories. Preserve existing mappings. Infer candidates from the repo, but confirm a test scope that is not established. Unmapped sources remain unverified; never substitute a whole-repository pytest run. The verifier uses the configured `commands.testOne` (which must contain `{file}`) before detected pytest.
-   - base and protected branches: confirm
    - any other required item whose value is null
    For backend tests, identify the repository's test database and required services, environment variables and preparation command. Reuse its documented setup. Do not put credentials in `.haechi.json`. Record missing prerequisites as unverified; choosing the verifier does not authorize database creation, migrations or resets. For pip, prove commands inside the intended virtual environment or configure its executable explicitly.
    Recommended items get a "later" option: dev server command and ports the agent must not use, worktree dependencies (fresh install or link to the main checkout — linking is faster but must be unlinked before the worktree is deleted), spec and measurement record folders, the merge request reviewer (a username, `previous-mr` to reuse the last merged one's, or none), whether CI watching may set auto-merge without asking (`git.autoMerge`). `worktreeTeardown` is an extra shell command run inside a worktree before it is removed. Worktrees are always removed through `cleanup-merged.mjs`, which unlinks every link inside the worktree first, so linked dependencies need no teardown; set it only for other steps (stopping a local database, for example).
@@ -51,32 +48,21 @@ Run it when `~/.haechi/user.json` is missing or the user asks.
    - verify: one relevant file. If the verifier only accepts changed files and the tree is clean, report "runs, checked nothing" (unverified); prove it on the first real change. Do not alter source just to satisfy setup.
      For a Python map, use an existing source file covered by the map and confirm that its test actually runs. Default verifier exit 2 means incomplete verification; exit 1 means a failed check or invalid configuration. A successful lint alone does not prove source behavior.
    - single test: one small existing test file. If the verifier output already proves the configured test runner ran that file with the same options, reuse that evidence. Otherwise run the configured single-test command. Exit 0 with no tests found is unverified.
-   - git CLI: logged in for the repo's host. Reuse a successful host result from `check-user.mjs`; otherwise check that host once
+   - git CLI: authenticate only when an authorized remote Git operation needs it. Missing login or Git settings do not block execution setup or local code changes
    - typecheck: only if it accepts a file argument; a whole-repo typecheck is not run — record it as unverified
    Run independent read-only checks concurrently. Reuse successful output while the command and relevant inputs are unchanged. Re-run after a relevant change or an inconclusive result, not just to repeat a completion checklist. A command that fails gets fixed with the user and run again. If it still fails, leave it empty and report it.
-5. **Write `.haechi.json`** at the repo root, then run `node <tools>/check-settings.mjs <repo root>` until it reports `complete: true`. Shape:
+5. **Write `.haechi.json`** at the repo root, then run `node <tools>/check-settings.mjs <repo root>` until it reports `complete: true`. Minimal shape:
    ```json
    {
      "commands": { "verify": "node scripts/verify.mjs {files}", "testOne": "yarn vitest run {file}", "typecheck": null },
      "forbidden": ["yarn test", "yarn lint"],
      "testDirs": ["src/tests"],
-     "sensitiveData": "patient data — fixtures are synthetic only",
-     "generated": [],
-     "devServer": { "command": "yarn dev", "forbiddenPorts": [5173] },
-     "worktreeSetup": "yarn install --frozen-lockfile",
-     "worktreeTeardown": null,
-     "specDir": "docs/{feature}",
-     "perf": { "recordsDir": "docs/{area}/perf" },
-     "git": {
-       "host": "gitlab", "cli": "glab", "base": "develop", "protected": ["develop", "main"],
-       "reviewer": "previous-mr", "autoMerge": false
-     },
-     "riskPaths": []
+     "sensitiveData": "patient data — fixtures are synthetic only"
    }
    ```
-   Paths outside the repo (notes, login sessions for screen checks) never go here — they belong in `~/.haechi/user.json`. Refuse a value that points outside the repo and say why.
+   Add optional settings only when supplied, already present or useful to the current repository. Paths outside the repo (notes, login sessions for screen checks) belong in `~/.haechi/user.json`. Refuse a repository path setting that points outside the repo and say why.
 6. **Sensitive data in AGENTS.md.** If `AGENTS.md` does not state the rule the user gave, add a short section with it. Do not write other judgment rules for the team — point out what is missing instead.
-7. **Commit locally through /haechi:commit.** If the current branch is the base or a protected branch, create a setup branch using the session's branch-naming rule first (for example `codex/chore/haechi-setup`). Commit `.haechi.json` and any `AGENTS.md` change in one commit. Push only with user authorization.
+7. **Commit locally through /haechi:commit.** Resolve branch safety there, creating a setup branch when needed (for example `codex/chore/haechi-setup`). Commit `.haechi.json` and any `AGENTS.md` change in one commit. Push only with user authorization.
 
 ## Running it again
 

@@ -6,6 +6,22 @@ Haechi is a creature from Korean folklore that tells right from wrong. This plug
 
 Status: v0 in progress — installable for trial. Expect breaking changes until v0.1.
 
+## Find and edit the source
+
+| Path | Purpose |
+|---|---|
+| [skills/](skills/), [agents/](agents/) | Editable skills (including playbooks) and subagent definitions. Start here. |
+| [hooks/](hooks/) | Shared rules and platform adapters in `claude/` and `codex/`. |
+| [tools/](tools/), [principles/](principles/) | Supporting tools and shared implementation/review principles. |
+| [plugin.json](plugin.json) | Shared plugin metadata. |
+| [build/](build/) | Generates the Claude Code and Codex distributions from the root source folders. |
+| [dist/claude/](dist/claude/), [dist/codex/](dist/codex/) | Generated plugins that users install. |
+| [test/](test/) | Tests for the tools, hooks and build. |
+| [docs/](docs/) | Design, configuration guides and verification records. |
+| [examples/](examples/) | Small runnable examples for trying the workflow. |
+
+Edit the root source files, then run `npm run build` and `npm run check`. Commit the regenerated `dist/` files with the source change. Run affected tests individually with `node --test test/<name>.test.mjs`.
+
 ## What's in it
 
 | Component | Role |
@@ -16,7 +32,7 @@ Status: v0 in progress — installable for trial. Expect breaking changes until 
 | Supporting skills | Handle individual steps such as planning (`spec`), bulk work (`sweep`), impact analysis (`impact-map`), writing (`plain`) and team requests (`request`). |
 | Git skills | Commit changes (`commit`), open GitHub PRs or GitLab MRs (`mr`), and watch GitLab CI through merge and cleanup (`ci-watch`). |
 | Subagents | Implement changes, challenge tests, verify results, check screens, and run or audit experiments. |
-| Tools, principles and formats | Run repeatable checks, define implementation and review criteria, and structure answers. |
+| Tools and principles | Run repeatable checks and define implementation and review criteria. |
 
 Playbooks are skills too; the distinction is their scope. Subagent roles are `implementer`, `adversarial-tester`, `verifier`, `screen-design-checker`, `screen-parity-checker`, `experiment-runner` and `experiment-auditor`.
 
@@ -50,34 +66,22 @@ codex plugin add haechi@haechi
 
 Then open a new terminal, run `codex`, and trust the haechi hooks in `/hooks`.
 
-Run `/haechi:setup` once per machine and once per repository. Until a repository has `.haechi.json`, haechi answers questions but starts no code change there.
+Run `/haechi:setup` once per machine and once per repository. Execution setup establishes the verification commands, test locations, forbidden commands and sensitive-data rule before code changes. Git settings are resolved when a Git operation needs them.
 
 ## Settings
 
-- `.haechi.json` in the repository, committed and shared by the team: verify and single-test commands, commands that must never run on the whole repo, test layout, Git host and base/protected branches, optional Git format overrides, worktree setup.
-- `~/.haechi/user.json`, per person: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repository. `answerFormats: false` removes the format suggestions; hooks and playbooks do not force first-reply tables or labels.
+- `.haechi.json` in the repository, committed and shared by the team: verify and single-test commands, forbidden commands (`[]` when none), test layout and the sensitive-data rule. Git settings, worktree setup and other repository-specific settings are optional.
+- `~/.haechi/user.json`, per person: `notesDir` for files that must stay out of the repository and `openReports` for opening screen reports automatically. Existing extra keys are preserved when settings are updated.
 
 Team judgment rules (what is sensitive, where code goes) stay in the repository's `AGENTS.md`.
 
 v0.0.9 restores the v0.0.7 verification behavior after removing the backend preparation extensions from v0.0.8. See the [verification scope decision](docs/verification-scope.md) for the rollback and the remaining Python verifier design questions.
 
-Branch names and commit/MR formats are resolved when those operations happen. Existing `git.branch`, `git.commit` and `git.mrTemplate` settings remain valid, but setup does not require or infer them. The commit skill uses recent commits when no format is declared. The MR skill uses the repository template or a default Summary, Changes and Validation body; it does not routinely inspect merged PRs.
+Git operations resolve the host, base/protected branches and naming rules when needed. Explicit settings and repository instructions take precedence; the remote URL and remote HEAD supply observable defaults. The agent asks about an unresolved target at that operation. Missing Git settings do not block local code changes.
+
+Existing `git.branch`, `git.commit` and `git.mrTemplate` settings remain valid, but setup does not require or infer them. The commit skill uses recent commits when no format is declared. The MR skill uses the repository template or a default Summary, Changes and Validation body; it does not routinely inspect merged PRs.
 
 Setup combines independent detection and machine checks, presents one draft and question batch, and reuses successful evidence while its inputs are unchanged. It limits instruction discovery to the repository and its ancestors. On reruns, only affected checks need to run again; a saved command without available execution evidence remains unverified.
-
-## Repository structure
-
-| Path | Purpose |
-|---|---|
-| `skills/`, `agents/` | Editable skills (including playbooks) and subagent definitions. Start here. |
-| `hooks/` | Shared rules and platform adapters in `claude/` and `codex/`. |
-| `tools/`, `principles/`, `formats/` | Supporting tools, shared principles and answer examples. |
-| `plugin.json` | Shared plugin metadata. |
-| `build/` | Generates the Claude Code and Codex distributions from the root source folders. |
-| `dist/claude/`, `dist/codex/` | Generated plugins that users install. |
-| `test/` | Tests for the tools, hooks and build. |
-| `docs/` | Design, configuration guides and verification records. |
-| `examples/` | Small runnable examples for trying the workflow. |
 
 ## Design
 

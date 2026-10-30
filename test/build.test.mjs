@@ -15,7 +15,6 @@ const makeCore = () => {
   write(root, 'plugin.json', JSON.stringify({ name: 'demo', version: '1.2.3', description: 'Demo plugin', author: { name: 'x' } }))
   write(root, 'principles/kiss.md', '---\nname: kiss\n---\n## Do\nKeep the diff small.\n\n## Check\nFlag single-use layers.\n')
   write(root, 'principles/dry.md', '---\nname: dry\n---\n## Do\nExtract repeats.\n## Check\nQuote both copies.\n')
-  write(root, 'formats/choice.md', '# Choice\n')
   write(root, 'skills/review/SKILL.md', '---\nname: review\ndescription: Review steps\n---\nRun {{PLUGIN_ROOT}}/tools/impact.mjs first.\n')
   write(
     root,
@@ -71,8 +70,6 @@ test('unknown principle names fail the build', () => {
 
 test('manifests carry the version for both tools', () => {
   const files = buildFiles(loadSource(makeCore()))
-  assert.equal(files.get('claude/formats/choice.md'), '# Choice\n')
-  assert.equal(files.get('codex/formats/choice.md'), '# Choice\n')
   assert.equal(JSON.parse(files.get('claude/.claude-plugin/plugin.json')).version, '1.2.3')
   assert.equal(JSON.parse(files.get('codex/.codex-plugin/plugin.json')).skills, './skills/')
 })

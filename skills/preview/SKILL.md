@@ -23,12 +23,12 @@ The goal is speed: the user sees and touches the idea before anyone writes produ
    - Use synthetic fake data, just enough to show the states. No real records.
    - Open the file in a browser and check that every variant renders in every state and its interactions run. Give the user the file path only after that check.
 
-   For a running-application preview, start its development server, check the requested state in a real render, and provide only URLs whose content you checked. Separate variants there may need separate worktrees: run configured setup, use free ports and avoid `devServer.forbiddenPorts`.
+   For a running-application preview, start its development server, check the requested state in a real render, and provide only URLs whose content you checked. Separate variants there may need separate worktrees: record the source branch used for each variant, run configured setup, use free ports and avoid `devServer.forbiddenPorts`.
 
    If execution, browser access or URL exposure is unavailable, report the limitation and the alternatives; never present a prototype or widget as the real app.
 4. **Compare.** One variant is fine unless the user asked for several. For several variants, say what each one changes against the stated criteria; the prototype's side-by-side toggle shows them together. For running-application variants, `screen-design-checker` can capture them with `kind: "variants"`, and `node <tools>/screen-report.mjs --out <notesDir>/screen-reports/<task>/variants.html <result.json>...` renders one report. Open reports only when `openReports` is on.
 5. **Carry over the direction, not the code.** Record which variant was chosen and what about it matters (layout, timing, interaction). The real implementation follows the normal playbook and repository conventions. Copying prototype code into the application is a separate decision; state it when you make it.
-6. **Clean up.** Keep preview servers up while the user reviews, then stop the servers you started and delete the prototype file unless the user wants to keep it. Before removing variant worktrees, run `node <tools>/cleanup-merged.mjs <variant branch> --discard` to show the removal list, and run it with `--yes` only when deletion is authorized. Never use `git worktree remove --force` by hand.
+6. **Clean up.** Keep preview servers up while the user reviews, then stop the servers you started and delete the prototype file unless the user wants to keep it. Before removing variant worktrees, run `node <tools>/cleanup-merged.mjs <variant branch> --base <source branch> --discard` to show the removal list. Resolve a missing source branch from the task context or repository settings before proceeding. Keep the same `--base` when adding `--yes`, and do so only when deletion is authorized. Never use `git worktree remove --force` by hand.
 
 ## Evidence
 

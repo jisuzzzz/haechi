@@ -7,6 +7,8 @@ description: Commits the current task's changes locally — stages only owned fi
 
 Works with git on any host. Settings come from `.haechi.json` → `git`. The ask list and the DONE rules are in the session rules; this file adds only what is specific to committing.
 
+Missing Git settings do not require setup. Resolve the current branch with `git branch --show-current`; take base/protected branches from explicit settings and repository instructions, then the local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`) for the default branch. Do not infer branch rules from history. Before committing on a base or protected branch, create a task branch using the session's naming rule. If branch safety remains unclear, ask only about that choice. A local commit needs no Git host login.
+
 ## 1. Review
 
 Run these together:

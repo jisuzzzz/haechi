@@ -15,7 +15,9 @@ Settings come from `.haechi.json` → `git`: `host`, `cli`, `base`, `commit`, `m
 
 ## 1. Analyze
 
-Run these together (`<base>` is `git.base`):
+Resolve the host and target before these commands. Honor explicit `git.host`, `git.cli`, `git.base` and repository instructions. For missing values, inspect the remote URL (`git remote -v`) and local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`). Use the host's CLI to confirm its project/default branch when needed. Ask only when the host or intended target remains ambiguous; missing settings do not require setup. Check authentication for the selected host now, reusing current successful evidence.
+
+Run these together (`<base>` is the resolved target):
 
 ```bash
 git branch --show-current

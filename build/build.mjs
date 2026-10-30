@@ -57,14 +57,13 @@ export const loadSource = (sourceDir) => {
   }
   const readOptional = (path) => (existsSync(join(sourceDir, path)) ? readFileSync(join(sourceDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
   const tools = new Map(listDir(join(sourceDir, 'tools')).filter((file) => file.endsWith('.mjs')).map((file) => [file, readOptional(`tools/${file}`)]))
-  const formats = new Map(listDir(join(sourceDir, 'formats')).filter((file) => file.endsWith('.md')).map((file) => [file, readOptional(`formats/${file}`)]))
   const hooks = {
     rulesTemplate: readOptional('hooks/rules.md'),
     rulesSource: readOptional('hooks/rules.ts'),
     claude: { 'register.ts': readOptional('hooks/claude/register.ts'), 'hooks.json': readOptional('hooks/claude/hooks.json') },
     codex: { 'inject.mjs': readOptional('hooks/codex/inject.mjs'), 'hooks.json': readOptional('hooks/codex/hooks.json') },
   }
-  return { plugin, principles, skills, agents, hooks, tools, formats }
+  return { plugin, principles, skills, agents, hooks, tools }
 }
 
 const lookup = (map, names = [], kind, file) =>
@@ -156,9 +155,6 @@ export const buildFiles = (core) => {
   }
   for (const [name, text] of core.tools ?? []) {
     for (const target of Object.keys(TARGETS)) files.set(`${target}/tools/${name}`, text)
-  }
-  for (const [name, text] of core.formats ?? []) {
-    for (const target of Object.keys(TARGETS)) files.set(`${target}/formats/${name}`, text)
   }
   return files
 }

@@ -12,7 +12,7 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 ## Layers
 
 ```
-[0] setup     user setup (budget, notes folder, install check)
+[0] setup     user setup (notes folder, report preference, install check)
               repo setup (detect, ask what cannot be detected, prove commands run, write .haechi.json)
 [1] hooks     first prompt and after compaction: guidance + repo facts; reminders otherwise
               Claude Code: a mod (function hooks). Codex: command hooks. Both call one core.
@@ -50,12 +50,13 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 - Task playbooks are `bug`, `feature`, `refactor`, `perf`, `review` and `test-hardening`. Their procedures are guidance; repository permissions and required evidence remain constraints.
 - `spec` helps resolve consequential behavior or scope decisions, or produce an explicitly requested spec. Accepted requirements and checkable outcomes can stay in chat. File counts, a new screen or an export change alone do not require a formal document or another approval.
 - `sweep` coordinates many independent units when splitting helps. Change units get commits; read-only units return findings and use conversation evidence to resume.
-- `render-doc.mjs` is available for a formal spec and formats requests to other teams. `screen-report.mjs` builds screen reports. These artifact schemas stay fixed for their tools; optional chat formats do not control them. `plain` improves lasting prose.
+- Specs and requests to other teams are written directly in Markdown and updated in the same file. Repository or team conventions determine their layout; empty sections and duplicate machine-readable copies are unnecessary. `screen-report.mjs` builds screen reports. `plain` improves lasting prose.
 - Requests to other teams and screen reports live in the user's notes folder, never in the repository.
 
 ## Git
 
 - `commit` works the same on every host. `mr` opens merge requests on GitLab (glab) and pull requests on GitHub (gh) from the repo's title and body conventions. `ci-watch` (GitLab only for now) waits for the pipeline in the background, fixes failures in the session that opened the merge request, stops after the same job fails twice, and never passes a gate by suppressing it.
+- Git settings are resolved when an operation needs them: explicit settings and repository instructions first, then the remote URL and local remote HEAD. An unresolved host or target requires a focused question at that operation, not another setup run. Local commits need no host login; authorized remote operations check authentication for their selected host.
 - After a merge, `cleanup-merged.mjs` lists the local branch, worktree and leftover remote branch, and deletes them only after one yes. It unlinks links inside a worktree first, so deletion cannot follow them into the main checkout.
 
 ## When to ask
@@ -68,18 +69,18 @@ Verify output from after the last change, the diff reviewed, each requested outc
 
 ## Writing and design judgment
 
-Use concise, concrete language. Choice, problem and scenario formats are optional examples; the agent chooses prose, lists or tables to fit the content. The hook adds suggestions only when answer formats are enabled. The recovery document contains no format suggestions, so rereading it cannot bypass `answerFormats: false`. Playbooks do not reintroduce mandatory chat layouts.
+Use concise, concrete language. Choose prose, lists or tables to fit the content, and include a concrete example when it helps explain behavior. There is no separate response-layout setting or template system.
 
 A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; screen-design-checker is reserved for its supported visual references.
 
 ## Settings
 
-- `.haechi.json` in the repo: commands (verify, single test, typecheck), forbidden whole-repo commands, test layout, optional `pythonTestMap` for explicit Python source-to-test relationships, Git host and base/protected branches, optional Git format overrides, worktree setup and teardown, optional risk paths.
-- `~/.haechi/user.json`: budget, model overrides, optional answer-format examples on or off, and a notes folder for anything that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks).
+- `.haechi.json` in the repo: verify and single-test commands, a forbidden-command list (empty when none), test locations and the sensitive-data rule. Optional settings include typecheck, `pythonTestMap` for explicit Python source-to-test relationships, Git settings, worktree setup and teardown, and risk paths.
+- `~/.haechi/user.json`: `notesDir` for files that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks) and `openReports` for opening reports automatically. Updates preserve unknown existing keys.
 
 ## Setup scope
 
-A repository can finish setup without `git.branch`, `git.commit` or `git.mrTemplate`. These optional overrides are preserved if already set. Branch creation follows explicit naming rules or the environment default. Commit resolves its format from explicit rules or recent commits. MR resolves its body from an override, the repository template, or Summary, Changes and Validation sections. Merged PR history is consulted for formatting only when requested.
+A repository can finish setup without any Git settings. Completion requires `commands.verify`, `commands.testOne`, nonempty `testDirs`, `sensitiveData` and a `forbidden` array, which may be empty. Known Git candidates can be retained without collecting missing values or proving remote login. Explicit Git values are preserved. Branch creation follows explicit naming rules or the environment default. Commit resolves its format from explicit rules or recent commits. MR resolves its body from an override, the repository template, or Summary, Changes and Validation sections. Merged PR history is consulted for formatting only when requested.
 
 Setup detects execution settings and returns existing settings alongside candidates. Independent machine and repository checks run together, and their results feed one confirmation batch. The agent reuses successful checks when their relevant inputs have not changed. A verifier that actually runs the configured test can satisfy the single-test proof too; a no-tests result cannot. On reruns, unavailable evidence stays unverified until checked. Instruction discovery stays within the repository and its ancestors.
 

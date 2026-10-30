@@ -1,11 +1,11 @@
 // Codex command hook: reads the hook input on stdin and prints additionalContext from the shared rules.
 // Usage (from hooks.json): node ${PLUGIN_ROOT}/hooks/inject.mjs <SessionStart|UserPromptSubmit|PostCompact|SubagentStart>
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { fullBlock, nextInjection, parseSettings, parseUserSettings, reminderBlock, spawnAppendix } from './rules.mjs'
+import { fullBlock, nextInjection, parseSettings, reminderBlock, spawnAppendix } from './rules.mjs'
 
 const pluginRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -37,7 +37,6 @@ const writeState = (path, state) => {
 export const handle = (event, input, env) => {
   const root = findRepoRoot(input.cwd ?? process.cwd())
   const loaded = parseSettings(readText(join(root, '.haechi.json')))
-  const user = parseUserSettings(readText(join(env.home, '.haechi', 'user.json')))
   const path = statePath(env.dataDir, input.session_id ?? 'default')
   const template = () => readFileSync(join(pluginRoot, 'hooks', 'rules.md'), 'utf8')
 
@@ -50,7 +49,7 @@ export const handle = (event, input, env) => {
   const step = nextInjection(readState(path))
   writeState(path, step.state)
   return step.mode === 'full'
-    ? fullBlock({ template: template(), loaded, user, pluginRoot })
+    ? fullBlock({ template: template(), loaded, pluginRoot })
     : reminderBlock({ loaded, pluginRoot })
 }
 
@@ -58,7 +57,7 @@ const main = () => {
   const event = process.argv[2]
   const raw = readFileSync(0, 'utf8')
   const input = raw.trim() ? JSON.parse(raw) : {}
-  const context = handle(event, input, { home: homedir(), dataDir: process.env.PLUGIN_DATA ?? join(tmpdir(), 'haechi') })
+  const context = handle(event, input, { dataDir: process.env.PLUGIN_DATA ?? join(tmpdir(), 'haechi') })
   if (context) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: context } }))
 }
 
