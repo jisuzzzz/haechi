@@ -16,7 +16,7 @@ Readers rarely struggle with the content. They struggle with coined terms, force
 3. **One idea per sentence.** Split a sentence that carries two. No arrows or symbols as sentence glue in prose; tables and code are fine.
 4. **Plain words.** The common word over the impressive one: "use" over "utilize", "start" over "initiate".
 5. **Active voice with a named actor.** "The API returns 404", not "a 404 is returned".
-6. **Concrete facts and numbers.** "Loads in 1.2 s instead of 3.4 s on a list of 500" over "much faster". Name the file, the endpoint, the screen.
+6. **Concrete facts and numbers.** "Loads in 1.2 s instead of 3.4 s on a list of 500" over "much faster". Name the file, the endpoint, the screen. Compare with the source after editing: keep conditions, units, uncertainty and limits on any claim; do not invent facts to make an example concrete.
 7. **No flattery, hype or stock closings.** Drop "great question", "robust", "seamless", "hope this helps", "let me know if you have questions".
 8. **Nothing the reader does not need.** Remove restated context, hedges that add no fact, and summaries of what was just said.
 

@@ -137,11 +137,42 @@ const fetchAllPages = async (config, endpoint) => {
   }
 }
 
+// MR sha is the source branch head; head_pipeline.sha can instead be a temporary merged-results commit.
+const sourceHead = (mr, iid) => {
+  const sha = mr.sha || mr.diff_refs?.head_sha
+  if (!sha) throw new GiveUp([`GIVE_UP MR !${iid} source head is unavailable; cannot verify pipeline freshness`])
+  return sha
+}
+
+const staleHead = (iid, expected, current) => new GiveUp([
+  `GIVE_UP stale MR !${iid} source head changed from ${expected} to ${current}; restart watching the latest head`,
+])
+
+const checkSourceHead = async (config, iid, expected) => {
+  const mr = await glabApi(config, `projects/:id/merge_requests/${iid}`)
+  const current = sourceHead(mr, iid)
+  if (current !== expected) throw staleHead(iid, expected, current)
+}
+
 const findPipeline = async (config, iid, sha, startedAt) => {
   for (;;) {
     const mr = await glabApi(config, `projects/:id/merge_requests/${iid}`)
     const head = mr.head_pipeline
-    if (head && (!sha || head.sha.startsWith(sha))) return head
+    const mergedResults = head?.ref === `refs/merge-requests/${iid}/merge`
+    if (head && (!sha || head.sha.startsWith(sha) || mergedResults)) {
+      const sourceSha = sourceHead(mr, iid)
+      if (sha && !sourceSha.startsWith(sha)) {
+        if (head.sha.startsWith(sha)) throw staleHead(iid, sha, sourceSha)
+      } else if (head.sha === sourceSha) return { head, sourceSha }
+      else if (mergedResults) {
+        // The merge ref alone can still point at the previous source head's temporary commit.
+        const commit = await glabApi(config, `projects/:id/repository/commits/${head.sha}`)
+        if (!Array.isArray(commit.parent_ids)) {
+          throw new GiveUp([`GIVE_UP unverified MR !${iid} pipeline ${head.id}: merge commit parents are unavailable`])
+        }
+        if (commit.parent_ids.includes(sourceSha)) return { head, sourceSha }
+      }
+    }
     if (mr.state !== 'opened') throw new GiveUp([`GIVE_UP MR !${iid} is ${mr.state}`])
     if (Date.now() - startedAt > config.appearMs) {
       throw new GiveUp([`GIVE_UP no pipeline for ${sha ?? 'the MR head'} on MR !${iid} within ${Math.round(config.appearMs / 60_000)} min; check that it was pushed`])
@@ -152,7 +183,7 @@ const findPipeline = async (config, iid, sha, startedAt) => {
 
 export const watch = async ({ iid, sha }, config = readConfig(), print = console.log) => {
   const startedAt = Date.now()
-  const head = await findPipeline(config, iid, sha, startedAt)
+  const { head, sourceSha } = await findPipeline(config, iid, sha, startedAt)
   const pipelineId = head.id
   print(`WATCHING MR !${iid} pipeline ${pipelineId} (${head.sha.slice(0, 9)}) ${head.web_url ?? ''}`.trimEnd())
   const retries = {}
@@ -169,6 +200,8 @@ export const watch = async ({ iid, sha }, config = readConfig(), print = console
     for (const job of jobs.filter(isBlockingFailure)) {
       traces[job.id] = await glabApi(config, `projects/:id/jobs/${job.id}/trace`, { raw: true })
     }
+    // A push can supersede this pipeline while the poll's API reads are in flight.
+    await checkSourceHead(config, iid, sourceSha)
     const step = decide({ pipeline, jobs, bridges, traces, retries })
     if (step.action === 'green') return { code: 0, lines: [`GREEN MR !${iid} pipeline ${pipelineId} ${pipeline.web_url ?? ''}`.trimEnd()] }
     if (step.action === 'failed') {
@@ -190,6 +223,7 @@ export const watch = async ({ iid, sha }, config = readConfig(), print = console
     }
     if (step.action === 'retry') {
       for (const job of step.jobs) {
+        await checkSourceHead(config, iid, sourceSha)
         retries[job.name] = (retries[job.name] ?? 0) + 1
         print(`RETRY ${job.name} infrastructure failure, retry ${retries[job.name]}/${INFRA_RETRY_MAX}`)
         await glabApi(config, `projects/:id/jobs/${job.id}/retry`, { method: 'POST' })

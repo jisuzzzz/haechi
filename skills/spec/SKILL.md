@@ -26,4 +26,4 @@ A spec answers **what and why**: problem, goal, scope, expected behavior, edge-c
 ## Where it lives
 
 - When saving a spec, honor an explicit path, the repository convention or `specDir` from `.haechi.json`; fill placeholders such as `{feature}` from the task. Missing `specDir` does not block work or require setup. Choose a reversible location inside the repository when needed.
-- After implementation, keep final behavior and decisions in the feature's canonical doc. A temporary dated spec may be removed after merge when cleanup is authorized; the history stays in the commits.
+- After implementation, update the feature's canonical doc with the changed behavior and decisions, preserving unchanged contracts and exception cases. A temporary dated spec may be removed after merge when cleanup is authorized; the history stays in the commits.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -101,6 +101,24 @@ test('BLOCKED wins over PASS; variants alone have no overall verdict', () => {
   const html = readFileSync(out, 'utf8')
   assert.match(html, /No overall verdict/)
   assert.match(html, /<figcaption>Variant B<\/figcaption>/)
+})
+
+test('an unviewable screen can be reported BLOCKED without a false state PASS', (t) => {
+  const dir = setup()
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const out = join(dir, 'report.html')
+  const blocked = {
+    ...parity,
+    verdict: 'BLOCKED',
+    states: [{ name: 'list', verdict: 'BLOCKED', images: [], items: [] }],
+    openQuestions: ['Image viewer unavailable; visual comparison not performed'],
+  }
+  const result = run(['--out', out, writeJson(dir, 'blocked.json', blocked)])
+  assert.equal(result.status, 0, result.stderr)
+  const html = readFileSync(out, 'utf8')
+  assert.match(html, /list <span class="badge v-BLOCKED">BLOCKED<\/span>/)
+  assert.match(html, /visual comparison not performed/)
+  assert.doesNotMatch(html, /class="badge v-PASS"/)
 })
 
 test('item text and task are escaped', () => {

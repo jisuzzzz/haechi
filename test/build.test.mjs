@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -50,6 +50,17 @@ test('plugin root token resolves per tool', () => {
   assert.match(files.get('codex/agents/checker.toml'), /\$\{PLUGIN_ROOT\}\/tools\/impact\.mjs/)
   assert.match(files.get('codex/skills/review/SKILL.md'), /\$\{PLUGIN_ROOT\}/)
   assert.doesNotMatch([...files.values()].join('\n'), /\{\{PLUGIN_ROOT\}\}/)
+})
+
+test('skill references ship to both hosts without preloading into agents', (t) => {
+  const root = makeCore()
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  write(root, 'skills/review/references/investigation.md', '# Optional investigation\nUse {{PLUGIN_ROOT}}/tools/probe.mjs when needed.\n')
+  const files = buildFiles(loadSource(root))
+  assert.equal(files.get('claude/skills/review/references/investigation.md'), '# Optional investigation\nUse ${CLAUDE_PLUGIN_ROOT}/tools/probe.mjs when needed.\n')
+  assert.equal(files.get('codex/skills/review/references/investigation.md'), '# Optional investigation\nUse ${PLUGIN_ROOT}/tools/probe.mjs when needed.\n')
+  assert.doesNotMatch(files.get('claude/agents/checker.md'), /Optional investigation/)
+  assert.doesNotMatch(files.get('codex/agents/checker.toml'), /Optional investigation/)
 })
 
 test('codex agents are TOML with escaped strings and effort', () => {

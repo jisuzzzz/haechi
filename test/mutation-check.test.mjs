@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -99,8 +99,9 @@ const runTool = (cwd, args) => {
   return spawnSync(process.execPath, [tool, ...args], { cwd, env, encoding: 'utf8' })
 }
 
-test('end to end: one mutant killed, others survive, source restored byte for byte', () => {
+test('end to end: one mutant killed, others survive, source restored byte for byte', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'haechi-mutation-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
   const source = 'export const isPositive = (n) => n > 0\r\nexport const double = (n) => n * 2\r\n'
   writeFileSync(join(dir, 'math.mjs'), source)
   writeFileSync(
@@ -124,11 +125,41 @@ test('end to end: one mutant killed, others survive, source restored byte for by
   const statuses = Object.fromEntries(report.mutants.map((mutant) => [`${mutant.line} ${mutant.before}→${mutant.after}`, mutant.status]))
   assert.deepEqual(statuses, { '1 >→>=': 'survived', '1 0→1': 'survived', '2 2→3': 'killed' })
   assert.deepEqual(report.summary, { killed: 1, survived: 2, timeout: 0 })
+  const killed = report.mutants.find((mutant) => mutant.status === 'killed')
+  assert.equal(killed.exitCode, 1)
+  assert.equal(killed.signal, null)
+  assert.equal(killed.spawnError, null)
+  assert.match(killed.output, /ERR_ASSERTION/)
   assert.equal(readFileSync(join(dir, 'math.mjs'), 'utf8'), source)
 })
 
-test('end to end: a failing baseline is refused with exit 2 and nothing is mutated', () => {
+test('end to end: an import failure keeps its diagnostic without proving an assertion caught the mutant', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'haechi-mutation-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const source = 'export const enabled = false\n'
+  writeFileSync(join(dir, 'flag.mjs'), source)
+  writeFileSync(join(dir, 'flag.test.mjs'), "import { enabled } from './flag.mjs'\nif (enabled) await import('./missing.mjs')\n")
+  const args = ['--file', 'flag.mjs', '--test-cmd', 'node --test {tests}', '--tests', 'flag.test.mjs', '--lines', '1']
+  const result = runTool(dir, [...args, '--json'])
+  assert.equal(result.status, 0, result.stderr)
+  const [mutant] = JSON.parse(result.stdout).mutants
+  assert.equal(mutant.status, 'killed')
+  assert.equal(mutant.exitCode, 1)
+  assert.equal(mutant.signal, null)
+  assert.equal(mutant.spawnError, null)
+  assert.match(mutant.output, /ERR_MODULE_NOT_FOUND/)
+  assert.equal(readFileSync(join(dir, 'flag.mjs'), 'utf8'), source)
+  const human = runTool(dir, args)
+  assert.equal(human.status, 0, human.stderr)
+  assert.match(human.stdout, /ERR_MODULE_NOT_FOUND/)
+  assert.match(human.stdout, /exit code: 1/)
+  assert.match(human.stdout, /killed = the command failed/)
+  assert.match(human.stdout, /does not prove an assertion caught the change/)
+})
+
+test('end to end: a failing baseline is refused with exit 2 and nothing is mutated', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'haechi-mutation-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
   const source = 'export const one = () => 1\n'
   writeFileSync(join(dir, 'one.mjs'), source)
   writeFileSync(join(dir, 'one.test.mjs'), "import { test } from 'node:test'\ntest('broken', () => { throw new Error('no') })\n")
@@ -138,8 +169,9 @@ test('end to end: a failing baseline is refused with exit 2 and nothing is mutat
   assert.equal(readFileSync(join(dir, 'one.mjs'), 'utf8'), source)
 })
 
-test('a source left mutated by a killed run is restored by the next run, a live run is left alone', () => {
+test('a source left mutated by a killed run is restored by the next run, a live run is left alone', (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'haechi-mutation-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
   const backups = join(dir, 'backups')
   const killed = join(dir, 'killed.mjs')
   const live = join(dir, 'live.mjs')

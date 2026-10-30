@@ -146,7 +146,8 @@ const main = () => {
     console.log(`verify-default: ${step.name} ${status === 0 ? '✔' : '✖'}`)
   }
   const status = failed ? 'failed' : skipped.length ? 'incomplete' : 'complete'
-  console.log(`\nverify-default: verification ${status}; ${plan.length - failed}/${plan.length} checks passed for ${files.length} file(s)`)
+  console.log(`\nverify-default: commands ${status}; ${plan.length - failed}/${plan.length} commands exited successfully for ${files.length} file(s)`)
+  console.log('verify-default: successful commands do not prove tests were collected or executed; review the command output.')
   process.exitCode = failed ? 1 : skipped.length ? 2 : 0
 }
 

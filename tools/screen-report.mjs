@@ -6,7 +6,7 @@
 //
 // Result file (one per checker run):
 // { "kind": "design" | "parity" | "variants", "task": "short title", "verdict": "PASS" | "FAIL" | "BLOCKED",
-//   "states": [ { "name": "Orders list · empty", "verdict": "PASS" | "FAIL",
+//   "states": [ { "name": "Orders list · empty", "verdict": "PASS" | "FAIL" | "BLOCKED",
 //       "images": [ { "label": "Figma" | "BEFORE" | "AFTER" | "Diff" | "<variant name>", "path": "shot.png" } ],
 //       "items": [ { "class": "MATCH" | "MISMATCH" | "EXPECTED" | "UNEXPECTED" | "NOISE" | "MISSING", "text": "…" } ] } ],
 //   "consoleErrors": ["…"], "noise": "…", "openQuestions": ["…"] }
@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const KINDS = ['design', 'parity', 'variants']
 const VERDICTS = ['PASS', 'FAIL', 'BLOCKED']
-const STATE_VERDICTS = ['PASS', 'FAIL']
+const STATE_VERDICTS = ['PASS', 'FAIL', 'BLOCKED']
 // Problems first, then what was checked, NOISE last (rendered collapsed).
 const CLASS_ORDER = ['UNEXPECTED', 'MISMATCH', 'MISSING', 'EXPECTED', 'MATCH', 'NOISE']
 const PROBLEM_CLASSES = new Set(['UNEXPECTED', 'MISMATCH', 'MISSING'])
