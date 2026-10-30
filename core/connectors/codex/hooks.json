@@ -8,6 +8,14 @@
             "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs SessionStart"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/tools/skill-context.mjs SessionStart"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -16,6 +24,14 @@
           {
             "type": "command",
             "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs UserPromptSubmit"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/tools/skill-context.mjs UserPromptSubmit"
           }
         ]
       }
@@ -36,28 +52,6 @@
           {
             "type": "command",
             "command": "node ${PLUGIN_ROOT}/hooks/inject.mjs SubagentStart"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${PLUGIN_ROOT}/tools/playbook-reminder.mjs PreToolUse"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Skill|Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${PLUGIN_ROOT}/tools/playbook-reminder.mjs PostToolUse"
           }
         ]
       }

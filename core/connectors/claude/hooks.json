@@ -3,24 +3,22 @@
     "./register.ts"
   ],
   "hooks": {
-    "PreToolUse": [
+    "UserPromptSubmit": [
       {
-        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/playbook-reminder.mjs PreToolUse"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/skill-context.mjs UserPromptSubmit"
           }
         ]
       }
     ],
-    "PostToolUse": [
+    "SessionStart": [
       {
-        "matcher": "Skill|Read",
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/playbook-reminder.mjs PostToolUse"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/skill-context.mjs SessionStart"
           }
         ]
       }

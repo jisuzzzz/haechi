@@ -83,3 +83,9 @@ Setup combines independent detection and machine checks, presents one draft and 
 ## License
 
 MIT. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Explicit task context
+
+Start a prompt with `/haechi:feature <task>` (or `bug`, `refactor`, `perf`, `review`, `test-hardening`) to remember your selected playbook within that session and working directory. Follow-up prompts and resumed/compacted sessions receive a short reminder. Supporting skills such as `/haechi:preview` leave the selection intact. A new primary playbook replaces it; `/haechi:context clear` clears it when finished or cancelled. A new session has no selection. Natural-language task changes are not classified automatically; clear the selection when switching tasks without a new primary command.
+
+This stores intent, not proof of reading a skill, step progress, or permission to edit. It never blocks tools or forces workflow stages. It requires the host to deliver the literal user command in `UserPromptSubmit.prompt` with `session_id` and `cwd`. Hosts that consume slash commands before this event cannot persist the selection through this mechanism. Local hook payload tests do not establish live host compatibility.
