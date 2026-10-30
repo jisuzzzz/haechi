@@ -137,7 +137,7 @@ test('CLI selects source-related tests, reports failure and recovers after the t
   assert.deepEqual(repo.calls().map((call) => call.tool), ['ruff', 'pytest'])
   const passed = repo.run()
   assert.equal(passed.status, 0, passed.stdout + passed.stderr)
-  assert.match(passed.stdout, /verification complete/)
+  assert.match(passed.stdout, /commands complete/)
   assert.deepEqual(repo.calls().at(-1).args, ['tests/test_api.py'])
 })
 
@@ -147,9 +147,21 @@ test('CLI exits incomplete when one source is unmapped or Python tools are absen
   const result = repo.run(['app/api.py', 'other.py'])
   assert.equal(result.status, 2, result.stdout + result.stderr)
   assert.match(result.stdout, /unmapped Python source: other.py/)
-  assert.match(result.stdout, /verification incomplete/)
+  assert.match(result.stdout, /commands incomplete/)
   writeFileSync(join(repo.root, 'requirements-dev.txt'), '')
   assert.equal(repo.run().status, 2)
+})
+
+test('CLI preserves exit-zero no-tests output without claiming verification is complete', (t) => {
+  const repo = fixture(t, { ...mapped, commands: { testOne: 'node no-tests.cjs {file}' } })
+  writeFileSync(join(repo.root, 'no-tests.cjs'), "console.log('no tests collected'); console.error('runner diagnostic')\n")
+  const result = repo.run()
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.match(result.stdout, /no tests collected/)
+  assert.match(result.stderr, /runner diagnostic/)
+  assert.match(result.stdout, /commands complete/)
+  assert.doesNotMatch(result.stdout, /verification complete/)
+  assert.match(result.stdout, /do not prove tests were collected or executed/)
 })
 
 test('CLI validates all selected test files before running even Ruff', (t) => {
@@ -188,7 +200,8 @@ test('CLI preserves paths with spaces in fallback and already-quoted custom comm
   writeFileSync(join(repo.root, 'tests/test api.py'), '# spaced test\n')
   assert.equal(repo.run().status, 0)
   assert.deepEqual(repo.calls().at(-1).args, ['tests/test api.py'])
-  for (const testOne of ['pytest -q "{file}"', "pytest -q '{file}'"]) {
+  const commands = process.platform === 'win32' ? ['pytest -q "{file}"'] : ['pytest -q "{file}"', "pytest -q '{file}'"]
+  for (const testOne of commands) {
     writeFileSync(join(repo.root, '.haechi.json'), JSON.stringify({ ...settings, commands: { testOne } }))
     assert.equal(repo.run().status, 0)
     assert.deepEqual(repo.calls().at(-1).args, ['-q', 'tests/test api.py'])

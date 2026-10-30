@@ -39,7 +39,7 @@ process.stdout.write(response.text ?? JSON.stringify(response.json))
 const jobsRoute = (id, page = 1) => `GET projects/:id/pipelines/${id}/jobs?per_page=100&page=${page}`
 const bridgesRoute = (id, page = 1) => `GET projects/:id/pipelines/${id}/bridges?per_page=100&page=${page}`
 
-const runWatch = (scenario, args) => {
+const runWatch = (scenario, args, env = {}) => {
   const dir = mkdtempSync(join(tmpdir(), 'haechi-watch-'))
   writeFileSync(join(dir, 'fake-glab.mjs'), FAKE_GLAB)
   // Every watched pipeline has no trigger jobs unless the scenario says otherwise.
@@ -61,7 +61,7 @@ const runWatch = (scenario, args) => {
   const run = spawnSync(process.execPath, [tool, ...args], {
     cwd: dir,
     encoding: 'utf8',
-    env: { ...process.env, GLAB: glab, HAECHI_WATCH_POLL_MS: '1', HAECHI_WATCH_BACKOFF_MS: '1', HAECHI_WATCH_APPEAR_MS: '60000' },
+    env: { ...process.env, GLAB: glab, HAECHI_WATCH_POLL_MS: '1', HAECHI_WATCH_BACKOFF_MS: '1', HAECHI_WATCH_APPEAR_MS: '60000', ...env },
   })
   const callsFile = join(dir, 'calls.log')
   const calls = existsSync(callsFile) ? readFileSync(callsFile, 'utf8').trim().split('\n') : []
@@ -71,7 +71,7 @@ const runWatch = (scenario, args) => {
 
 const mrRoute = 'GET projects/:id/merge_requests/7'
 const head = (id, sha) => ({ id, sha, web_url: `https://git.example.com/p/-/pipelines/${id}` })
-const openMr = (pipeline) => ({ json: { state: 'opened', head_pipeline: pipeline } })
+const openMr = (pipeline, sha = pipeline.sha) => ({ json: { state: 'opened', sha, head_pipeline: pipeline } })
 const job = (id, status, extra = {}) => ({ id, name: 'test', stage: 'test', status, allow_failure: false, web_url: `https://git.example.com/p/-/jobs/${id}`, ...extra })
 
 test('parseArgs: iid with or without !, --sha, and bad input', () => {
@@ -209,8 +209,213 @@ test('--sha waits past the old head pipeline and never watches it', () => {
   )
   assert.equal(run.code, 0, run.stdout + run.stderr)
   assert.match(run.lines[0], /^WATCHING MR !7 pipeline 11 /)
-  assert.equal(run.calls.filter((call) => call === `${mrRoute}`).length, 3)
+  assert.ok(run.calls.filter((call) => call === mrRoute).length >= 3)
   assert.ok(!run.calls.some((call) => call.includes('pipelines/9')), run.calls.join('\n'))
+})
+
+for (const status of ['success', 'failed']) {
+  test(`without --sha, an initially old ${status} pipeline waits for the MR source head's pipeline`, () => {
+    const run = runWatch(
+      {
+        [mrRoute]: [openMr(head(9, 'a1d0000aaa'), 'bee1111bbb'), openMr(head(11, 'bee1111bbb'))],
+        'GET projects/:id/pipelines/9': [{ json: { id: 9, status } }, { json: { id: 9, status: 'success' } }],
+        [jobsRoute(9)]: [{ json: status === 'failed' ? [job(1, 'failed')] : [] }, { json: [] }],
+        'GET projects/:id/jobs/1/trace': [{ text: INFRA_TRACE }],
+        'POST projects/:id/jobs/1/retry': [{ json: { id: 2 } }],
+        'GET projects/:id/pipelines/11': [{ json: { id: 11, status: 'success' } }],
+        [jobsRoute(11)]: [{ json: [] }],
+      },
+      ['7'],
+    )
+    assert.equal(run.code, 0, run.stdout + run.stderr)
+    assert.match(run.lines[0], /^WATCHING MR !7 pipeline 11 /)
+    assert.match(run.lines.at(-1), /^GREEN MR !7 pipeline 11/)
+    assert.ok(!run.calls.some((call) => call.includes('pipelines/9') || call.startsWith('POST')), run.calls.join('\n'))
+  })
+}
+
+test('a source-head change while running stops watching the old pipeline', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr(head(10, 'abc1234def')), openMr(head(10, 'abc1234def')), openMr(head(11, 'bee1111bbb'))],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'running' } }, { json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [] }],
+    },
+    ['7'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines.at(-1), /^GIVE_UP stale MR !7 source head changed from abc1234def to bee1111bbb/)
+  assert.doesNotMatch(run.stdout, /^GREEN|^FAILED|^RETRY/m)
+})
+
+for (const status of ['success', 'failed']) {
+  test(`a source-head change before a ${status} result rejects the old result`, () => {
+    const run = runWatch(
+      {
+        [mrRoute]: [openMr(head(10, 'abc1234def')), openMr(head(11, 'bee1111bbb'))],
+        'GET projects/:id/pipelines/10': [{ json: { id: 10, status, sha: 'abc1234def' } }],
+        [jobsRoute(10)]: [{ json: status === 'failed' ? [job(1, 'failed')] : [] }],
+        'GET projects/:id/jobs/1/trace': [{ text: 'not ok 1 - old failure' }],
+      },
+      ['7'],
+    )
+    assert.equal(run.code, 2, run.stdout + run.stderr)
+    assert.match(run.lines.at(-1), /^GIVE_UP stale MR !7 source head changed/)
+    assert.doesNotMatch(run.stdout, /^GREEN|^FAILED/m)
+  })
+}
+
+test('a source-head change prevents retrying an old infrastructure failure', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr(head(10, 'abc1234def')), openMr(head(11, 'bee1111bbb'))],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'failed' } }, { json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [job(1, 'failed')] }, { json: [] }],
+      'GET projects/:id/jobs/1/trace': [{ text: INFRA_TRACE }],
+      'POST projects/:id/jobs/1/retry': [{ json: { id: 2 } }],
+    },
+    ['7'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines.at(-1), /^GIVE_UP stale MR !7 source head changed/)
+  assert.ok(!run.calls.some((call) => call.startsWith('POST')), run.calls.join('\n'))
+})
+
+test('a source-head change between infrastructure retries prevents the remaining retries', () => {
+  const current = openMr(head(10, 'abc1234def'))
+  const run = runWatch(
+    {
+      [mrRoute]: [current, current, current, openMr(head(11, 'bee1111bbb'))],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'failed' } }, { json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [job(1, 'failed'), job(2, 'failed', { name: 'build' })] }, { json: [] }],
+      'GET projects/:id/jobs/1/trace': [{ text: INFRA_TRACE }],
+      'GET projects/:id/jobs/2/trace': [{ text: INFRA_TRACE }],
+      'POST projects/:id/jobs/1/retry': [{ json: { id: 3 } }],
+      'POST projects/:id/jobs/2/retry': [{ json: { id: 4 } }],
+    },
+    ['7'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines.at(-1), /^GIVE_UP stale MR !7 source head changed/)
+  assert.deepEqual(run.calls.filter((call) => call.startsWith('POST')), ['POST projects/:id/jobs/1/retry'])
+})
+
+for (const args of [['7'], ['7', '--sha', 'abc1234def']]) {
+  test(`an unchanged source head accepts a merged-results temporary pipeline sha ${args.length > 1 ? 'with' : 'without'} --sha`, () => {
+    const pipeline = { ...head(10, 'eeeeeee111'), ref: 'refs/merge-requests/7/merge' }
+    const mr = { json: { state: 'opened', diff_refs: { head_sha: 'abc1234def' }, head_pipeline: pipeline } }
+    const run = runWatch(
+      {
+        [mrRoute]: [mr],
+        'GET projects/:id/repository/commits/eeeeeee111': [{ json: { id: 'eeeeeee111', parent_ids: ['ddddddd222', 'abc1234def'] } }],
+        'GET projects/:id/pipelines/10': [{ json: { ...pipeline, status: 'success' } }],
+        [jobsRoute(10)]: [{ json: [] }],
+      },
+      args,
+      { HAECHI_WATCH_APPEAR_MS: '1' },
+    )
+    assert.equal(run.code, 0, run.stdout + run.stderr)
+    assert.match(run.lines.at(-1), /^GREEN MR !7 pipeline 10/)
+  })
+}
+
+for (const args of [['7'], ['7', '--sha', 'bee1111bbb']]) {
+  test(`a lagging merged-results commit waits for a commit containing the source head ${args.length > 1 ? 'with' : 'without'} --sha`, () => {
+    const old = { ...head(10, 'eeeeeee111'), ref: 'refs/merge-requests/7/merge' }
+    const current = { ...head(11, 'fffffff222'), ref: 'refs/merge-requests/7/merge' }
+    const run = runWatch(
+      {
+        [mrRoute]: [openMr(old, 'bee1111bbb'), openMr(current, 'bee1111bbb')],
+        'GET projects/:id/repository/commits/eeeeeee111': [{ json: { id: 'eeeeeee111', parent_ids: ['ddddddd222', 'abc1234def'] } }],
+        'GET projects/:id/repository/commits/fffffff222': [{ json: { id: 'fffffff222', parent_ids: ['ddddddd222', 'bee1111bbb'] } }],
+        'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+        [jobsRoute(10)]: [{ json: [] }],
+        'GET projects/:id/pipelines/11': [{ json: { id: 11, status: 'success' } }],
+        [jobsRoute(11)]: [{ json: [] }],
+      },
+      args,
+    )
+    assert.equal(run.code, 0, run.stdout + run.stderr)
+    assert.match(run.lines[0], /^WATCHING MR !7 pipeline 11 /)
+    assert.match(run.lines.at(-1), /^GREEN MR !7 pipeline 11/)
+    assert.ok(!run.calls.some((call) => call.includes('pipelines/10')), run.calls.join('\n'))
+  })
+}
+
+for (const commit of [{ json: { id: 'eeeeeee111' } }, { fail: '503 Service Unavailable' }]) {
+  test(`merged-results commit ${commit.fail ? 'API failure' : 'missing parents'} cannot authorize an unverified pipeline`, () => {
+    const pipeline = { ...head(10, 'eeeeeee111'), ref: 'refs/merge-requests/7/merge' }
+    const run = runWatch(
+      {
+        [mrRoute]: [openMr(pipeline, 'abc1234def')],
+        'GET projects/:id/repository/commits/eeeeeee111': [commit],
+        'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+        [jobsRoute(10)]: [{ json: [] }],
+      },
+      ['7'],
+    )
+    assert.equal(run.code, 2, run.stdout + run.stderr)
+    assert.match(run.stdout, commit.fail ? /^GIVE_UP glab api .*commits\/eeeeeee111 failed 4 times: 503/m : /^GIVE_UP unverified MR !7 pipeline 10: merge commit parents are unavailable/m)
+    assert.doesNotMatch(run.stdout, /^WATCHING|^GREEN|^FAILED|^RETRY/m)
+    assert.ok(!run.calls.some((call) => call.includes('/pipelines/')), run.calls.join('\n'))
+  })
+}
+
+test('a different SHA on another MR merge ref cannot be selected as this MR source head', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr({ ...head(10, 'eeeeeee111'), ref: 'refs/merge-requests/8/merge' }, 'abc1234def')],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [] }],
+    },
+    ['7'],
+    { HAECHI_WATCH_APPEAR_MS: '1' },
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines.at(-1), /^GIVE_UP no pipeline for the MR head/)
+  assert.ok(!run.calls.some((call) => call.includes('/pipelines/')), run.calls.join('\n'))
+})
+
+test('a requested sha already superseded by the MR source head is stale before watching', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr(head(10, 'abc1234def'), 'bee1111bbb')],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [] }],
+    },
+    ['7', '--sha', 'abc1234def'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines[0], /^GIVE_UP stale MR !7 source head changed/)
+  assert.ok(!run.calls.some((call) => call.includes('/pipelines/')), run.calls.join('\n'))
+})
+
+test('source-head API failure cannot authorize an old green result', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr(head(10, 'abc1234def')), { fail: '503 Service Unavailable' }],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [] }],
+    },
+    ['7'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.stdout, /^GIVE_UP glab api projects\/:id\/merge_requests\/7 failed 4 times: 503/m)
+  assert.doesNotMatch(run.stdout, /^GREEN|^FAILED|^RETRY/m)
+})
+
+test('a missing source head cannot prove the watched result is current', () => {
+  const run = runWatch(
+    {
+      [mrRoute]: [openMr(head(10, 'abc1234def')), { json: { state: 'opened', head_pipeline: head(10, 'abc1234def') } }],
+      'GET projects/:id/pipelines/10': [{ json: { id: 10, status: 'success' } }],
+      [jobsRoute(10)]: [{ json: [] }],
+    },
+    ['7'],
+  )
+  assert.equal(run.code, 2, run.stdout + run.stderr)
+  assert.match(run.lines.at(-1), /^GIVE_UP MR !7 source head is unavailable/)
+  assert.doesNotMatch(run.stdout, /^GREEN|^FAILED|^RETRY/m)
 })
 
 test('MR no longer open while waiting gives up with exit 2', () => {

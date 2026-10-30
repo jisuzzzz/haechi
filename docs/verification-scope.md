@@ -24,13 +24,13 @@ The v0.0.7 verifier is Python-specific in its source-to-test mapping, but it doe
 
 The existing `commands.verify` is the natural integration point for repositories that already have a verification script. The default verifier is a fallback. Before adding more language-specific mapping settings, validate whether that fallback is needed in real repositories and whether their existing scripts already select tests.
 
-## Evidence limit to address separately
+## Command evidence limits
 
-The default verifier checks command exit status, not test discovery counts. In an isolated fixture, a configured single-test command printed `no tests collected` and exited 0; with a successful lint command, the verifier reported `verification complete`. This follows the exit-status handling in [`verify-default.mjs`](../tools/verify-default.mjs), lines 141–150.
+The default verifier checks command exit status, not test discovery counts. A configured single-test command can print `no tests collected` and exit 0. With a successful lint command, [`verify-default.mjs`](../tools/verify-default.mjs) now reports `commands complete` and explains that successful commands do not prove tests were collected or executed. It preserves the command output for review. A failed command still exits 1; skipped checks still exit 2 when no command fails.
 
-Therefore, its success result proves that the planned commands exited successfully. It does not independently prove that tests were collected or executed. This limitation is retained in the rollback and should be considered in the v0.0.7 design review, together with the source-to-test mapping. The setup skill already requires treating an exit-0/no-tests result as unverified when an agent checks command output.
+Its success result proves that the planned commands exited successfully. Agents must judge test execution from the repository's own output. The setup skill already requires treating an exit-0/no-tests result as unverified when an agent checks command output. The fallback adds no runner-specific output parsing, test count detection or new mapping settings.
 
-Before changing the verifier, decide how the repository reports that tests actually ran. Do not invent runner-specific output parsing or a new generic mapping schema as part of this rollback.
+The mutation checker has the same limit: `killed` means the command failed with a mutant in place. It does not independently prove that an assertion caught the behavior change. Failed runs retain the last 4,000 characters of combined output, exit code, signal and any spawn error, so agents can distinguish assertion failures from parse, import or runner errors. Existing mutant statuses and command selection remain unchanged.
 
 ## Updating from v0.0.8
 

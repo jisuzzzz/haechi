@@ -20,12 +20,13 @@ The haechi tools folder is two levels above this skill's folder (`<this skill's 
    ```bash
    node <tools>/watch-pipeline.mjs <iid> --sha <full HEAD sha>
    ```
-   `--sha` skips the old head pipeline the MR still shows right after a push. Check that the first output line starts with `WATCHING`.
-   With merged results pipelines the pipeline runs on a temporary merge commit, so `--sha <HEAD>` never matches and the watcher exits after 10 minutes with `GIVE_UP` (no pipeline for that sha). If the MR's head pipeline ref is then `refs/merge-requests/<iid>/merge`, rerun it without `--sha`.
+   `--sha` selects the MR's source head and skips the old head pipeline the MR still shows right after a push. Check that the first output line starts with `WATCHING`.
+   Merged results pipelines run on a temporary merge commit. The watcher accepts that different pipeline SHA only on `refs/merge-requests/<iid>/merge` when its commit parents contain the MR's source head, while still matching `--sha` against that source head. If the commit parents cannot be read, it gives up without accepting the pipeline.
 3. Auto-merge, only if `git.autoMerge` is `true` or the user said yes when asked once: `glab mr merge <iid> --auto-merge --sha <full sha> --yes`. Set it only after `WATCHING` — before the pipeline exists GitLab merges at once or refuses. Set it again after every fix push, because a failed pipeline can drop it. "Already set" is fine; any other error: tell the user in one line and keep watching.
 4. Tell the user in one line that watching started (and whether auto-merge is set), then wait for the exit.
 
 The watcher already retries infrastructure failures (DNS, network, image pull) up to 3 times per job and transient API errors. Do not retry those yourself.
+It snapshots the MR's source head separately from the pipeline SHA and checks it during polling and before infrastructure retries. A newer source head invalidates the watched result, including merged results pipelines.
 
 ## 2. On exit
 
@@ -33,6 +34,7 @@ The watcher already retries infrastructure failures (DNS, network, image pull) u
 |---|---|---|
 | 0 | `GREEN …` | Check whether the MR merged (`glab mr view <iid>`). GitLab merges a few seconds after the pipeline passes, so with auto-merge set re-check a few times over about a minute first. Merged → step 5. Not merged → say why (conflict, auto-merge off). |
 | 1 | `FAILED <job> …` + trace tail | Step 3. |
+| 2 | `GIVE_UP stale MR …` | Restart step 1 with the latest source head. Do not fix or retry the old pipeline's failures. |
 | 2 | `GIVE_UP <reason>` | Report the line and stop. If it is an auth failure (401, Unauthenticated), ask the user to log in again (`glab auth login`). |
 
 ## 3. Fix a failed job

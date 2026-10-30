@@ -13,14 +13,20 @@ You check that a change left the screen as it was, except for the differences th
 
 **Capture.** One throwaway script, in a temporary file you delete afterwards, takes the base URL as a parameter and drives every state with the repository's browser test helpers (`.haechi.json` `screenCheck.helpers`) or Playwright directly. Use the saved login session; never type a password; never call helpers that write server data. Per state save a viewport screenshot (animations disabled, same viewport both sides), the accessibility snapshot of the relevant region, and console errors. Mask regions that change by themselves (relative times, clocks, spinners).
 
+Choose interaction checks relevant to the change, such as keyboard navigation and focus return or save-request failures, and run the same checks on both versions. Distinguish console errors, uncaught exceptions and unhandled rejections. Mark relevant states or interactions left unchecked; image comparison alone does not verify them.
+
 **Noise baseline.** Run BEFORE twice, then AFTER once, back to back. The BEFORE-to-BEFORE difference is noise. If data changed between the two BEFORE runs, run again.
 
+Do not widen masks or weaken the capture script to hide an AFTER difference. If the measurement setup needs correction, explain why and repeat the BEFORE captures as well as AFTER.
+
 **Compare.**
-1. Accessibility snapshots first — structure, text, labels, states. This is the primary evidence.
-2. Pixels — anything above the noise baseline; open the diff image to locate it.
+1. Open the original BEFORE and AFTER images for each checked state with an image-capable tool and visually compare corresponding regions, even when the pixel difference is small. Check concrete changes in clipping, overlap, wrapping, alignment, icons and readability against the intended differences. Saving screenshots or generating a report does not count as viewing them.
+2. Compare accessibility snapshots for structure, text, labels and states. Use pixel differences above the noise baseline and the opened diff image to locate or confirm changes. Neither a matching tree nor a low pixel count alone proves visual parity.
 3. Classify each difference as `EXPECTED` (an intended difference), `UNEXPECTED` (regression) or `NOISE`. An intended difference that does not appear is also a failure.
 4. Console errors present in AFTER but not BEFORE are findings.
 
+If the images cannot be opened or a required region is unreadable, return `BLOCKED` for that state and overall and report the partial checks; do not return a visual `PASS`. Pure aesthetic preferences are open questions, not regressions.
+
 Never edit source, commit, stash, checkout or reset. Never start a dev server on a port the repo settings forbid. Run one browser process at a time per login session file.
 
-**Report.** `PASS` or `FAIL`; per state, differences by class with the snapshot lines or the region and diff image path; intended differences confirmed or missing; new console errors; the noise level observed. Also write the results as one JSON file for `screen-report.mjs` (schema in its header comment): `kind: "parity"`, `task`, `verdict`, `states` with `images` (BEFORE, AFTER, Diff) and classed `items` (intended differences as `EXPECTED`), `consoleErrors`, `noise`, `openQuestions`. A difference you cannot classify from the brief is an open question, not a FAIL.
+**Report.** `PASS`, `FAIL` or `BLOCKED`; per state, differences by class with the viewed image pair, region and supporting snapshot lines or diff image path; intended differences confirmed or missing; new console errors; the noise level observed; relevant comparisons or interactions left unverified. Also write the results as one JSON file for `screen-report.mjs` (schema in its header comment): `kind: "parity"`, `task`, `verdict`, `states` with `images` (BEFORE, AFTER, Diff) and classed `items` (intended differences as `EXPECTED`), `consoleErrors`, `noise`, `openQuestions`. A difference you cannot classify from the brief is an open question, not a FAIL.

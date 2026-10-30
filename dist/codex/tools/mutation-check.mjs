@@ -271,16 +271,17 @@ const runCommand = (command, timeoutMs) =>
     child.stdout.on('data', keep)
     child.stderr.on('data', keep)
     let timedOut = false
+    let spawnError = null
     const timer = setTimeout(() => {
       timedOut = true
       killTree(child)
     }, timeoutMs)
-    const finish = (code) => {
+    const finish = (code, signal) => {
       clearTimeout(timer)
       running = null
-      resolve({ status: timedOut ? 'timeout' : code === 0 ? 'pass' : 'fail', output: tail })
+      resolve({ status: timedOut ? 'timeout' : code === 0 ? 'pass' : 'fail', output: tail, exitCode: code, signal, spawnError })
     }
-    child.on('error', () => finish(1))
+    child.on('error', (error) => { spawnError = error.message })
     child.on('close', finish)
   })
 
@@ -315,15 +316,20 @@ const report = (result, json) => {
   }
   if (result.baseline === 'fail') {
     console.log(`mutation-check: the tests already fail without any mutation — fix them first.\n${result.output}`)
+    console.log(`exit code: ${result.exitCode}; signal: ${result.signal ?? 'none'}; spawn error: ${result.spawnError ?? 'none'}`)
     return
   }
   console.log(`mutation-check: ${result.file} — ${result.mutants.length} mutant(s)`)
   for (const mutant of result.mutants) {
     const change = `${mutant.before.trim() || '∅'} → ${mutant.after.trim() || '∅'}`
     console.log(`  L${String(mutant.line).padEnd(5)} ${mutant.status.padEnd(9)} ${mutant.operator.padEnd(11)} ${change}\n         ${mutant.mutated}`)
+    if (mutant.status !== 'survived') {
+      console.log(`         exit code: ${mutant.exitCode}; signal: ${mutant.signal ?? 'none'}; spawn error: ${mutant.spawnError ?? 'none'}\n${mutant.output}`)
+    }
   }
   const { killed, survived, timeout } = result.summary
   console.log(`killed ${killed} · survived ${survived} · timeout ${timeout}`)
+  if (killed) console.log('killed = the command failed; this does not prove an assertion caught the change. Review the failure output.')
   if (survived) console.log('survived = the tests still pass with that change; add a case that tells the two apart, or say why it does not matter.')
 }
 
@@ -346,7 +352,8 @@ const main = async () => {
   const summary = { killed: 0, survived: 0, timeout: 0 }
   const baseline = await runCommand(command, timeoutMs)
   if (baseline.status !== 'pass') {
-    report({ file: options.file, baseline: 'fail', mutants: [], summary, output: baseline.output }, options.json)
+    const { output, exitCode, signal, spawnError } = baseline
+    report({ file: options.file, baseline: 'fail', mutants: [], summary, output, exitCode, signal, spawnError }, options.json)
     process.exit(2)
   }
   if (!mutants.length) {
@@ -378,7 +385,8 @@ const main = async () => {
       const run = await runCommand(command, timeoutMs)
       const status = STATUS[run.status]
       summary[status] += 1
-      results.push({ line: mutant.line, operator: mutant.operator, before: mutant.before, after: mutant.after, mutated: mutant.mutated, status })
+      const evidence = run.status === 'pass' ? {} : { output: run.output, exitCode: run.exitCode, signal: run.signal, spawnError: run.spawnError }
+      results.push({ line: mutant.line, operator: mutant.operator, before: mutant.before, after: mutant.after, mutated: mutant.mutated, status, ...evidence })
     }
   } finally {
     restore()

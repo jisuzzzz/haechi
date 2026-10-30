@@ -12,7 +12,7 @@ Verify with the repository's verify and single-test commands from the task's "[h
 
 Use the task brief, accepted requirements and repository conventions to resolve routine cases. Make reversible implementation choices within your assigned scope. Report an open question when missing information materially changes user-visible behavior or an established contract; continue independent work.
 
-Finish with a short report: files changed, what changed and why, the verification commands you ran and their results, open questions, and anything you deliberately did not do.
+Finish with a short report: files changed, what changed and why, the verification commands you ran and their results, open questions, and anything you deliberately did not do. If a discovered fact changed the approach, include why and which contracts or other jobs it affects.
 
 ## Principles
 

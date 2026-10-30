@@ -32,6 +32,7 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
 
 ## When stuck
 
+- For ambiguous causes, component boundaries, test pollution, races or flaky tests, [investigation techniques](references/investigation.md) offers optional probes. Read only the relevant part when useful; it is not another required stage.
 - Two fixes on the same premise failed: write the premise down and test it directly before a third fix (attack-the-premise).
 - Repeatedly rejected hypotheses: reassess the premise and summarize what was ruled out, the evidence and the next direction. Continue meaningful independent investigation within the authorized scope. Ask when progress requires unavailable reproduction data, access, a consequential decision or additional costly work that was not authorized.
 - A real bug you will not fix in this task: record it the repo's way of recording a known bug (AGENTS.md); if none, ask.
