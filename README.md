@@ -84,6 +84,7 @@ Supporting skills handle individual steps:
 
 - [spec](skills/spec/SKILL.md) resolves consequential requirements; [preview](skills/preview/SKILL.md) makes a quick UI prototype; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
 - [impact-map](skills/impact-map/SKILL.md), [sibling-path-map](skills/sibling-path-map/SKILL.md), [mutation-check](skills/mutation-check/SKILL.md) and [review-diff](skills/review-diff/SKILL.md) support verification and review.
+- [eval](skills/eval/SKILL.md) records workflow failures and compares proposed improvements in fresh contexts before changing active guidance. It runs when relevant to an evaluation task and adds no background memory or global rules. Seed observations are in [evals/failures.md](evals/failures.md).
 - [plain](skills/plain/SKILL.md) improves lasting prose; [request](skills/request/SKILL.md) writes and updates a request to another team in one Markdown file.
 - [commit](skills/commit/SKILL.md) makes a local commit; [mr](skills/mr/SKILL.md) opens a GitHub PR or GitLab MR; [ci-watch](skills/ci-watch/SKILL.md) watches and fixes GitLab CI through merge and cleanup. GitHub CI watching is not available yet.
 

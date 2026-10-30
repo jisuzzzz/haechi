@@ -1,0 +1,3 @@
+# Preserve frozen plan, snapshot and evidence bytes across checkouts.
+*.json -text
+*.md -text
