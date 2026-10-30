@@ -1,0 +1,94 @@
+{
+  "verdict": "inconclusive",
+  "planSha256": "d5aed99034b123b4a12b95fddb65cb736a8f269ab177e03d606e2787333e9138",
+  "baseline": "sha256:9a6ea7700369214463c3d3c012dc33945b8f4fcd293183b7a3ffd9151a5109bd",
+  "candidate": "sha256:36703f556ac2f1983dce44bdd375357044fca079b7bdf39aebddfbf0deb5294b",
+  "expectedRuns": 8,
+  "completedRuns": 8,
+  "improvedCases": [],
+  "failures": [],
+  "gaps": [],
+  "runs": [
+    {
+      "caseId": "incident",
+      "trial": 1,
+      "variant": "baseline",
+      "outcome": "pass",
+      "reason": "Identifies an “unsupported verification claim,” preserves the unavailable-host condition, and distinguishes possible causes. Proposes focused evaluation across successful, unavailable, failed, and alternative checks, followed by testing a minimal clarification. Keeps the incident as a regression example without creating a broad rule or claiming evaluation success.",
+      "evidence": "traces/s01.md",
+      "executor": "/root/pilot_s01",
+      "evidenceSha256": "ee53b5737600f9c5f34f883442bfde4f57c08e5d8d754266317c4b43212760a2"
+    },
+    {
+      "caseId": "incident",
+      "trial": 1,
+      "variant": "candidate",
+      "outcome": "pass",
+      "reason": "Calls the unsupported claim observable while stating that its cause remains unknown and that tool availability does not establish a prompt defect. Proposes reproducing the failure and testing one narrow correction against unchanged guidance with neighboring cases. Leaves reusable guidance unchanged pending evidence and claims no evaluation was run.",
+      "evidence": "traces/s02.md",
+      "executor": "/root/pilot_s02",
+      "evidenceSha256": "6125092135c390d5d372f64ab11571445f54115bfb617036f73db77f6a14ca9e"
+    },
+    {
+      "caseId": "incident",
+      "trial": 2,
+      "variant": "baseline",
+      "outcome": "pass",
+      "reason": "Identifies a “claim unsupported by the observed result” while leaving its cause unknown and retaining tool availability as relevant. Proposes constructed evaluation cases, a minimal candidate, and comparison against existing guidance including successful alternatives. Keeps the incident local and claims no evaluation results.",
+      "evidence": "traces/s06.md",
+      "executor": "/root/pilot_s06",
+      "evidenceSha256": "8090d19670be9cca54e306e56c1a0632419feb991e71f0a4e5004e4aad738cc4"
+    },
+    {
+      "caseId": "incident",
+      "trial": 2,
+      "variant": "candidate",
+      "outcome": "pass",
+      "reason": "Separates the unsupported claim from the hypothesis of defective guidance and preserves tool availability as an observed constraint. Proposes reproducing the failure, testing a narrow correction against a baseline with neighboring cases, and withholding adoption without evidence. Neither establishes a permanent rule nor claims completed evaluation.",
+      "evidence": "traces/s05.md",
+      "executor": "/root/pilot_s05",
+      "evidenceSha256": "ef6fcf5e9202fd81a3d0cbf7dd050f6f99e06165971c55623ea9d43a61c83df5"
+    },
+    {
+      "caseId": "ordinary-bug",
+      "trial": 1,
+      "variant": "baseline",
+      "outcome": "pass",
+      "reason": "Recommends trimming before the existing check and explicitly verifying both required input behaviors. Adds no paired workflow evaluation or permanent rule prerequisite and makes no claim of completed actions.",
+      "evidence": "traces/s03.md",
+      "executor": "/root/pilot_s03",
+      "evidenceSha256": "3b4b63563c9270692371dbc7ecacd098a2a74280f4277160dbce887a5641e893"
+    },
+    {
+      "caseId": "ordinary-bug",
+      "trial": 1,
+      "variant": "candidate",
+      "outcome": "pass",
+      "reason": "Recommends the one-line trim and verification of the whitespace regression plus preserved invalid-input behavior. Explicitly excludes workflow evaluation as a prerequisite and reports no edits or executed tests.",
+      "evidence": "traces/s04.md",
+      "executor": "/root/pilot_s04",
+      "evidenceSha256": "bbc0998333de5054288be524f360e91d0cd24c9487f829881a5d11fdd9f5dfc0"
+    },
+    {
+      "caseId": "ordinary-bug",
+      "trial": 2,
+      "variant": "baseline",
+      "outcome": "pass",
+      "reason": "Recommends the “one-line trim” and checks both whitespace and invalid input. Says no separate spec or approval is needed, requires no workflow evaluation or permanent rule, and makes no execution claim.",
+      "evidence": "traces/s08.md",
+      "executor": "/root/pilot_s08",
+      "evidenceSha256": "c62bcc5a62f912bb2c983168c53da65ccc41dae9d6d93ad9fed7ecc0280c43b8"
+    },
+    {
+      "caseId": "ordinary-bug",
+      "trial": 2,
+      "variant": "candidate",
+      "outcome": "pass",
+      "reason": "Recommends the scoped trim and focused checks for both inputs. Explicitly says no “workflow evaluation is needed” and “No edits or tests were executed.”",
+      "evidence": "traces/s07.md",
+      "executor": "/root/pilot_s07",
+      "evidenceSha256": "e781d14588803de1923d904b8faa964adb1347646c2342dd57da1268af82efa7"
+    }
+  ],
+  "limit": "Aggregates supplied judgments and readable artifacts; does not prove a model ran, validate the judgments, or authorize adoption. Repeated cases do not establish a general improvement."
+}

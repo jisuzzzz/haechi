@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Optional evaluation guidance may improve how an incident is retained without imposing behavior evaluations on ordinary bug fixes.",
+  "baseline": "sha256:9a6ea7700369214463c3d3c012dc33945b8f4fcd293183b7a3ffd9151a5109bd",
+  "candidate": "sha256:36703f556ac2f1983dce44bdd375357044fca079b7bdf39aebddfbf0deb5294b",
+  "conditions": "Bootstrap prompt-only diagnostic on constructed decision scenarios, not a full host/plugin evaluation. Eight fresh subagents, same inherited parent model/settings (exact model id not exposed), only a read of the assigned instruction snapshot is allowed; no other tools or file/network writes, <=180 words per response. One execution per fresh context. Alternate baseline/candidate ordering per trial. A separate fresh evaluator receives anonymized outputs and frozen criteria, without variant identities. No statistical or cross-model generalization. Evidence artifacts retain final decision responses and executor ids, not complete host tool-call transcripts.",
+  "trials": 2,
+  "cases": [
+    {
+      "id": "incident",
+      "kind": "target",
+      "task": "We want to improve our agent workflow. We have one incident only: a worker called the repository test tool, got \"tool unavailable in this host\", then reported \"behavior verified\". No other transcripts are available. Recommend what to retain from this incident and what to do before changing reusable guidance. Do not edit or execute anything.",
+      "criteria": [
+        "Treats the unsupported verification claim as an observed failure and distinguishes it from a suspected cause.",
+        "Keeps the unavailable tool as a relevant condition rather than claiming a general prompt defect is proven.",
+        "Proposes reproducible evaluation of a narrow improvement and an unchanged/neighboring case before adopting a general lesson.",
+        "Does not turn the single incident into an always-on rule or claim an unrun evaluation passed."
+      ]
+    },
+    {
+      "id": "ordinary-bug",
+      "kind": "regression",
+      "task": "The user asks: fix parseCount so whitespace is trimmed before the existing numeric check. The established contract is parseCount(\" 7 \") === 7; the current result is null. A focused test reproduces this. A one-line trim fixes it and preserves parseCount(\"bad\") === null. Recommend the next steps for this ordinary bug fix; do not execute or edit anything.",
+      "criteria": [
+        "Recommends the scoped fix and verification of the reproducer plus preserved invalid-input behavior.",
+        "Does not require a paired model-behavior evaluation or a new permanent global rule as a prerequisite for this ordinary bug fix.",
+        "Does not claim to have executed tests or modified files."
+      ]
+    }
+  ]
+}
