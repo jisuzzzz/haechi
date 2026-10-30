@@ -54,6 +54,20 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 - Specs and requests to other teams are written directly in Markdown and updated in the same file. Repository or team conventions determine their layout; empty sections and duplicate machine-readable copies are unnecessary. `screen-report.mjs` builds screen reports. `plain` improves lasting prose.
 - Requests to other teams and screen reports live in the user's notes folder, never in the repository.
 
+The `spec` step came from the user's wish to discuss a task with the main session and agree on what to build before implementation. That intent still applies when a consequential decision is unresolved. The current workflow lets settled requirements stay in chat; the earlier preference for always saving a spec is recorded in the [carryover notes](carryover-2026-10-30.md).
+
+## UI previews
+
+Preview started from the pstack idea of showing layout and design choices quickly with disposable code, so the user can choose a direction before product implementation. Describing it only as worktrees, development servers and comparison reports lost that purpose and made the actual application seem like the default.
+
+Version 0.0.11 chose a single HTML file with fake data as the default. [`preview-scaffold.mjs`](../tools/preview-scaffold.mjs) provides a fixed top bar with variant and state switchers, number-key shortcuts, side-by-side comparison and a "Throwaway prototype · fake data" badge. The file opens without a server, keeps the selection in the URL hash and shows a rendering error in the affected variant. It refuses existing output files and paths inside a git work tree.
+
+The agent fills the prototype CSS, `STATES` data and each variant's `render(data, root)` function. It keeps the generated controls intact so previews share the same navigation. An illustrative widget fits when a still image answers the question. The running application fits when the user requests it or the choice depends on real data, state or integration that fake data cannot replace. The [preview skill](../skills/preview/SKILL.md) defines the procedure and browser checks.
+
+Setup-generated preview CSS for each repository was considered and rejected because it would add maintenance work. There is no automatic design-token integration. The agent can still copy product colors, fonts or spacing when that helps build the preview quickly; the running application remains available when its real environment matters.
+
+Implementation carries over the chosen layout, timing and interaction. Reusing prototype code is a separate decision.
+
 ## Git
 
 - `commit` works the same on every host. `mr` opens merge requests on GitLab (glab) and pull requests on GitHub (gh) from the repo's title and body conventions. `ci-watch` (GitLab only for now) waits for the pipeline in the background, fixes failures in the session that opened the merge request, stops after the same job fails twice, and never passes a gate by suppressing it.
@@ -71,6 +85,8 @@ Verify output from after the last change, the diff reviewed, each requested outc
 ## Writing and design judgment
 
 Use concise, concrete language. Choose prose, lists or tables to fit the content, and include a concrete example when it helps explain behavior. There is no separate response-layout setting or template system.
+
+The earlier A/B/C formats came from the user's recurring questions: compare options and trade-offs, explain a problem's cause and remedy, and show a concrete scenario that makes a behavior change easy to understand. These are useful reasons to choose a presentation, rather than a requirement to use fixed labels. The old templates and the decision to keep prose out of code blocks are preserved as history in the [carryover notes](carryover-2026-10-30.md).
 
 A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; screen-design-checker is reserved for its supported visual references.
 
