@@ -87,7 +87,7 @@ The default verifier uses `pythonTestMap` to select explicit test files for chan
 
 ## Build and distribution
 
-- Sources live in `core/`. `build/build.mjs` generates `dist/claude` and `dist/codex`; CI fails when `dist` is stale.
+- Sources live in the root `skills/`, `agents/`, `hooks/`, `tools/` and `principles/` folders, with metadata in `plugin.json`. Platform adapters live in `hooks/claude/` and `hooks/codex/`. `build/build.mjs` generates `dist/claude` and `dist/codex`; CI fails when `dist` is stale.
 - Agents name their principles, checks and procedures in frontmatter. The build writes them into the agent body, so Claude Code and Codex agents get the same text.
 - Both tools install from this repository: `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.
 - Codex plugins cannot carry agents, so setup installs the generated agent TOML files.

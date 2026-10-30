@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { escapeCell, renderDoc, validateFields } from '../core/tools/render-doc.mjs'
+import { escapeCell, renderDoc, validateFields } from '../tools/render-doc.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'render-doc.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'render-doc.mjs')
 const run = (args) => spawnSync(process.execPath, [tool, ...args], { encoding: 'utf8' })
 const writeFields = (fields) => {
   const file = join(mkdtempSync(join(tmpdir(), 'render-doc-')), 'fields.json')

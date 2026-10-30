@@ -9,7 +9,7 @@ Requirements: Python 3.10 or newer, Node.js, Git, and local MySQL server/client 
 Run these commands in Bash or Zsh from the haechi checkout. Copying gives the example its own Git root, so the verifier reads the example's settings.
 
 ```sh
-export HAECHI_TOOLS="$PWD/core/tools"
+export HAECHI_TOOLS="$PWD/tools"
 export HAECHI_DEMO="$(mktemp -d /tmp/haechi-demo.XXXXXX)"
 cp -R examples/fastapi-mysql/. "$HAECHI_DEMO/"
 cd "$HAECHI_DEMO"

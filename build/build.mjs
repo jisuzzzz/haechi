@@ -1,4 +1,4 @@
-// Builds dist/claude and dist/codex from core/. Run with --check to fail when the committed dist is stale.
+// Builds dist/claude and dist/codex from the root source folders. Run with --check to detect stale distributions.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 import { dirname, join, relative } from 'node:path'
@@ -35,34 +35,34 @@ const section = (body, heading, file) => {
 
 const listDir = (dir) => (existsSync(dir) ? readdirSync(dir).sort() : [])
 
-export const loadCore = (coreDir) => {
-  const plugin = JSON.parse(readFileSync(join(coreDir, 'plugin.json'), 'utf8'))
+export const loadSource = (sourceDir) => {
+  const plugin = JSON.parse(readFileSync(join(sourceDir, 'plugin.json'), 'utf8'))
   const principles = new Map()
-  for (const name of listDir(join(coreDir, 'principles')).filter((file) => file.endsWith('.md'))) {
-    const file = join(coreDir, 'principles', name)
+  for (const name of listDir(join(sourceDir, 'principles')).filter((file) => file.endsWith('.md'))) {
+    const file = join(sourceDir, 'principles', name)
     const { body } = parseFrontmatter(readFileSync(file, 'utf8'), file)
     principles.set(name.replace(/\.md$/, ''), { do: section(body, 'Do', file), check: section(body, 'Check', file) })
   }
   const skills = new Map()
-  for (const name of listDir(join(coreDir, 'skills'))) {
-    const file = join(coreDir, 'skills', name, 'SKILL.md')
+  for (const name of listDir(join(sourceDir, 'skills'))) {
+    const file = join(sourceDir, 'skills', name, 'SKILL.md')
     if (!existsSync(file)) continue
     const text = readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
     skills.set(name, { text, ...parseFrontmatter(text, file) })
   }
   const agents = []
-  for (const name of listDir(join(coreDir, 'agents')).filter((file) => file.endsWith('.md'))) {
-    const file = join(coreDir, 'agents', name)
+  for (const name of listDir(join(sourceDir, 'agents')).filter((file) => file.endsWith('.md'))) {
+    const file = join(sourceDir, 'agents', name)
     agents.push({ file, ...parseFrontmatter(readFileSync(file, 'utf8'), file) })
   }
-  const readOptional = (path) => (existsSync(join(coreDir, path)) ? readFileSync(join(coreDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
-  const tools = new Map(listDir(join(coreDir, 'tools')).filter((file) => file.endsWith('.mjs')).map((file) => [file, readOptional(`tools/${file}`)]))
-  const formats = new Map(listDir(join(coreDir, 'formats')).filter((file) => file.endsWith('.md')).map((file) => [file, readOptional(`formats/${file}`)]))
+  const readOptional = (path) => (existsSync(join(sourceDir, path)) ? readFileSync(join(sourceDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
+  const tools = new Map(listDir(join(sourceDir, 'tools')).filter((file) => file.endsWith('.mjs')).map((file) => [file, readOptional(`tools/${file}`)]))
+  const formats = new Map(listDir(join(sourceDir, 'formats')).filter((file) => file.endsWith('.md')).map((file) => [file, readOptional(`formats/${file}`)]))
   const hooks = {
     rulesTemplate: readOptional('hooks/rules.md'),
     rulesSource: readOptional('hooks/rules.ts'),
-    claude: { 'register.ts': readOptional('connectors/claude/register.ts'), 'hooks.json': readOptional('connectors/claude/hooks.json') },
-    codex: { 'inject.mjs': readOptional('connectors/codex/inject.mjs'), 'hooks.json': readOptional('connectors/codex/hooks.json') },
+    claude: { 'register.ts': readOptional('hooks/claude/register.ts'), 'hooks.json': readOptional('hooks/claude/hooks.json') },
+    codex: { 'inject.mjs': readOptional('hooks/codex/inject.mjs'), 'hooks.json': readOptional('hooks/codex/hooks.json') },
   }
   return { plugin, principles, skills, agents, hooks, tools, formats }
 }
@@ -186,7 +186,7 @@ export const diffTree = (expected, actual) => {
 const main = () => {
   const root = join(dirname(fileURLToPath(import.meta.url)), '..')
   const distDir = join(root, 'dist')
-  const files = buildFiles(loadCore(join(root, 'core')))
+  const files = buildFiles(loadSource(root))
   if (process.argv.includes('--check')) {
     const problems = diffTree(files, readTree(distDir))
     if (problems.length) {

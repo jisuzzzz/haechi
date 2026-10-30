@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { classifyHit, findTouchedSymbols, impactMap } from '../core/tools/impact-map.mjs'
-import { changedFiles, grepWords } from '../core/tools/sibling-path-map.mjs'
+import { classifyHit, findTouchedSymbols, impactMap } from '../tools/impact-map.mjs'
+import { changedFiles, grepWords } from '../tools/sibling-path-map.mjs'
 
 const names = (symbols) => symbols.map(({ name, kind, line }) => `${name}:${kind}:${line}`)
 

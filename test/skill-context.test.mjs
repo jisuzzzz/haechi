@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { select, handle } from '../core/tools/skill-context.mjs'
+import { select, handle } from '../tools/skill-context.mjs'
 
 test('only explicit leading primary commands change the user selection', () => {
   const selected = select(null, '/haechi:feature change animation')

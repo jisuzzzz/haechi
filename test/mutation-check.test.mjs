@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { addedLines, applyMutant, generateMutants, parseArgs, parseLineRanges, recoverInterrupted, saveBackup } from '../core/tools/mutation-check.mjs'
+import { addedLines, applyMutant, generateMutants, parseArgs, parseLineRanges, recoverInterrupted, saveBackup } from '../tools/mutation-check.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'mutation-check.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'mutation-check.mjs')
 const summarize = (mutants) => mutants.map(({ line, operator, before, after }) => `${line} ${operator} ${before}→${after}`)
 
 test('JS operators: comparison, logical, boolean, negation, integer', () => {

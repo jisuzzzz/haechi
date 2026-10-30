@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { currentVersion, parseDependency, parseRejected, parseShortstat } from '../core/tools/rejected-staleness.mjs'
+import { currentVersion, parseDependency, parseRejected, parseShortstat } from '../tools/rejected-staleness.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'rejected-staleness.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'rejected-staleness.mjs')
 
 const run = (args, cwd, env = process.env) => spawnSync(process.execPath, [tool, ...args], { cwd, encoding: 'utf8', env })
 

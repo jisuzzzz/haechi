@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { countChanges, countLogicLines, excludePathspecs, stripImports } from '../core/tools/count-logic-lines.mjs'
+import { countChanges, countLogicLines, excludePathspecs, stripImports } from '../tools/count-logic-lines.mjs'
 
 test('JS imports, multi-line imports and export-from statements are stripped', () => {
   const text = [

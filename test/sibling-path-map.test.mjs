@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { changedFiles, extractIdentifiers, grepWords, inRanges, isGuardLine, parseDiff, siblingSites } from '../core/tools/sibling-path-map.mjs'
+import { changedFiles, extractIdentifiers, grepWords, inRanges, isGuardLine, parseDiff, siblingSites } from '../tools/sibling-path-map.mjs'
 
 test('guard, comparison and normalization lines are recognised; plain statements, strings and comments are not', () => {
   for (const line of [

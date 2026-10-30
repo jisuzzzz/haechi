@@ -69,8 +69,11 @@ Setup combines independent detection and machine checks, presents one draft and 
 
 | Path | Purpose |
 |---|---|
-| `core/` | Shared source: skills (including playbooks), agents, hooks, platform connectors, tools, principles and answer formats. Edit these originals. |
-| `build/` | Generates the Claude Code and Codex distributions from `core/`. |
+| `skills/`, `agents/` | Editable skills (including playbooks) and subagent definitions. Start here. |
+| `hooks/` | Shared rules and platform adapters in `claude/` and `codex/`. |
+| `tools/`, `principles/`, `formats/` | Supporting tools, shared principles and answer examples. |
+| `plugin.json` | Shared plugin metadata. |
+| `build/` | Generates the Claude Code and Codex distributions from the root source folders. |
 | `dist/claude/`, `dist/codex/` | Generated plugins that users install. |
 | `test/` | Tests for the tools, hooks and build. |
 | `docs/` | Design, configuration guides and verification records. |

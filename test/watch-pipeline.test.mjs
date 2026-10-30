@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { cleanTrace, decide, isInfraFailure, parseArgs } from '../core/tools/watch-pipeline.mjs'
+import { cleanTrace, decide, isInfraFailure, parseArgs } from '../tools/watch-pipeline.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'watch-pipeline.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'watch-pipeline.mjs')
 const INFRA_TRACE = 'Fetching changes...\nfatal: unable to access repo: Could not resolve host: git.example.com\n'
 const ANSI_TRACE = [
   'section_start:1700000000:step_script\r\x1b[0K\x1b[32;1m$ npm test\x1b[0;m',

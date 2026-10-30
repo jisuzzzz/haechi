@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { buildHtml, parseArgs } from '../core/tools/preview-scaffold.mjs'
+import { buildHtml, parseArgs } from '../tools/preview-scaffold.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'preview-scaffold.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'preview-scaffold.mjs')
 const run = (args) => spawnSync(process.execPath, [tool, ...args], { encoding: 'utf8' })
 const scriptOf = (html) => html.match(/<script>([\s\S]*)<\/script>/)[1]
 

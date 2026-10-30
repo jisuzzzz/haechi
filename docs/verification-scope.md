@@ -26,7 +26,7 @@ The existing `commands.verify` is the natural integration point for repositories
 
 ## Evidence limit to address separately
 
-The default verifier checks command exit status, not test discovery counts. In an isolated fixture, a configured single-test command printed `no tests collected` and exited 0; with a successful lint command, the verifier reported `verification complete`. This follows the exit-status handling in [`verify-default.mjs`](../core/tools/verify-default.mjs), lines 141–150.
+The default verifier checks command exit status, not test discovery counts. In an isolated fixture, a configured single-test command printed `no tests collected` and exited 0; with a successful lint command, the verifier reported `verification complete`. This follows the exit-status handling in [`verify-default.mjs`](../tools/verify-default.mjs), lines 141–150.
 
 Therefore, its success result proves that the planned commands exited successfully. It does not independently prove that tests were collected or executed. This limitation is retained in the rollback and should be considered in the v0.0.7 design review, together with the source-to-test mapping. The setup skill already requires treating an exit-0/no-tests result as unverified when an agent checks command output.
 

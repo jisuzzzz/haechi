@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { loggedInHosts, parseCodexTrust } from '../core/tools/check-user.mjs'
+import { loggedInHosts, parseCodexTrust } from '../tools/check-user.mjs'
 
 test('login is read per host, not from the exit code', () => {
   const status = 'gitlab.com\n  x No token provided\ncode.example.org\n  ✓ Logged in to code.example.org as dev (token)\n'

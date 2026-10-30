@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { planChecks } from '../core/tools/verify-default.mjs'
+import { planChecks } from '../tools/verify-default.mjs'
 
 const jsTools = { pm: 'yarn', js: { eslint: true, vitest: true, jest: false }, py: { runner: 'pip', ruff: false, pytest: false } }
 const pyTools = { pm: 'npm', js: { eslint: false, vitest: false, jest: false }, py: { runner: 'uv', ruff: true, pytest: true } }
@@ -103,7 +103,7 @@ test('mapped test paths with spaces remain one argument', () => {
   assert.equal(plan[1].command, 'uv run pytest "tests/test api.py"')
 })
 
-const verifier = fileURLToPath(new URL('../core/tools/verify-default.mjs', import.meta.url))
+const verifier = fileURLToPath(new URL('../tools/verify-default.mjs', import.meta.url))
 const fixture = (t, settings = mapped) => {
   const root = mkdtempSync(join(tmpdir(), 'haechi-python-verify-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))

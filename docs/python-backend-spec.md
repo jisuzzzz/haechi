@@ -32,7 +32,7 @@ The verifier selects tests; it does not start databases, install dependencies, r
 4. FastAPI with pytest declared only in `requirements-dev.txt` yields a usable single-test candidate. Existing Django and JS detection tests keep passing.
 5. An actual FastAPI request against the disposable MySQL instance passes. An intentional API regression makes the source-only verifier fail; restoring it passes. The committed example stays correct.
 6. Setup instructions explain the map and test database prerequisites. The backend guide records the actual validation commands and limits.
-7. The generated Claude and Codex distributions match `core/`. Run `npm run check` and only affected test files.
+7. The generated Claude and Codex distributions match the root source folders. Run `npm run check` and only affected test files.
 
 ## Scope limits
 

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
-import { buildFiles, loadCore } from '../build/build.mjs'
+import { buildFiles, loadSource } from '../build/build.mjs'
 import {
   fullBlock,
   missingRequired,
@@ -14,10 +14,10 @@ import {
   reminderBlock,
   render,
   spawnAppendix,
-} from '../core/hooks/rules.ts'
+} from '../hooks/rules.ts'
 
-const coreDir = join(import.meta.dirname, '..', 'core')
-const template = readFileSync(join(coreDir, 'hooks', 'rules.md'), 'utf8')
+const sourceDir = join(import.meta.dirname, '..')
+const template = readFileSync(join(sourceDir, 'hooks', 'rules.md'), 'utf8')
 
 const complete = {
   commands: { verify: 'npm run verify -- {files}', testOne: 'npx vitest run {file}', typecheck: null },
@@ -139,7 +139,7 @@ test('the built Codex hook prints the same block the shared rules render', async
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'haechi-rules-')))
   t.after(() => rmSync(scratch, { recursive: true, force: true }))
   const out = join(scratch, 'dist')
-  for (const [path, text] of buildFiles(loadCore(coreDir))) {
+  for (const [path, text] of buildFiles(loadSource(sourceDir))) {
     mkdirSync(join(out, path, '..'), { recursive: true })
     writeFileSync(join(out, path), text)
   }

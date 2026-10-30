@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { buildFiles, codexAgent, demoteHeadings, diffTree, loadCore, parseFrontmatter } from '../build/build.mjs'
+import { buildFiles, codexAgent, demoteHeadings, diffTree, loadSource, parseFrontmatter } from '../build/build.mjs'
 
 const write = (root, path, text) => {
   mkdirSync(join(root, path, '..'), { recursive: true })
@@ -36,7 +36,7 @@ test('rejects multi-line YAML values', () => {
 })
 
 test('agents get the Do part of principles and the Check part of checks', () => {
-  const files = buildFiles(loadCore(makeCore()))
+  const files = buildFiles(loadSource(makeCore()))
   const claude = files.get('claude/agents/checker.md')
   assert.match(claude, /^---\nname: checker\ndescription: Reviews diffs\ntools: Read, Grep\nmodel: opus\neffort: medium\n---/)
   assert.match(claude, /## Principles\n\n### kiss\nKeep the diff small\./)
@@ -46,7 +46,7 @@ test('agents get the Do part of principles and the Check part of checks', () => 
 })
 
 test('plugin root token resolves per tool', () => {
-  const files = buildFiles(loadCore(makeCore()))
+  const files = buildFiles(loadSource(makeCore()))
   assert.match(files.get('claude/agents/checker.md'), /\$\{CLAUDE_PLUGIN_ROOT\}\/tools\/impact\.mjs/)
   assert.match(files.get('codex/agents/checker.toml'), /\$\{PLUGIN_ROOT\}\/tools\/impact\.mjs/)
   assert.match(files.get('codex/skills/review/SKILL.md'), /\$\{PLUGIN_ROOT\}/)
@@ -54,7 +54,7 @@ test('plugin root token resolves per tool', () => {
 })
 
 test('codex agents are TOML with escaped strings and effort', () => {
-  const toml = buildFiles(loadCore(makeCore())).get('codex/agents/checker.toml')
+  const toml = buildFiles(loadSource(makeCore())).get('codex/agents/checker.toml')
   assert.match(toml, /^name = "checker"\ndescription = "Reviews diffs"\nmodel_reasoning_effort = "medium"\ndeveloper_instructions = '''\nYou review\./)
 })
 
@@ -66,11 +66,11 @@ test("refuses a body that would break the TOML literal string", () => {
 test('unknown principle names fail the build', () => {
   const root = makeCore()
   write(root, 'agents/bad.md', '---\nname: bad\ndescription: d\nprinciples: [nope]\n---\nx\n')
-  assert.throws(() => buildFiles(loadCore(root)), /unknown principle "nope"/)
+  assert.throws(() => buildFiles(loadSource(root)), /unknown principle "nope"/)
 })
 
 test('manifests carry the version for both tools', () => {
-  const files = buildFiles(loadCore(makeCore()))
+  const files = buildFiles(loadSource(makeCore()))
   assert.equal(files.get('claude/formats/choice.md'), '# Choice\n')
   assert.equal(files.get('codex/formats/choice.md'), '# Choice\n')
   assert.equal(JSON.parse(files.get('claude/.claude-plugin/plugin.json')).version, '1.2.3')

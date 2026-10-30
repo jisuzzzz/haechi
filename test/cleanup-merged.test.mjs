@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
 
-import { buildPlan, findRefSha, parseArgs, parseWorktreeList, sameDir } from '../core/tools/cleanup-merged.mjs'
+import { buildPlan, findRefSha, parseArgs, parseWorktreeList, sameDir } from '../tools/cleanup-merged.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'cleanup-merged.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'cleanup-merged.mjs')
 
 // Isolate from the user's global git config (hooks, signing, default branch); symlinks on so a tracked link is real.
 const scratch = mkdtempSync(join(tmpdir(), 'cleanup-merged-'))

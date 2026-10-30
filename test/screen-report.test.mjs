@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { linkTo, parseArgs } from '../core/tools/screen-report.mjs'
+import { linkTo, parseArgs } from '../tools/screen-report.mjs'
 
-const tool = join(import.meta.dirname, '..', 'core', 'tools', 'screen-report.mjs')
+const tool = join(import.meta.dirname, '..', 'tools', 'screen-report.mjs')
 // 1x1 transparent PNG.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
 
