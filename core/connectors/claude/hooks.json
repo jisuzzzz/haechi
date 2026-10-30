@@ -1,1 +1,29 @@
-{ "modules": ["./register.ts"] }
+{
+  "modules": [
+    "./register.ts"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/playbook-reminder.mjs PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/tools/playbook-reminder.mjs PostToolUse"
+          }
+        ]
+      }
+    ]
+  }
+}
