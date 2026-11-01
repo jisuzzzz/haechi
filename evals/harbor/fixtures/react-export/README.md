@@ -1,0 +1,7 @@
+# React paginated CSV fixture
+
+The asynchronous export handoff is motivated by [react-csv issue #221](https://github.com/react-csv/react-csv/issues/221), which reports empty data on the first click and previous data on the next click when fetching asynchronously. The evaluator explicitly checks first and consecutive clicks for fresh responses and inputs.
+
+The server cursor adapter, cross-page selection UI, short/empty pages, repeated boundary records, CSV fields and error/retry contract here are newly written synthetic code. They expand the documented stale asynchronous handoff into a multi-file export repair. This fixture does not contain upstream source or claim to recreate the original issue's exact repository state.
+
+Only `environment/` enters the task build context. Hidden interactions and the independent solution remain outside it. `tests/grade.py` copies final `src/` into a fresh directory and runs evaluator-owned tests/configuration using `/opt/fixture-deps`, then writes `/logs/verifier/checks.json` and `reward.txt`. Tests exercise snapshots during pending exports, traversal through short/empty cursor pages, boundary deduplication, independent table state, actual CSV field values and file metadata, failure without partial success, retry, and empty exports. Public happy-path tests/build pass before repair. jsdom assertions are distinct from separate Chromium browser calibration.

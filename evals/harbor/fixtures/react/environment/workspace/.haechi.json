@@ -1,0 +1,16 @@
+{
+  "commands": {
+    "verify": "npm run build",
+    "testOne": "npm run test:one -- {file}",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "forbidden": ["npm test", "npm run test"],
+  "testDirs": ["tests"],
+  "sensitiveData": "none — use synthetic data only",
+  "generated": ["dist"],
+  "devServer": "npm run dev",
+  "worktreeSetup": "npm ci",
+  "worktreeTeardown": null,
+  "git": {"base": "main", "protected": ["main"], "branch": "codex/{slug}"},
+  "riskPaths": []
+}

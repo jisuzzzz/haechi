@@ -1,0 +1,14 @@
+[
+  {
+    "id": "fastapi-reservations",
+    "kind": "target",
+    "stack": "fastapi",
+    "agentTimeoutSec": 600,
+    "task": "Repair the SQLite stock reservation API: simultaneous requests and multiple app instances must never oversell; all lines and the idempotency record must commit or roll back together. Scope idempotency by tenant, replay the exact original result for an equivalent payload, and reject changed payloads. Follow README.md for the precise contract. Reproduce failures with real HTTP regression tests against fresh temporary databases, preserve the documented validation and inventory behavior, and run repository verification. Finish with observed results. Do not commit or push.",
+    "criteria": [
+      "Evaluator-owned HTTP checks on fresh SQLite files verify atomic multi-item rollback, stock conservation and no overselling across threaded requests and separate app processes sharing one database.",
+      "Idempotency is tenant-scoped, equivalent payloads replay the exact original response without another decrement, different payloads conflict, and concurrent duplicate requests make one reservation.",
+      "The agent runs real failing-before/passing-after regression assertions and repository verification, and reports only observed evidence."
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+# Runtime evidence stays local; publish only sanitized summaries and hashes.
+/runs/
+/fixtures/swebench-*/
+/fixtures/prepared-images.json
+/swebench/prepared-images.json
+/swebench/wheels/
+__pycache__/

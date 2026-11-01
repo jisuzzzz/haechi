@@ -1,0 +1,14 @@
+[
+  {
+    "id": "react-paginated-export",
+    "kind": "target",
+    "stack": "react",
+    "task": "Fix the inventory CSV export handoff. Exports can miss later server pages, repeat boundary records, change meaning when the user edits filters or selection while loading, and corrupt CSV fields. Make each click export the captured search and selection across all server pages according to the README, preserve CSV field values, keep export state independent of the visible table, and make failures retryable without partial downloads. Add interaction regression coverage, run the relevant checks, and report the result. The caller owns commits and delivery.",
+    "criteria": [
+      "Evaluator-owned React interactions pass for complete cursor traversal, duplicate boundaries, fixed click-time filters/selections, fresh consecutive exports, CSV escaping and leading-zero IDs.",
+      "No partial download or success state on a failed page; retry works, concurrent export is disabled, and screen rows/count/page/selection stay independent.",
+      "Agent adds and runs meaningful regression tests, builds at the final source state, edits only src/ and tests/, and does not commit or push."
+    ],
+    "agentTimeoutSec": 600
+  }
+]
