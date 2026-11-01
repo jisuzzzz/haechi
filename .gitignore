@@ -1,2 +1,8 @@
 node_modules/
 .DS_Store
+__pycache__/
+# Execution archives stay local; whitelist only reusable evaluation source.
+/evals/*/
+!/evals/pilot/
+!/evals/harbor/
+/evals/harbor/runs/

@@ -39,4 +39,4 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
 
 ## Extra DONE evidence
 
-Failing output before the fix and passing output after it, from the same test. If that is impossible, say why and show the replacement check.
+Failing output before the fix and passing output after it, from the same reproduction test, failing for the bug rather than a setup or import error. If a test is impossible, explain why and show the same trigger failing before and producing the expected result after through a direct executable check. Without that proof, report the fix as unverified rather than successful. Include the relevant nearby behavior checks on the final change.

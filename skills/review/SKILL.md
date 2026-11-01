@@ -21,7 +21,7 @@ Review without code edits. The easy mistake is fixing what you find during the r
 4. **Run.**
    - Diff review: use /haechi:review-diff. Choose a verifier when risk or separate context makes independent review useful. File and line counts may help estimate scope but do not decide delegation.
    - Area review: review directly unless independent areas benefit from separate context. In that case use /haechi:sweep in read-only mode and /haechi:review-diff for each unit. Read-only units produce findings, never commits.
-5. **Report.** Use the evidence and content requirements in /haechi:review-diff; choose the clearest presentation. "No defects" is a valid verdict.
+5. **Report.** Use the evidence and content requirements in /haechi:review-diff; choose the clearest presentation. State what was inspected and which checks could not be performed. "No defects found in the inspected scope" is valid; it does not certify unchecked behavior or turn missing verification into a pass.
 6. **Follow-up.** Fix nothing during the review. The user decides what to fix; fixes run through /haechi:bug or /haechi:refactor. Posting merge request comments or filing issues is on the ask list.
 
 ## Optional: are the tests strong enough?

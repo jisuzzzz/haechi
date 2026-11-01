@@ -21,9 +21,11 @@ To raise a claim's evidence, write a repro script in a temporary folder **outsid
 
 - **Defect** — needs one of: a failing path traced step by step to a wrong result; a rule present on one path and missing on its sibling, both locations quoted; a contract and the code disagreeing, both sides quoted; execution output. Give `file:line` and the scenario (input or state → wrong result).
 - **Open question** — suspicious but without that evidence, or behavior the spec does not define.
-- **Report only** — taste, lines this change did not touch, anything out of scope.
+- **Report only** — taste and unrelated existing issues. A defect outside the diff or owned files still blocks a required outcome when it breaks the requested result; report the boundary without extending edit permission.
 
 "No defects" is a valid result.
+
+Keep findings separate from verification status. For required outcomes, missing or stale evidence is unverified and undefined expected behavior needs a decision. Neither establishes a pass, even when there are no proven defects. State the inspected scope and limits; do not certify behavior you did not check.
 
 ## Discipline
 

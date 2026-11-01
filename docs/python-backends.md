@@ -31,11 +31,15 @@ Replace `<haechi-tools>` with the installed plugin's tools directory. This is an
 
 | Exit | Meaning |
 |---|---|
-| 0 | All planned checks passed, with no skips; docs-only changes may have no checks |
-| 1 | A command failed, or configuration/test paths were invalid |
-| 2 | Checks were skipped, so verification is incomplete |
+| 0 | Planned checks passed and test steps reported actual passes without skips; docs-only changes may have no checks |
+| 1 | A command or reported test failed, or configuration/test paths were invalid |
+| 2 | A check was skipped, or test execution evidence was missing or incomplete |
 
 Missing Ruff, missing pytest and unmapped Python sources are reported. A mixture of mapped and unmapped changes is still incomplete. The same skipped-check rule applies to missing JS tools. There is no automatic whole-repository test fallback.
+
+The verifier reads test-step summaries from stdout and stderr. It recognizes standard pytest terminal counts, Jest `Tests:` counts, Vitest `Tests` counts and Node TAP final counters. A positive test-case pass count is required. Jest suite/snapshot and Vitest file/error summaries also constrain the result; they cannot supply test-case execution evidence on their own. Zero tests, skipped/todo/expected-failure results, deselected tests, inconsistent summaries and unrecognized output remain incomplete. A reported test, suite, file or snapshot failure or runner error fails the check even if a wrapper returns exit 0. Custom commands still run, but output in another format cannot automatically pass. Both streams remain available for inspection.
+
+Exit 2 identifies a gap in the tool's evidence; it is not proof that the implementation is wrong. Inspect the gap and obtain a focused check of the required behavior. An unrelated skip can be explained, but cannot count as proof; do not enable every optional test just to satisfy the parser. No-check changes explicitly report that no behavior tests ran. Even exit 0 establishes only the selected checks: the main agent must inspect assertions, acceptance coverage and validity for the final change before declaring task success.
 
 ## FastAPI and MySQL
 

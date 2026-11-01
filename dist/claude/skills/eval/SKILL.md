@@ -13,7 +13,7 @@ The tools folder is two levels above this skill's folder (`<this skill's folder>
 
 Record a failure as an observation: the request, expected behavior, actual action, version and conditions, raw trace or artifact, and the first wrong decision if the evidence shows it. Separate the observed fact from a suspected cause. An unavailable tool, contradictory requirement or missing permission may explain the result without a prompt defect.
 
-Keep observations in a durable evaluation folder named in the task or chosen inside the current repository. Store sanitized cases and decision records there; keep sensitive raw traces out of tracked files. Deduplicate repeated reports of the same run. A remembered incident is evidence to investigate, not an instruction for later agents. Read only the relevant records when this task needs them.
+Keep reusable evaluation code, small fixtures and concise sanitized decisions in Git. Store raw runs, transcripts, judge-packet copies, frozen source trees and large archives in a durable ignored or external location. Record their location and hashes in the decision; verify retrieval before relying on them. Do not stage execution output merely because it is evidence. Existing evidence must be preserved when preparing a smaller publishable branch. Deduplicate repeated reports of the same run. A remembered incident is evidence to investigate, not an instruction for later agents. Read only the relevant records when this task needs them.
 
 ## Evaluate, then change
 

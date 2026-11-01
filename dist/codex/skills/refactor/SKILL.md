@@ -31,4 +31,4 @@ Establish which external behavior stays unchanged and why the structure needs to
 
 ## Extra DONE evidence
 
-Evidence that behavior is unchanged: existing and pinning test output, and parity results if external behavior could be affected. Any test you edited, with the reason.
+Evidence that the required external behavior is unchanged on the final change: executed existing and pinning assertions, and parity results if external behavior could be affected. List any test you edited and why; changing expected behavior to match a regression cannot establish equivalence. Apply the common completion rules to missing or contradictory results.
