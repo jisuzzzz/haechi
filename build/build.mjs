@@ -1,5 +1,5 @@
 // Builds dist/claude and dist/codex from the root source folders. Run with --check to detect stale distributions.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { stripTypeScriptTypes } from 'node:module'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,6 +35,21 @@ const section = (body, heading, file) => {
 
 const listDir = (dir) => (existsSync(dir) ? readdirSync(dir).sort() : [])
 
+// Templates can have nested Markdown/JSON and binary attachments. Keep binary assets byte-for-byte.
+const skillAssetFiles = (dir, base = dir, out = new Map()) => {
+  if (!existsSync(dir)) return out
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) skillAssetFiles(path, base, out)
+    else {
+      const key = relative(base, path).replaceAll('\\', '/')
+      const data = readFileSync(path)
+      out.set(key, /\.(md|json)$/.test(key) ? data.toString('utf8').replace(/\r\n/g, '\n') : data)
+    }
+  }
+  return out
+}
+
 export const loadSource = (sourceDir) => {
   const plugin = JSON.parse(readFileSync(join(sourceDir, 'plugin.json'), 'utf8'))
   const principles = new Map()
@@ -45,6 +60,7 @@ export const loadSource = (sourceDir) => {
   }
   const skills = new Map()
   const skillReferences = new Map()
+  const skillAssets = new Map()
   for (const name of listDir(join(sourceDir, 'skills'))) {
     const file = join(sourceDir, 'skills', name, 'SKILL.md')
     if (!existsSync(file)) continue
@@ -53,6 +69,9 @@ export const loadSource = (sourceDir) => {
     const references = join(sourceDir, 'skills', name, 'references')
     for (const reference of listDir(references).filter((file) => file.endsWith('.md'))) {
       skillReferences.set(`${name}/references/${reference}`, readFileSync(join(references, reference), 'utf8').replace(/\r\n/g, '\n'))
+    }
+    for (const [path, content] of skillAssetFiles(join(sourceDir, 'skills', name, 'assets'))) {
+      skillAssets.set(`${name}/assets/${path}`, content)
     }
   }
   const agents = []
@@ -68,7 +87,7 @@ export const loadSource = (sourceDir) => {
     claude: { 'register.ts': readOptional('hooks/claude/register.ts'), 'hooks.json': readOptional('hooks/claude/hooks.json') },
     codex: { 'inject.mjs': readOptional('hooks/codex/inject.mjs'), 'hooks.json': readOptional('hooks/codex/hooks.json') },
   }
-  return { plugin, principles, skills, skillReferences, agents, hooks, tools }
+  return { plugin, principles, skills, skillReferences, skillAssets, agents, hooks, tools }
 }
 
 const lookup = (map, names = [], kind, file) =>
@@ -141,6 +160,9 @@ export const buildFiles = (core) => {
     for (const [path, text] of core.skillReferences ?? []) {
       files.set(`${target}/skills/${path}`, text.replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot))
     }
+    for (const [path, content] of core.skillAssets ?? []) {
+      files.set(`${target}/skills/${path}`, typeof content === 'string' ? content.replaceAll('{{PLUGIN_ROOT}}', TARGETS[target].pluginRoot) : content)
+    }
   }
   for (const agent of core.agents) {
     files.set(`claude/agents/${agent.fields.name}.md`, claudeAgent(agent, core))
@@ -167,12 +189,15 @@ export const buildFiles = (core) => {
   return files
 }
 
-const readTree = (dir, base = dir, out = new Map()) => {
+const readTree = (dir, expected, base = dir, out = new Map()) => {
   if (!existsSync(dir)) return out
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name)
-    if (entry.isDirectory()) readTree(path, base, out)
-    else out.set(relative(base, path).replaceAll('\\', '/'), readFileSync(path, 'utf8').replace(/\r\n/g, '\n'))
+    if (entry.isDirectory()) readTree(path, expected, base, out)
+    else {
+      const key = relative(base, path).replaceAll('\\', '/')
+      out.set(key, Buffer.isBuffer(expected.get(key)) ? readFileSync(path) : readFileSync(path, 'utf8').replace(/\r\n/g, '\n'))
+    }
   }
   return out
 }
@@ -181,7 +206,7 @@ export const diffTree = (expected, actual) => {
   const problems = []
   for (const [path, content] of expected) {
     if (!actual.has(path)) problems.push(`missing: dist/${path}`)
-    else if (actual.get(path) !== content) problems.push(`stale: dist/${path}`)
+    else if (Buffer.isBuffer(content) ? !Buffer.isBuffer(actual.get(path)) || !content.equals(actual.get(path)) : actual.get(path) !== content) problems.push(`stale: dist/${path}`)
   }
   for (const path of actual.keys()) if (!expected.has(path)) problems.push(`extra: dist/${path}`)
   return problems
@@ -192,7 +217,7 @@ const main = () => {
   const distDir = join(root, 'dist')
   const files = buildFiles(loadSource(root))
   if (process.argv.includes('--check')) {
-    const problems = diffTree(files, readTree(distDir))
+    const problems = diffTree(files, readTree(distDir, files))
     if (problems.length) {
       console.error(`dist is out of date — run npm run build\n${problems.join('\n')}`)
       process.exit(1)
@@ -208,4 +233,4 @@ const main = () => {
   console.log(`built ${files.size} files into dist/`)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
+if (process.argv[1] && existsSync(process.argv[1]) && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) main()

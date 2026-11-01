@@ -1,0 +1,405 @@
+{
+  "version": "2.0",
+  "common_required": [
+    "P01",
+    "P02",
+    "P05",
+    "P14"
+  ],
+  "part_order": [
+    "P01",
+    "P04",
+    "P16",
+    "P06",
+    "P07",
+    "P17",
+    "P18",
+    "P08",
+    "P09",
+    "P11",
+    "P05",
+    "P13",
+    "P10",
+    "P02",
+    "P12",
+    "P14",
+    "P15",
+    "P03"
+  ],
+  "conditional_rules": [
+    {
+      "id": "C-EVIDENCE",
+      "name": "Actual evidence citation",
+      "trigger": "Cites actual material such as direct observation records, code, captures, logs, responses or measurements. If no material is available, leave a question to confirm instead of creating a note.",
+      "required": [
+        "P03"
+      ]
+    },
+    {
+      "id": "C-API",
+      "name": "External contract change",
+      "trigger": "Requests, changes or hands off new external behavior of an API, event or data.",
+      "required": [
+        "P07"
+      ]
+    },
+    {
+      "id": "C-IMPACT",
+      "name": "Migration or existing data impact",
+      "trigger": "Affects existing consumer migration, removal, mixed versions or reprocessing of existing data.",
+      "required": [
+        "P09"
+      ]
+    },
+    {
+      "id": "C-VISUAL",
+      "name": "Screens or complex relationships",
+      "trigger": "Screen state or behavior over time is a basis for judgment. Provide actual captures, annotated copies or GIFs, or record that capture is unavailable and what needs confirmation.",
+      "required": [
+        "P15"
+      ]
+    },
+    {
+      "id": "C-PERF",
+      "name": "Performance judgment using figures",
+      "trigger": "Performance improvement is the main purpose, or measurements determine adoption of an option or completion.",
+      "required": [
+        "P16"
+      ]
+    },
+    {
+      "id": "C-ASYNC",
+      "name": "Asynchronous behavior change",
+      "trigger": "Newly defines or changes acceptance, completion, failure, retry, cancellation or notification behavior.",
+      "required": [
+        "P17",
+        "P15"
+      ]
+    },
+    {
+      "id": "C-POLICY",
+      "name": "Permission or policy judgment",
+      "trigger": "Changes authentication, authorization or exposure policy, or requires a policy judgment.",
+      "required": [
+        "P18"
+      ]
+    },
+    {
+      "id": "C-REPLY",
+      "name": "Reply phase",
+      "trigger": "The owning team replies to an actual question or request.",
+      "required": [
+        "P11"
+      ]
+    },
+    {
+      "id": "C-DECISION",
+      "name": "Decision or correction occurs",
+      "trigger": "Actually decides new behavior or policy. Record changes or corrections to prior content only when such content exists.",
+      "required": [
+        "P12"
+      ]
+    },
+    {
+      "id": "C-HANDOFF",
+      "name": "Implementation handoff or closure phase",
+      "trigger": "Hands off implementation and verification results, or closes change work.",
+      "required": [
+        "P10",
+        "P13"
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "fact",
+      "file": "01-fact-question.md",
+      "title": "Fact questions and investigation requests",
+      "phase": "Request",
+      "description": "Ask about facts that can only be checked in another repository or environment. Do not force a cause or implementation proposal into the document.",
+      "required": [
+        "P01",
+        "P02",
+        "P05",
+        "P14"
+      ],
+      "optional": [
+        "P04",
+        "P06",
+        "P07",
+        "P08",
+        "P09",
+        "P10",
+        "P16"
+      ],
+      "focus": "Describe why the question is needed, known premises, unseen scope and how the requester’s actions depend on the answer. The question can close when the receiving team’s answer and evidence satisfy the need.",
+      "narrative_order": [
+        "P01",
+        "P04",
+        "P16",
+        "P06",
+        "P11",
+        "P07",
+        "P17",
+        "P18",
+        "P08",
+        "P09",
+        "P05",
+        "P13",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P05": "What to confirm and actions based on the answer"
+      },
+      "reading_flow": "Summarize why you are asking, move from what is currently known to the question, and close with actions based on the answer."
+    },
+    {
+      "id": "change",
+      "file": "02-change-request.md",
+      "title": "Feature addition and change requests",
+      "phase": "Request",
+      "description": "Propose the required user outcome and external contract, and check the impact.",
+      "required": [
+        "P01",
+        "P02",
+        "P04",
+        "P05",
+        "P07",
+        "P09",
+        "P10",
+        "P14"
+      ],
+      "optional": [
+        "P06",
+        "P08"
+      ],
+      "focus": "State the desired external result first. Distinguish whether paths, types and internal implementation ideas are proposals or required dependencies. Check other consumers, old versions and direct entry.",
+      "narrative_order": [
+        "P01",
+        "P04",
+        "P06",
+        "P07",
+        "P17",
+        "P18",
+        "P08",
+        "P09",
+        "P16",
+        "P11",
+        "P05",
+        "P13",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P04": "Why the change is needed",
+        "P07": "Required change",
+        "P05": "Judgments to confirm"
+      },
+      "reading_flow": "Explain the need for change through the current problem, present the required behavior and impact, then close with the other side’s judgment and completion conditions."
+    },
+    {
+      "id": "bug",
+      "file": "03-bug-investigation.md",
+      "title": "Bug investigation and fix requests",
+      "phase": "Request",
+      "description": "Separate observation, reproduction and hypotheses, and request the necessary investigation or fix.",
+      "required": [
+        "P01",
+        "P02",
+        "P04",
+        "P05",
+        "P06",
+        "P10",
+        "P14"
+      ],
+      "optional": [
+        "P08"
+      ],
+      "focus": "Separate observed symptoms from causal inference. The request can be sent even if the cause is unknown. Add the relevant conditional Parts if the fix changes external contracts, existing data or permissions.",
+      "narrative_order": [
+        "P01",
+        "P04",
+        "P06",
+        "P08",
+        "P07",
+        "P17",
+        "P18",
+        "P09",
+        "P16",
+        "P11",
+        "P05",
+        "P13",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P04": "What problem occurred",
+        "P06": "Current assessment of the cause and remaining hypotheses",
+        "P05": "Investigation and fix requests",
+        "P10": "Verifying the fix and next steps"
+      },
+      "reading_flow": "Start with observed symptoms, distinguish causes and hypotheses, then connect them to investigation and fix requests and verification methods."
+    },
+    {
+      "id": "retirement",
+      "file": "04-retirement-migration.md",
+      "title": "Removal, retirement and migration requests",
+      "phase": "Request",
+      "description": "Check consumers, replacement paths, migration and recovery conditions before ending use of an existing API, field or behavior.",
+      "required": [
+        "P01",
+        "P02",
+        "P04",
+        "P05",
+        "P07",
+        "P09",
+        "P10",
+        "P14"
+      ],
+      "optional": [
+        "P06",
+        "P08",
+        "P16"
+      ],
+      "focus": "Connect user scenarios and consumers to the replacement for current behavior. Find cases without a replacement, including other clients, permission-specific paths, direct entry and refresh. The impact explanation must include evidence of discontinued use, removal conditions and recovery.",
+      "narrative_order": [
+        "P01",
+        "P04",
+        "P07",
+        "P09",
+        "P08",
+        "P17",
+        "P18",
+        "P16",
+        "P06",
+        "P11",
+        "P05",
+        "P13",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P04": "Why remove this behavior",
+        "P07": "Replacement behavior and conditions to preserve",
+        "P09": "Consumer migration and removal conditions",
+        "P05": "Judgments to confirm before removal",
+        "P10": "Verifying migration and next steps"
+      },
+      "reading_flow": "Explain the reason for removal and replacement behavior, review consumer migration and removal conditions, then close with the next judgment."
+    },
+    {
+      "id": "performance",
+      "file": "05-performance-change.md",
+      "title": "Performance improvement requests",
+      "phase": "Request",
+      "description": "Present measurement conditions and criteria for preserving correctness, and request performance improvement or investigation.",
+      "required": [
+        "P01",
+        "P02",
+        "P04",
+        "P05",
+        "P10",
+        "P14",
+        "P16"
+      ],
+      "optional": [
+        "P06",
+        "P08"
+      ],
+      "focus": "Separate measured costs from estimated effects. Record environment, units, samples, distribution, frequency, concurrency and correctness. Distinguish proposed targets from agreed ones.",
+      "narrative_order": [
+        "P01",
+        "P04",
+        "P16",
+        "P06",
+        "P08",
+        "P07",
+        "P17",
+        "P18",
+        "P09",
+        "P11",
+        "P05",
+        "P13",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P04": "Where delays occur",
+        "P08": "Approaches to consider",
+        "P05": "Improvement scope and requested judgments",
+        "P10": "Comparison method and next steps"
+      },
+      "reading_flow": "Explain the delay and the meaning of measurements, review targets, approaches and correctness to preserve, then connect them to comparison and the next choice."
+    },
+    {
+      "id": "handoff",
+      "file": "06-implementation-handoff.md",
+      "title": "Implementation handoff and integration confirmation",
+      "phase": "Implementation handoff / closure",
+      "description": "Introduce the actual implementation, integration conditions, currently confirmed scope and next actions without an existing request document.",
+      "required": [
+        "P01",
+        "P02",
+        "P05",
+        "P07",
+        "P10",
+        "P13",
+        "P14"
+      ],
+      "optional": [
+        "P04",
+        "P06",
+        "P08"
+      ],
+      "focus": "Explain the implementation and integration conditions in this document alone. If prior agreement exists, include that baseline and any differences. Separate implementation, merge, deployment and consumer migration. Distinguish a document’s report that tests passed from tests directly run this time. Leave differences unaccepted until the relevant owners confirm them.",
+      "narrative_order": [
+        "P01",
+        "P13",
+        "P04",
+        "P16",
+        "P06",
+        "P07",
+        "P17",
+        "P18",
+        "P08",
+        "P09",
+        "P11",
+        "P05",
+        "P10",
+        "P02",
+        "P12",
+        "P14",
+        "P15",
+        "P03"
+      ],
+      "headings": {
+        "P07": "Behavior and conditions needed for integration",
+        "P09": "Migration sequence and remaining impact",
+        "P05": "Judgments needed from the receiving side",
+        "P10": "Integration confirmation and closure conditions"
+      },
+      "reading_flow": "Explain the implementation purpose and behavior currently intended for delivery, review integration conditions and adoption impact, then close with the answers needed and verification methods."
+    }
+  ]
+}

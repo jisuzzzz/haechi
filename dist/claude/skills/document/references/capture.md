@@ -1,0 +1,67 @@
+# Capture actual evidence and attach numbered regions
+
+For an empty Failed list, capture the count and list in one viewport. Mark the count as 1 and the list as 2. In the document explain what is inconsistent, link the untouched original, and ask the owning team to confirm the suspected cause. This procedure shares the browser helpers/temporary Playwright approach used by `screen-design-checker` and `screen-parity-checker`; it does not require running a design or parity comparison.
+
+## Collect the actual state
+
+Use the provided app URL or the project's established run command. Read `.haechi.json` `screenCheck.helpers` and relevant browser tests before writing another script. Reuse a helper that reaches the required state; otherwise write a temporary Playwright script using the project's installed browser tooling. Remove temporary scripts after collecting results unless the user asked to keep a reusable reproduction.
+
+Use an existing authorized login session; do not place passwords or session secrets in the document. Keep the check read-only under the existing screen-checker constraints. A reproduction that changes server data needs an appropriately authorized test environment; collecting evidence does not grant production mutation authority. The main session owns any server it starts and cleans up temporary resources.
+
+Follow the recorded steps and confirm the target state before saving the PNG. Record URL, environment, build/revision if known, timestamp, viewport, reproduction steps and the observed result. State unknown values as unknown. Preserve the unmodified PNG. Avoid capturing unrelated private content; if redaction is needed, keep the protected original in its authorized location and label the shareable copy as redacted. Do not attach restricted originals to a wider audience.
+
+## Locate regions without changing the page
+
+Get bounding boxes from the rendered elements when possible. For a viewport PNG, `page.screenshot({ path, fullPage: false, scale: 'css' })` pairs with visible element `boundingBox()` coordinates. Ensure the page has not scrolled, resized or changed between measurement and capture. Convert fractional bounds outward: floor the left/top, ceil the right/bottom, clip to the PNG bounds, then calculate integer width/height. An off-screen or empty rectangle needs another capture. Browser helpers may use other capture settings; crop offsets, full-page scroll and device scale must be converted into **original PNG pixel coordinates** before annotation. For an existing image, inspect it and measure the intended regions directly.
+
+Do not change page data or insert a pretend expected result to make evidence. Include enough surrounding context to understand the symptom. If using a cropped image, keep a contextual capture and identify the crop.
+
+Save region coordinates and concise explanations in a separate JSON file:
+
+```json
+{"regions":[
+  {"x":120,"y":80,"width":160,"height":40,"label":"The failure count is 3."},
+  {"x":120,"y":150,"width":520,"height":180,"label":"The list for the same conditions is empty."}
+]}
+```
+
+These are illustrative coordinates. Measure the actual capture instead of copying them.
+
+```sh
+node "${CLAUDE_PLUGIN_ROOT}/tools/screenshot-annotate.mjs" --image /chosen/path/original.png --regions /chosen/path/regions.json --out /chosen/path/annotated.png
+```
+
+The tool uses the original's pixels to create a separate PNG, with numbered borders and space for edge markings. It prints paths, dimensions and numbered explanations as JSON. Supply standard 8-bit, non-interlaced RGB/RGBA PNGs; unsupported images fail explicitly. Re-capture as PNG rather than silently changing the evidence. Select disjoint regions. If regions overlap or there is no clear space for their numbers, merge related observations into one region, use fewer regions or separate marked images. The tool fails instead of hiding another selected region. Keep the original. Open both images, confirm the marked region is right and legible, and check that the labels match the numbers. Color alone must not carry the meaning.
+
+## Attach to the document
+
+Store shareable media beside the document, such as `request.assets/original.png` and `request.assets/annotated.png`. Use paths relative to the document, not the plugin installation or the author's home directory. Place the attachment section after the discussion and review records, before the final evidence notes. For example:
+
+```markdown
+The Failed screen’s count and list do not match.[^failed-screen]
+
+## Attachments
+
+![Failure count and empty list marked 1 and 2](request.assets/annotated.png)
+
+1. The count shows 3 failures.
+2. The list for the same conditions is empty.
+
+[Original capture](request.assets/original.png). The actual development screen was captured; only numbers and borders were added to the annotated copy.
+
+## Evidence notes
+
+[^failed-screen]: Observed environment, build and time; screen entry and reproduction steps; original and annotated paths. This capture establishes the screen state; the server cause remains unconfirmed.
+```
+
+Replace the example's observations and conditions with actual evidence. Regenerate numbering/TOC with `document-template.mjs --format <document.md>` after editing. Ensure notes are last and attachment paths resolve from the saved document. Keep the original, region JSON and relevant reproduction metadata available for review. A document version should identify which capture it cites.
+
+## GIF only for a temporal question
+
+Use a still PNG for a wrong value, alignment or empty state. Use a short recording only when click order, flicker, waiting or state transitions explain the issue. Reuse the project's recording helper or Playwright's video recording if available. Keep the real recording, extract the useful segment and convert to GIF only when an installed conversion tool and the receiving viewer support it. Retain a decisive still and the original video. Do not install a new recording stack just to satisfy an attachment slot.
+
+State trimming, skipped waits or changed playback speed. A sequence of stills is a step illustration, not continuous recording or timing evidence. GIF has no audio. Long interactions belong in video with selected stills; PDF uses static frames. If recording or GIF conversion is unavailable, attach usable video/stills or record what remains uncollected. GIF is not a default completion requirement.
+
+## Access or capture unavailable
+
+Record the missing URL, session, data or environment, who can provide or collect it, and what remains unverified. Continue writing the factual parts. A person can supply an actual capture for annotation when automation cannot reach the screen. Never substitute a generated mockup or the bundled fictional examples for runtime evidence. No captured image establishes human review or proves a backend cause by itself.
