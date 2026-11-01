@@ -86,6 +86,30 @@ test('both packaged hosts discover shared work without claiming it or changing e
   assert.equal(missingClaude.status, 0, missingClaude.stderr)
   assert.equal(JSON.parse(missingClaude.stdout).sessionConnection.state, 'unavailable')
   assert.deepEqual(JSON.parse(missingClaude.stdout).task.sessions, [{ provider: 'claude', sessionId: 'new-session' }])
+  const proofPath = join(root, 'preserved-proof.json')
+  writeFileSync(proofPath, '{}')
+  const published = spawnSync(process.execPath, [join(dist, 'codex/tools/work-graph.mjs'), 'update', 'old-result'], {
+    cwd: repo, encoding: 'utf8', input: JSON.stringify({ expectedVersion: JSON.parse(readFileSync(path)).version, artifacts: [{ path: proofPath, revision: 'v1' }] }),
+  })
+  assert.equal(published.status, 0, published.stderr)
+  rmSync(proofPath)
+  const missingProofBytes = readFileSync(path, 'utf8')
+  for (const host of ['codex', 'claude']) {
+    for (const event of ['SessionStart', 'UserPromptSubmit']) {
+      const snapshot = JSON.parse(invoke(host, event).additionalContext.split('\n')[1])
+      assert.equal(snapshot.referenceIssueCount, 1)
+      assert.deepEqual(snapshot.referenceTaskIds, ['old-result'])
+    }
+    const checked = spawnSync(process.execPath, [join(dist, host, 'tools/work-graph.mjs'), 'check'], { cwd: repo, encoding: 'utf8' })
+    assert.equal(checked.status, 1, checked.stderr)
+    assert.equal(JSON.parse(checked.stdout).issues[0].path, proofPath)
+    const rejected = spawnSync(process.execPath, [join(dist, host, 'tools/work-graph.mjs'), 'update', 'identity-claude'], {
+      cwd: repo, encoding: 'utf8', input: JSON.stringify({ expectedVersion: JSON.parse(readFileSync(path)).version, artifacts: [{ path: proofPath, revision: 'v1' }] }),
+    })
+    assert.equal(rejected.status, 2)
+    assert.match(rejected.stderr, /Unreadable local reference/)
+  }
+  assert.equal(readFileSync(path, 'utf8'), missingProofBytes, 'both hosts detect missing archived results without changing records')
   writeFileSync(path, '{broken')
   for (const host of ['codex', 'claude']) {
     const output = invoke(host, 'UserPromptSubmit')
