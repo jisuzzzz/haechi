@@ -156,10 +156,11 @@ const checkReferences = tasks => {
       ...task.evidence.flatMap(({ artifact }, index) => artifact ? [{ field: `evidence[${index}].artifact`, path: artifact }] : []),
     ]
     for (const reference of references) {
-      if (!isAbsolute(reference.path) && !reference.path.startsWith('file:')) continue
+      const fileUrl = /^file:/i.test(reference.path)
+      if (!isAbsolute(reference.path) && !fileUrl) continue
       checkedLocalReferences += 1
       try {
-        const path = reference.path.startsWith('file:') ? fileURLToPath(reference.path) : reference.path
+        const path = fileUrl ? fileURLToPath(reference.path) : reference.path
         const stat = statSync(path)
         if (!stat.isFile() && !stat.isDirectory()) throw Object.assign(new Error('Not a file or directory'), { code: 'ENOTSUP' })
         accessSync(path, constants.R_OK | (stat.isDirectory() ? constants.X_OK : 0))

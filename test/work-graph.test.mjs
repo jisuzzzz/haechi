@@ -249,6 +249,25 @@ test('local reference checks distinguish unreadable files from readable results'
   assert.equal(run(cwd, 'check').ok, true)
 })
 
+test('file URL scheme variants share write guards, checks and hook warnings', t => {
+  const { cwd } = fixture(t)
+  const path = join(cwd, 'proof.json')
+  writeFileSync(path, '{}')
+  const urls = ['file:', 'FILE:', 'FiLe:'].map(scheme => pathToFileURL(path).href.replace(/^file:/, scheme))
+  urls.forEach((url, index) => create(cwd, `scheme-${index}`, { status: 'completed', artifacts: [{ path: url, revision: 'v1' }], evidence: [{ ...proof, artifact: url }] }))
+  assert.equal(run(cwd, 'check').checkedLocalReferences, 6)
+  assert.equal(run(cwd, 'check').ok, true)
+  rmSync(path)
+  assert.equal(run(cwd, 'check').issues.length, 6)
+  assert.equal(JSON.parse(graphContext(cwd, 'reader', tool).split('\n')[1]).referenceIssueCount, 6)
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  urls.forEach((url, index) => {
+    assert.throws(() => create(cwd, `missing-${index}`, { artifacts: [{ path: url, revision: 'v1' }] }), /Unreadable local reference/)
+    assert.throws(() => mutate(cwd, 'update', `scheme-${index}`, { evidence: [{ ...proof, artifact: url }] }), /Unreadable local reference/)
+  })
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+})
+
 test('invalid mutations preserve prior bytes and clean their lock', t => {
   const { cwd } = fixture(t)
   create(cwd, 'work')
