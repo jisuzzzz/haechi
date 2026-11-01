@@ -1,0 +1,204 @@
+{
+  "version": "2.0",
+  "language": "en",
+  "parts": [
+    {
+      "id": "P01",
+      "title": "Summary",
+      "file": "parts/P01-summary.md",
+      "requirement": "Required for all types",
+      "author": "Request or handoff author",
+      "reviewer": "Authoring-side owner. If a reply changes the status, the team owning that fact also confirms it",
+      "review_check": "Do the problem, required answer, settled and open matters, and next action match the state in the body?",
+      "placement": "narrative",
+      "narrative_role": "Helps the reader identify the problem and the judgment needed at the start."
+    },
+    {
+      "id": "P02",
+      "title": "Document identity and status",
+      "file": "parts/P02-identity.md",
+      "requirement": "Required for all types",
+      "author": "Document owner",
+      "reviewer": "Document owner and the people who can confirm each status",
+      "review_check": "Do not turn missing owner information into an assertion that no owner is assigned. Use unassigned only when nonassignment is confirmed. Are the current author, scope, version and status clear? Are previous documents and document IDs linked only when they exist?",
+      "placement": "records",
+      "narrative_role": "Places the document details at the end."
+    },
+    {
+      "id": "P03",
+      "title": "Evidence notes",
+      "file": "parts/P03-evidence.md",
+      "requirement": "Conditionally required when actual material is cited. Omit when there is none; existing documents are not required",
+      "author": "Observer or investigator",
+      "reviewer": "An owner on the responsible team with access to the code, operations or screen for each fact",
+      "review_check": "Is the scope confirmed by direct observations, code, captures, logs and measurement records accurate? Do notes connect to actual citations without assuming unavailable material or past documents?",
+      "placement": "endnotes",
+      "narrative_role": "Places the sources, original material and limitations of body notes at the end."
+    },
+    {
+      "id": "P04",
+      "title": "Problem and desired outcome",
+      "file": "parts/P04-problem.md",
+      "requirement": "Required for additions/changes, bugs, removal/migration and performance requests. Optional for fact questions and handoffs",
+      "author": "The side that observed the problem",
+      "reviewer": "Owner on the observing team. If expected behavior is product policy, the person responsible for that decision",
+      "review_check": "Are observations and expectations specific? Has the impact been overstated as though its full extent had been checked?",
+      "placement": "narrative",
+      "narrative_role": "Explains the need through the situation and the gap between actual and expected behavior."
+    },
+    {
+      "id": "P05",
+      "title": "Requests and questions",
+      "file": "parts/P05-requests.md",
+      "requirement": "Required for all types",
+      "author": "Request or handoff author",
+      "reviewer": "The sender confirms the required result; the recipient confirms the question, scope and acceptance of responsibility directed to them",
+      "review_check": "Are requests, questions and implementation proposals distinguished? Will the answer determine the requesting side’s next action?",
+      "placement": "narrative",
+      "narrative_role": "Connects the preceding explanation to the judgment needed from the other side and follow-up action."
+    },
+    {
+      "id": "P06",
+      "title": "Causes and hypotheses",
+      "file": "parts/P06-hypotheses.md",
+      "requirement": "Required for bug investigations. A confirmed cause is not required; an unknown cause is allowed. Optional for other types",
+      "author": "Investigator",
+      "reviewer": "Owner on the team responsible for the relevant code, data or operational path",
+      "review_check": "Are observed symptoms separated from causal inference? Is there a way to confirm or reject the hypothesis?",
+      "placement": "narrative",
+      "narrative_role": "Explains which interpretation the observations support and what remains unconfirmed."
+    },
+    {
+      "id": "P07",
+      "title": "External behavior contract",
+      "file": "parts/P07-contract.md",
+      "requirement": "Required for additions/changes, removal/migration and implementation handoffs. Required for bugs and performance work if external behavior changes",
+      "author": "Proposing side and provider",
+      "reviewer": "The provider checks guarantees and meaning; the consumer checks actual dependencies. The relevant decision owner handles policy judgments only",
+      "review_check": "Are required results separated from internal implementation? Are null, permission, aggregation and exception semantics sufficiently explained?",
+      "placement": "narrative",
+      "narrative_role": "Explains the external behavior that addresses the problem."
+    },
+    {
+      "id": "P08",
+      "title": "Implementation options",
+      "file": "parts/P08-options.md",
+      "requirement": "Optional for all types. Use when proposing an internal approach",
+      "author": "Proposer",
+      "reviewer": "The implementation-owning team decides the method. Other teams confirm only conditions affecting shared contracts, cost or schedule",
+      "review_check": "Has an attractive implementation been treated as an obligation for the other side? Are assumptions, measurements and estimated costs distinguished?",
+      "placement": "narrative",
+      "narrative_role": "Explains differences between approaches to obtaining the required result."
+    },
+    {
+      "id": "P09",
+      "title": "Impact and migration",
+      "file": "parts/P09-impact.md",
+      "requirement": "Required for additions/changes and removal/migration. Also required for other types if consumer migration, existing data changes or removal are affected",
+      "author": "Change owners on both sides",
+      "reviewer": "Each affected consumer and provider owner. The relevant operations owner if deployment or data changes are involved",
+      "review_check": "Has global removal been decided based only on one’s own consumer? Are migration, removal and recovery conditions recorded, along with actual acceptance of responsibility?",
+      "placement": "narrative",
+      "narrative_role": "Explains how the change affects other consumers and migration."
+    },
+    {
+      "id": "P10",
+      "title": "Acceptance criteria and verification plan",
+      "file": "parts/P10-acceptance.md",
+      "requirement": "Required for changes, bugs, removal, performance and handoffs. A short fact question may close with the answer required in P05",
+      "author": "The side defining the required result and the side performing verification",
+      "reviewer": "Both sides confirm shared results and conditions; the executor confirms the feasible scope",
+      "review_check": "Are expected results observable? Have unagreed criteria been treated as pass conditions? Are plans separated from execution?",
+      "placement": "narrative",
+      "narrative_role": "Closes with what to verify and what to do next."
+    },
+    {
+      "id": "P11",
+      "title": "Owning team reply",
+      "file": "parts/P11-reply.md",
+      "requirement": "Required when writing an actual reply. Do not prefill in the initial request",
+      "author": "Owner of the area being asked about",
+      "reviewer": "The actual owner who can confirm code, operational or policy facts in that area",
+      "review_check": "Does the reply answer the question directly and separate confirmed scope, unknowns and constraints in its own area? Does it avoid requiring tracking IDs or past documents to answer?",
+      "placement": "narrative",
+      "narrative_role": "Updates current understanding and remaining questions with the new answer."
+    },
+    {
+      "id": "P12",
+      "title": "Decisions and corrections",
+      "file": "parts/P12-decisions.md",
+      "requirement": "Required when deciding a shared contract or policy, or correcting existing facts or agreements",
+      "author": "Document owner and the relevant decision owner",
+      "reviewer": "Both provider and consumer for shared contracts. The relevant decision maker for product, permission or operational policies. The owning team for technical fact corrections",
+      "review_check": "Is there an actual choice or confirmation record? Are corrections and comparisons recorded only when there is previous content to change?",
+      "placement": "records",
+      "narrative_role": "Records detailed decision and correction history at the end."
+    },
+    {
+      "id": "P13",
+      "title": "Implementation handoff and executed verification",
+      "file": "parts/P13-handoff.md",
+      "requirement": "Required at implementation handoff or closure. In an initial request, write plans only; do not fill this Part as executed results",
+      "author": "Implementation owner and verification executor",
+      "reviewer": "The provider checks implementation, environment and evidence; the consumer checks its own integration and migration results. Operations confirms only necessary deployment and data scope",
+      "review_check": "Can implementation and integration conditions be understood from this document alone? Are verification and deployment stated within the actually confirmed scope, with comparison to prior agreement only when differences exist?",
+      "placement": "narrative",
+      "narrative_role": "Explains the implementation scope and the meaning of actual confirmation results."
+    },
+    {
+      "id": "P14",
+      "title": "Human review record",
+      "file": "parts/P14-human-review.md",
+      "requirement": "Required for all types. At drafting, record planned reviewer roles only and keep pending review until actual confirmation",
+      "author": "Each actual reviewer. The document owner compiles the record accurately",
+      "reviewer": "Record only the scope actually confirmed by the reviewer. Do not infer another person’s approval or review",
+      "review_check": "Describe planned review by role, key scope and body location without explaining all conditions again. Missing past records leave review occurrence unconfirmed. Are the actual person, section or question to check, document version, time and remaining conditions connected? Can the review scope be found without task tracking IDs?",
+      "placement": "records",
+      "narrative_role": "Tracks the scope of actual human confirmation at the end."
+    },
+    {
+      "id": "P15",
+      "title": "Visual material",
+      "file": "parts/P15-visuals.md",
+      "requirement": "Conditionally required when judgment depends on seeing a screen or behavior. If capture is unavailable, record the missing attachment and who should confirm it",
+      "author": "Observer or person explaining the flow",
+      "reviewer": "The observing team for actual screens; the team owning each step for relationships and sequence",
+      "review_check": "Are actual captures, originals, annotated copies and explanatory diagrams distinguished, and problem locations clearly marked with borders and numbers? Are GIF reproduction order, static alternatives, sensitive information and inclusion appropriate?",
+      "placement": "attachments",
+      "narrative_role": "Places original captures, full responses and attached diagrams at the end."
+    },
+    {
+      "id": "P16",
+      "title": "Performance and scale",
+      "file": "parts/P16-performance.md",
+      "requirement": "Required for performance requests. Also required for other types when measurements determine adoption of an option or completion",
+      "author": "Person able to measure and proposer of the result",
+      "reviewer": "The executor confirms measurement and interpretation; the consumer confirms required user outcomes and acceptance criteria",
+      "review_check": "Are local and production, measured and expected, and single-run and distribution figures distinguished? Are correctness, cost and sample conditions included?",
+      "placement": "narrative",
+      "narrative_role": "Explains the key figures and interpretation needed for performance judgments."
+    },
+    {
+      "id": "P17",
+      "title": "Asynchronous processing and state",
+      "file": "parts/P17-async.md",
+      "requirement": "Required when newly defining or changing acceptance, completion, failure, retry, cancellation or notification behavior",
+      "author": "Owner of each step",
+      "reviewer": "Each step’s owning team confirms its processing and signals; the consuming team confirms user-visible states and recovery flow",
+      "review_check": "Are successful HTTP responses separated from processing completion? Are ID granularity, retry responsibility, idempotency and missed events on reconnection apparent?",
+      "placement": "narrative",
+      "narrative_role": "Explains actors, states, and the sequence of failure and recovery."
+    },
+    {
+      "id": "P18",
+      "title": "Permissions and policy",
+      "file": "parts/P18-permissions.md",
+      "requirement": "Required when changing authentication, authorization or exposure policy, or when a policy judgment is needed",
+      "author": "Team owning the behavior and policy proposer",
+      "reviewer": "The provider confirms enforcement, the consumer confirms screen and feature meaning, and the relevant policy owner confirms policy choices only",
+      "review_check": "Are current code, desired policy and deployment configuration distinguished? Has success under specific conditions been expanded into overall safety or completed verification?",
+      "placement": "narrative",
+      "narrative_role": "Explains the permissions and policies users will rely on and the judgments still needed."
+    }
+  ]
+}

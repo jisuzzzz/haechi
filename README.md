@@ -86,10 +86,18 @@ Supporting skills handle individual steps:
 - [impact-map](skills/impact-map/SKILL.md), [sibling-path-map](skills/sibling-path-map/SKILL.md), [mutation-check](skills/mutation-check/SKILL.md) and [review-diff](skills/review-diff/SKILL.md) support verification and review.
 - [eval](skills/eval/SKILL.md) records workflow failures and compares proposed improvements in fresh contexts before changing active guidance. It runs when relevant to an evaluation task and adds no background memory or global rules. Seed observations are in [evals/failures.md](evals/failures.md).
 - [answer](skills/answer/SKILL.md) shapes choices, problem explanations and concrete scenarios while preserving evidence and useful explanations. [work-graph](skills/work-graph/SKILL.md) keeps minimal shared task state and native session links.
-- [plain](skills/plain/SKILL.md) improves lasting prose; [request](skills/request/SKILL.md) writes and updates a request to another team in one Markdown file.
+- [plain](skills/plain/SKILL.md) improves lasting prose; [document](skills/document/SKILL.md) composes cross-team documents from shared Parts and six templates; [request](skills/request/SKILL.md) uses that system to write and update requests in one file.
 - [commit](skills/commit/SKILL.md) makes a local commit; [mr](skills/mr/SKILL.md) opens a GitHub PR or GitLab MR; [ci-watch](skills/ci-watch/SKILL.md) watches and fixes GitLab CI through merge and cleanup. GitHub CI watching is not available yet.
 
 Browse all skills in [skills/](skills/) and the seven subagent roles in [agents/](agents/).
+
+For a document without an earlier request, start from the current observation:
+
+```text
+/haechi:document Draft a backend request for a support queue: the Open tab shows 12 tickets but no rows. If the development screen is accessible, capture it and mark the count and empty list. Keep the suspected backend cause unconfirmed.
+```
+
+The document skill reuses browser helpers or temporary Playwright scripts for captures. `tools/screenshot-annotate.mjs` preserves the original PNG and creates a separate PNG with numbered borders; GIF is optional when motion matters. Agent-facing [Parts and templates](skills/document/assets/COMBINATIONS.md) use English, while work documents follow the recipient's language. The [capture guide](skills/document/references/capture.md) covers coordinates, attachments and missing access. See the [validation scope and unresolved quality claims](docs/document-validation.md) before treating the templates as a writing standard.
 
 ## Settings
 

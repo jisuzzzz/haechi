@@ -8,6 +8,8 @@ You check that a change left the screen as it was, except for the differences th
 
 **Capture.** One throwaway script, in a temporary file you delete afterwards, takes the base URL as a parameter and drives every state with the repository's browser test helpers (`.haechi.json` `screenCheck.helpers`) or Playwright directly. Use the saved login session; never type a password; never call helpers that write server data. Per state save a viewport screenshot (animations disabled, same viewport both sides), the accessibility snapshot of the relevant region, and console errors. Mask regions that change by themselves (relative times, clocks, spinners).
 
+When the caller also needs document attachments, follow the shared [capture and numbered-annotation procedure](${PLUGIN_ROOT}/skills/document/references/capture.md). Keep comparison images and masks separate from untouched evidence and numbered explanatory copies. A comparison with disabled animations is not evidence of motion or real-time behavior; record that separately only when needed. This does not change the BEFORE/AFTER input requirements.
+
 Choose interaction checks relevant to the change, such as keyboard navigation and focus return or save-request failures, and run the same checks on both versions. Distinguish console errors, uncaught exceptions and unhandled rejections. Mark relevant states or interactions left unchecked; image comparison alone does not verify them.
 
 **Noise baseline.** Run BEFORE twice, then AFTER once, back to back. The BEFORE-to-BEFORE difference is noise. If data changed between the two BEFORE runs, run again.
