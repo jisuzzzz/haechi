@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "capturedDate": "2026-10-31",
+  "scope": "Primary public GitHub issue/code provenance and deterministic local component/tool replays. No model trials, commits, pushes or active guidance edits.",
+  "classifications": {
+    "exact-tool-replay": "Actual immutable historical repository verifier executed against a synthetic fixture.",
+    "upstream-component-replay": "Actual immutable upstream function/callback executed with injected boundary stubs; surrounding framework not executed.",
+    "mechanism-adaptation": "New evaluation fixture preserves a supported failure mechanism while changing application, inputs or implementation.",
+    "neighboring-stress-adaptation": "The source motivates a stress dimension but does not establish the fixture's precise defect.",
+    "reported-only": "Source report inspected; original full application failure was not independently reproduced."
+  },
+  "incidents": [
+    {
+      "id": "F002",
+      "source": {
+        "repositoryCommit": "ed8a0a593c94d88a49e56f3609dc20d74de651da",
+        "path": "tools/verify-default.mjs",
+        "wordingCorrectionCommit": "e06cd0121243ed1cc62c3c1ecc18cec9d9a9cd5e",
+        "behaviorCorrectionCommit": "fe4a2af3f53dca21bca8519a10616bf09b17f567"
+      },
+      "classification": "exact-tool-replay",
+      "agentFailureEstablished": false,
+      "originalAgentTraceAvailable": false,
+      "observed": "The original verifier reports verification complete and exits zero when its selected custom test command executes zero assertions. It also accepts a wrapper that exits zero after an actual failing Node test.",
+      "cause": "The original verifier considers child-process exit status alone, without interpreting runner evidence.",
+      "evidence": [],
+      "trials": 12,
+      "fixtureRelation": "Synthetic Python mapping selects actual Node wrappers; zero-tests wrapper has no tests. Passing and failing neighbors execute actual node:test assertions. This is not the original agent task.",
+      "caseMappings": [
+        {
+          "caseId": "react-legacy-check",
+          "relation": "mechanism-adaptation"
+        },
+        {
+          "caseId": "fastapi-smoke-evidence",
+          "relation": "mechanism-adaptation"
+        }
+      ],
+      "limits": "This confirms a tool defect and correction. It does not show that an agent claimed completion, or that corrected prompts improve agent behavior.",
+      "localEvidence": [
+        "f002-reproduction.json",
+        "f002-ed8a0a593c94d88a49e56f3609dc20d74de651da-zero-tests.log",
+        "f002-frozen-package-zero-tests.log"
+      ],
+      "localReplayScript": "reproduce-f002.mjs"
+    },
+    {
+      "id": "react-async-cache-race",
+      "sourceUrl": "https://github.com/JedWatson/react-select/issues/4645",
+      "reportedVersion": null,
+      "immutableCodeCommit": "a92c09a836450cbb849f3a90eade18e1320cb651",
+      "immutableCodePath": "packages/react-select/src/useAsync.ts",
+      "classification": "upstream-component-replay",
+      "agentFailureEstablished": false,
+      "observed": "The issue describes caching abc, starting abcd, returning to cached abc, then showing abcd when the pending request finishes. Execution of the original callback reproduced input abc with options from abcd.",
+      "cause": "The cached-result branch leaves the old lastRequest token valid.",
+      "evidence": [
+        "upstream-source-hashes.json"
+      ],
+      "caseMappings": [
+        {
+          "caseId": "react-request-race",
+          "relation": "mechanism-adaptation",
+          "supported": "Pending completion must lose authority when a cached query becomes current.",
+          "added": "Warehouse identity, stale rejection, retry and row identity are additional evaluation requirements."
+        }
+      ],
+      "limits": "Only the actual onInputChange callback ran with injected state/load boundaries. No React runtime, UI, original sandbox, network or agent ran. Green uses an illustrative local invalidation patch, not a claimed upstream fix.",
+      "localEvidence": [
+        "react-upstream-component-replay.json"
+      ],
+      "localReplayScript": "reproduce-upstream-components.mjs"
+    },
+    {
+      "id": "fastapi-header-cache",
+      "sourceUrl": "https://github.com/long2ice/fastapi-cache/issues/103",
+      "reportedVersion": null,
+      "immutableCodeCommit": "73f000a56583556d68f907a9316cc03c4d7115a7",
+      "immutableCodePath": "fastapi_cache/key_builder.py",
+      "classification": "upstream-component-replay",
+      "agentFailureEstablished": false,
+      "observed": "The report describes a header-authenticated /users/me response being reused for a different identity. A reply links immutable default_key_builder code and proposes including the header; the reporter confirms that change worked. Executing the original key-builder function produced equal keys for different synthetic Authorization values with equal function arguments.",
+      "cause": "That key builder hashes function/module and args/kwargs; its request argument does not contribute to the key.",
+      "comments": [
+        {
+          "url": "https://github.com/long2ice/fastapi-cache/issues/103#issuecomment-1304949227",
+          "summary": "Proposes a header-aware custom key builder and links the immutable source."
+        },
+        {
+          "url": "https://github.com/long2ice/fastapi-cache/issues/103#issuecomment-1305158222",
+          "summary": "The original reporter confirms the suggested custom key resolved the issue."
+        }
+      ],
+      "evidence": [
+        "upstream-source-hashes.json"
+      ],
+      "caseMappings": [
+        {
+          "caseId": "fastapi-tenant-cache",
+          "relation": "mechanism-adaptation",
+          "supported": "All response-varying identity must participate in cache identity.",
+          "added": "CRUD invalidation, pagination and sibling detail/list behavior are additional evaluation requirements."
+        }
+      ],
+      "limits": "Executed the original function AST with synthetic prefix/request stubs. No full FastAPI/Redis/HTTP/browser replay. Identity present in function arguments can already distinguish keys, so this does not establish leakage for every decorated endpoint.",
+      "localEvidence": [
+        "cache-upstream-component-replay.json"
+      ],
+      "localReplayScript": "reproduce-cache-component.py"
+    },
+    {
+      "id": "react-async-csv",
+      "sourceUrl": "https://github.com/react-csv/react-csv/issues/221",
+      "reportedVersion": null,
+      "immutableCodeCommit": null,
+      "classification": "reported-only",
+      "agentFailureEstablished": false,
+      "observed": "The reporter supplies application code and describes an empty first download followed by the previous fetch's data on the next click.",
+      "causeStatus": "Async state/download ordering is a supported interpretation of the report; no independent original application replay or library-level root-cause proof is retained.",
+      "evidence": [
+        "upstream-source-hashes.json"
+      ],
+      "caseMappings": [
+        {
+          "caseId": "react-paginated-export",
+          "relation": "mechanism-adaptation",
+          "supported": "Each export must use the requested fresh result rather than prior render state.",
+          "added": "Cursor traversal, boundary duplicates, click-time snapshot semantics, CSV escaping and partial-failure cleanup are newly designed requirements."
+        }
+      ],
+      "limits": "No package version, immutable original application or agent trace is supplied. It is not an established react-csv library defect."
+    },
+    {
+      "id": "sqlite-parallel-transactions",
+      "sourceUrl": "https://github.com/encode/databases/issues/327",
+      "reportedVersion": null,
+      "fixPullRequest": "https://github.com/encode/databases/pull/328",
+      "immutableMergeCommit": "cc3246a7e18c838a880576a59e24e1e18bceb249",
+      "immutableBaseCommit": "a45d42fb2469d3252c28c879d275f016e1f435bb",
+      "classification": "reported-only",
+      "verification": "Inspected original issue reproduction, merged fix and immutable regression test; did not execute the historical full databases dependency stack.",
+      "agentFailureEstablished": false,
+      "observed": "The issue gives a query-before-concurrent-transactions reproduction and describes SQLite transaction failure/deadlock. The merged fix adds test_parallel_transactions and isolates root-transaction connection context.",
+      "cause": "Inherited connection context can share state between concurrent root transactions. This is distinct from overselling by a non-atomic stock update.",
+      "evidence": [
+        "upstream-source-hashes.json",
+        "sql-upstream-source-hashes.json"
+      ],
+      "caseMappings": [
+        {
+          "caseId": "fastapi-reservations",
+          "relation": "neighboring-stress-adaptation",
+          "supported": "Exercise overlapping real transactions against persistent SQL state.",
+          "added": "Stock conservation, multi-line atomic rollback, cross-process safety and tenant-scoped idempotency are independent designed invariants."
+        }
+      ],
+      "limits": "The reservation fixture is not an exact reproduction of this issue or its connection-context bug; no source incident for its precise idempotency contract is asserted."
+    }
+  ],
+  "evidencePolicy": "Public source metadata and hashes only. Raw replays and historical scripts remain at localEvidenceRoot; see ../evidence-index.json. No new model experiments were run for release cleanup.",
+  "localEvidenceRoot": "evals/harbor/provenance under the retained local source worktree"
+}

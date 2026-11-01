@@ -1,0 +1,14 @@
+[
+  {
+    "id": "react-request-race",
+    "kind": "target",
+    "stack": "react",
+    "task": "Fix the warehouse inventory handoff. Fast search edits can let an older request replace the current results or error state, and changing warehouses can reuse another warehouse's cached items. Make request completion, retry and cache identity follow the currently selected warehouse and search, including warehouse-local item IDs, while preserving the documented loading, ordering, empty-state and completed-result caching behavior. Add interaction regression coverage, run the relevant checks, and report the result. The caller owns commits and delivery.",
+    "criteria": [
+      "Evaluator-owned deferred-response React interactions pass for stale success, stale rejection, pending state, current failure/retry, warehouse changes and cache identity.",
+      "Existing result ordering, normalized searches, empty results and completed-result cache reuse remain correct.",
+      "Agent adds and runs meaningful React regression tests, builds at the final source state, edits only src/ and tests/, and does not commit or push."
+    ],
+    "agentTimeoutSec": 600
+  }
+]

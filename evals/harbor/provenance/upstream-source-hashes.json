@@ -1,0 +1,72 @@
+{
+  "records": [
+    {
+      "id": "react-async-cache-race",
+      "safe": {
+        "sourceUrl": "https://github.com/JedWatson/react-select/issues/4645",
+        "title": "Incorrect options can be shown when using loadOptions and cacheOptions",
+        "createdAt": "2021-06-21T10:52:31Z",
+        "updatedAt": "2022-04-26T06:48:24Z",
+        "stateAtFetch": "open",
+        "issueNumber": 4645,
+        "bodySha256": "ce42361df38ab96f978f78d89dd86d649feee79ccf89444fa9b72bc7c896cc6a"
+      }
+    },
+    {
+      "id": "fastapi-header-cache",
+      "safe": {
+        "sourceUrl": "https://github.com/long2ice/fastapi-cache/issues/103",
+        "title": "Cache does not detect differences in headers",
+        "createdAt": "2022-11-06T17:58:22Z",
+        "updatedAt": "2022-11-07T06:51:42Z",
+        "stateAtFetch": "closed",
+        "issueNumber": 103,
+        "bodySha256": "8003ed4fb1efb24166b44b8deba4b6c7531550f69454ca86333e89875e3f404c"
+      }
+    },
+    {
+      "id": "react-async-csv",
+      "safe": {
+        "sourceUrl": "https://github.com/react-csv/react-csv/issues/221",
+        "title": "Loading data asynchronously and downloading CSV data with a click is one step behind the latest retrieved data",
+        "createdAt": "2020-05-18T08:46:46Z",
+        "updatedAt": "2024-04-08T09:36:35Z",
+        "stateAtFetch": "closed",
+        "issueNumber": 221,
+        "bodySha256": "6a5bb117683d1b1139d2f21f24a364704f2e1ce2beffa4457f48882c55e82908"
+      }
+    },
+    {
+      "id": "sqlite-parallel-transactions",
+      "safe": {
+        "sourceUrl": "https://github.com/encode/databases/issues/327",
+        "title": "Async execution of transactions results in deadlock ",
+        "createdAt": "2021-04-27T16:50:35Z",
+        "updatedAt": "2021-08-17T08:00:36Z",
+        "stateAtFetch": "closed",
+        "issueNumber": 327,
+        "bodySha256": "93f485b7b712cf665e4e6b544dd00ff3e811dfe6aad364c7a4c0db63926e0158"
+      }
+    }
+  ],
+  "sources": [
+    {
+      "id": "react",
+      "encoding": "utf-8",
+      "sha": "9a91fb9dc6699cc1c9245eec98f085189ca4cef3",
+      "display_url": "https://github.com/JedWatson/react-select/blob/a92c09a836450cbb849f3a90eade18e1320cb651/packages/react-select/src/useAsync.ts",
+      "display_title": "useAsync.ts",
+      "contentSha256": "cb8d253045eb7055ca57628f8cee673be233329fec5e002d09348de2bc80b6d1",
+      "contentLengthBytes": 6432
+    },
+    {
+      "id": "cache",
+      "encoding": "utf-8",
+      "sha": "e751e0b7ef920daa8c3c61e885310cfd0421bf2b",
+      "display_url": "https://github.com/long2ice/fastapi-cache/blob/73f000a56583556d68f907a9316cc03c4d7115a7/fastapi_cache/key_builder.py",
+      "display_title": "key_builder.py",
+      "contentSha256": "35e3f8eb3ea45de93fb9d8af68e8367cd2cd904fa4f8f4c6b81ab9fe111bdf32",
+      "contentLengthBytes": 669
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "scope": "Historical measurements only; no model runs were repeated for this release PR. Current clean-core package was not the originally evaluated treatment.",
+  "localSourceRoot": "swebench-haechi-eval/haechi (retained local worktree)",
+  "preservedSourceBranch": "codex/swebench-real-eval",
+  "preservedSourceHead": "6af6e3c4be91327a3100bfa3805240eb11b221a8",
+  "excludedFromPush": [
+    "dated evaluation directories",
+    "jobs and model traces",
+    "judge packets and frozen package/harness copies",
+    "generated SWE-bench fixtures and grading wheels",
+    "large raw evidence archives"
+  ],
+  "groups": {
+    "smoke": {
+      "localPath": "evals/harbor-validation-2026-10-31",
+      "retainedInLocalCommit": "91adfcb52da483aa17da206748b95725351c97ad",
+      "files": {
+        "decision.md": "c28ce14a3620b87d8ef5509831b690cc80896a6ec9319c5eb2534848c80d4e56",
+        "comparison/plan.json": "99d2edab3186465076fb80d3cb5e9dde011c97cb96fdb05fb6758d993be7b035",
+        "comparison/plan.sha256": "9d3094506a13fb18b5c5474b8d901e57879d768999ecfd04cc51ac7d171e83ba"
+      }
+    },
+    "expanded": {
+      "localPath": "evals/harbor-expanded-2026-10-31",
+      "retainedInLocalCommit": "bf769f06b14f396d5b361d118ae63e170ba24d15",
+      "files": {
+        "decision.md": "bbc7fb53aeef7582c776edae778e3f18a950944c471ae5ae64cd3811bf35ef10",
+        "comparison/plan.json": "e35f9975a783b49ba6fb3016e569365b086f066e92a2c906924e3ad8bfaedb53",
+        "comparison/plan.sha256": "3bb365b3cfc4d3da8191fb1a157f0c7df857914952e0fc2b554b7cff20027bbf"
+      }
+    },
+    "swebench": {
+      "localPath": "evals/harbor-swebench-2026-10-31",
+      "retainedInLocalCommit": "e0c058b0872a57fc5d66d78099f36f19dec1df5d",
+      "files": {
+        "README.md": "91853b19d91b7a612284fa13dce5938f2834f5216755dd34fbd76916478d6106",
+        "configured/plan.json": "ccb1189aab1f762d6c7b2bf7622fb255e4553932074cab9d74c01715c8f1f1b2",
+        "archives/configured.tar.xz.receipt.json": "78253d8be3baa33753fdaa72a04ea80e27227a4618466689fc8bbf7031f0fea1"
+      }
+    },
+    "quality": {
+      "localPath": "evals/harbor-quality-2026-11-01",
+      "retainedInLocalCommit": "6af6e3c4be91327a3100bfa3805240eb11b221a8",
+      "files": {
+        "README.md": "8d33b3379da54029b7c2dd91c324ef32ec2c7e0e615b781db53d0413fb2c8671",
+        "plan.json": "beb6a024bb6e1223530b8271ca277b35b081335607a4e67029a4b722873a0a04",
+        "freeze.json": "9e2974d914d5a9f8aef9b5249b2359b32685e8d059ef5cfd185d0fdcacb780e0",
+        "results-lock.json": "efc36d71209902c771e7434b1ba08784495f90b1d45a88c2d36fde59eb6213f2",
+        "comparison.json": "d3ddcfedd66f21425dbcc5441f70e28b99fdaa940180d713963084d35e23ce4c",
+        "archives/raw-evidence.tar.xz.receipt.json": "c6691ed64bf343ddfca0601d8d79285183c3c4f7026a0555b3c5f258e7b9cc63"
+      }
+    }
+  }
+}

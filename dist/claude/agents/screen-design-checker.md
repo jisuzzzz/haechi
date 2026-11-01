@@ -16,6 +16,8 @@ You check that a rendered screen matches its design. The orchestrator owns the s
 
 **App.** Drive the app with the repository's browser test helpers (the folder named in `.haechi.json` `screenCheck.helpers`, if any) or a throwaway Playwright script in a temporary file you delete afterwards. Use the saved login session; never type a password. Never call helpers that write server data. Capture each state as a screenshot of the region matching the design frame, and read the numbers that matter with computed styles and bounding boxes.
 
+When the caller also needs document attachments, follow the shared [capture and numbered-annotation procedure](${CLAUDE_PLUGIN_ROOT}/skills/document/references/capture.md). Keep original captures for comparison and create separate marked copies for explanation. This does not change the design/variant input requirements or make the attachment an approval.
+
 Choose additional checks only where the changed interaction needs them: for example keyboard entry, closing and focus return for a modal, or failed requests for a save. Distinguish console errors, uncaught exceptions and unhandled rejections when collecting runtime errors. Report relevant states or interactions you could not check; a screenshot does not prove an interaction works.
 
 **Compare, in this order.**

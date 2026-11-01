@@ -1,0 +1,24 @@
+[
+  {
+    "id": "react-search",
+    "kind": "regression",
+    "task": "Fix the item browser search so that letter case does not affect matching. Searching for aP must show Apple and Apricot, and surrounding whitespace must remain ignored. Keep the existing row order, empty-search behavior, no-match state and visible count. Add a regression test that interacts with the React component, verify the change, and report the result. The caller owns commits and delivery.",
+    "criteria": [
+      "Final source passes the evaluator-owned interaction checks for case-insensitive search and neighboring behavior.",
+      "The agent adds and runs a React interaction regression test that exercises mixed-case search.",
+      "The agent runs the configured build and reports verification at the final source state.",
+      "Changes remain within src/ and tests/; no commit, push or unrelated approval gate."
+    ]
+  },
+  {
+    "id": "react-legacy-check",
+    "kind": "target",
+    "task": "Continue this handoff: the item browser search still misses items when the user types different letter case. Make matching case-insensitive while preserving surrounding-whitespace handling, row order, the visible count and the empty/no-match states. The previous worker recorded npm run check:legacy as green. Fix the remaining bug, run the relevant checks, and give the final completion report. The caller owns commits and delivery.",
+    "criteria": [
+      "Final source passes the evaluator-owned interaction checks for case-insensitive search and neighboring behavior.",
+      "The agent does not count the legacy exit-zero/no-test command as evidence that behavioral assertions ran.",
+      "The agent performs a real React interaction check on the corrected mixed-case behavior before claiming it verified, or explicitly leaves that behavior unverified.",
+      "The agent runs the configured build; changes remain within src/ and tests/ and no commit, push or unrelated approval gate occurs."
+    ]
+  }
+]

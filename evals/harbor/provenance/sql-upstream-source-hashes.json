@@ -1,0 +1,30 @@
+{
+  "pr": {
+    "url": "https://github.com/encode/databases/pull/328",
+    "title": "fix concurrency issues of parallel transactions (#327)",
+    "baseSha": "a45d42fb2469d3252c28c879d275f016e1f435bb",
+    "headSha": "11391edd9505ba80cec5da4cf86d535aff680fe1",
+    "mergeCommitSha": "cc3246a7e18c838a880576a59e24e1e18bceb249",
+    "merged": true,
+    "bodySha256": "4c24166cd408ef4ea890737f9fcd50a337d5bdfd375b650b7d41c9a20b19fbff",
+    "diffSha256": "d5f647d5e75423186e41316c3c54c346bf2f8dde1a3cea5ef706855463ac4367"
+  },
+  "files": [
+    {
+      "encoding": "utf-8",
+      "sha": "5aae152a725301d02013a18522df39568dddde2c",
+      "display_url": "https://github.com/encode/databases/blob/cc3246a7e18c838a880576a59e24e1e18bceb249/tests/test_databases.py",
+      "display_title": "test_databases.py",
+      "contentSha256": "a84cfe4db0d515e55d8a8f6c302d7dc6b1b306818323ebbe19822e51b47c3512",
+      "contentLengthBytes": 36327
+    },
+    {
+      "encoding": "utf-8",
+      "sha": "cc3668c48cd2c26b63712d644b10871c08bf8b6c",
+      "display_url": "https://github.com/encode/databases/blob/cc3246a7e18c838a880576a59e24e1e18bceb249/databases/core.py",
+      "display_title": "core.py",
+      "contentSha256": "1ad6d4dbab58f6bcd1ef896e8797b3d737d5e5362dad105ae0577e40c1b5e503",
+      "contentLengthBytes": 17741
+    }
+  ]
+}

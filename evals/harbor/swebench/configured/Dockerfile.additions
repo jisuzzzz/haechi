@@ -1,0 +1,14 @@
+# Append identically for baseline and haechi after the existing official bootstrap.
+# Build context directory benchmark-setup contains the shared helpers/data-fact/user.json
+# and this repository's .haechi.json and repo-profile.json (selected from profiles/<repo>/).
+# Preserve the frozen official setup patch and all existing runtime/bootstrap commands.
+COPY benchmark-setup/babel-scope-build.cjs /opt/benchmark/babel-scope-build.cjs
+COPY benchmark-setup/scoped-check.sh /opt/benchmark/scoped-check.sh
+COPY benchmark-setup/scoped-check.py /opt/benchmark/scoped-check.py
+COPY benchmark-setup/install-data-fact.py /opt/benchmark/install-data-fact.py
+COPY benchmark-setup/data-fact.md /opt/benchmark/data-fact.md
+COPY benchmark-setup/repo-profile.json /opt/benchmark/repo-profile.json
+COPY benchmark-setup/.haechi.json /testbed/.haechi.json
+COPY benchmark-setup/user.json /root/.haechi/user.json
+RUN mkdir -p /root/.haechi/notes \
+    && python3 /opt/benchmark/install-data-fact.py
