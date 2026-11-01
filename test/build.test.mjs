@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -61,6 +62,39 @@ test('skill references ship to both hosts without preloading into agents', (t) =
   assert.equal(files.get('codex/skills/review/references/investigation.md'), '# Optional investigation\nUse ${PLUGIN_ROOT}/tools/probe.mjs when needed.\n')
   assert.doesNotMatch(files.get('claude/agents/checker.md'), /Optional investigation/)
   assert.doesNotMatch(files.get('codex/agents/checker.toml'), /Optional investigation/)
+})
+
+test('nested document assets ship to both hosts and preserve binary attachments', (t) => {
+  const root = makeCore()
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  write(root, 'skills/review/assets/parts/P01.md', '# Summary\r\nUse {{PLUGIN_ROOT}}/tools/probe.mjs.\r\n')
+  write(root, 'skills/review/assets/presets.json', '{"types":["fact","change"]}\n')
+  const image = Buffer.from([137, 80, 78, 71, 0, 255, 13, 10])
+  write(root, 'skills/review/assets/media/original.png', image)
+  const files = buildFiles(loadSource(root))
+  for (const target of ['claude', 'codex']) {
+    const prefix = `${target}/skills/review/assets/`
+    assert.match(files.get(`${prefix}parts/P01.md`), /^# Summary\nUse \$\{(?:CLAUDE_)?PLUGIN_ROOT\}\/tools\/probe\.mjs\.\n$/)
+    assert.deepEqual(JSON.parse(files.get(`${prefix}presets.json`)), { types: ['fact', 'change'] })
+    assert.deepEqual(files.get(`${prefix}media/original.png`), image)
+    assert.doesNotMatch(files.get(`${target}/agents/checker.${target === 'claude' ? 'md' : 'toml'}`), /# Summary/)
+  }
+  const actual = new Map(files)
+  actual.set('codex/skills/review/assets/media/original.png', Buffer.from(image))
+  assert.deepEqual(diffTree(files, actual), [])
+  actual.set('codex/skills/review/assets/media/original.png', Buffer.from([0, 255]))
+  assert.deepEqual(diffTree(files, actual), ['stale: dist/codex/skills/review/assets/media/original.png'])
+  // Exercise the filesystem --check path as well as the in-memory build map.
+  write(root, 'build/build.mjs', readFileSync(new URL('../build/build.mjs', import.meta.url)))
+  const run = (...args) => spawnSync(process.execPath, [join(root, 'build/build.mjs'), ...args], { encoding: 'utf8' })
+  assert.equal(run().status, 0)
+  assert.equal(run('--check').status, 0)
+  const packagedImage = join(root, 'dist/codex/skills/review/assets/media/original.png')
+  assert.deepEqual(readFileSync(packagedImage), image)
+  writeFileSync(packagedImage, Buffer.from([0, 255]))
+  const stale = run('--check')
+  assert.equal(stale.status, 1)
+  assert.match(stale.stderr, /stale: dist\/codex\/skills\/review\/assets\/media\/original\.png/)
 })
 
 test('codex agents are TOML with escaped strings and effort', () => {
