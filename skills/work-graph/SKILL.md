@@ -15,6 +15,10 @@ Update on meaningful changes, replacing the latest state rather than appending a
 
 An update to `completed` or `cancelled` clears the inherited `next` action. Supply `next` in that same update only for a real new handoff; use `next: ""` to clear an obsolete instruction on an existing record. Completion must not tell the next session to repeat preparation that already finished.
 
+After a successful write, briefly tell the user about a new registration or a meaningful change such as completion, waiting, resumption, cancellation or handoff without waiting to be asked. Name the work in plain language and explain what changed. For waiting, include the blocker and next action; for completion, include the verified result and any real remaining work. Fold the notice into the next progress update or final response instead of adding a separate bookkeeping message. Do not repeat unchanged state, announce metadata-only edits, or dump the full task list. A failed write is not a saved change: report the failure when it prevents recording the work.
+
+The existing `SessionStart` and `UserPromptSubmit` hooks remind the agent to use this skill and surface meaningful changes. Hooks only read and supply context; the agent performs the writes and tells the user. This is not a background notification service.
+
 ## Reports and follow-ups
 
 Read `show ID` for the task's contract and relationships and `sessions ID` for provider references. Then use [native session coordination](references/sessions.md) to inspect reports, wait for results or send a user-authorized follow-up. Prefer available app tools; do not implement a second transport, scheduler or transcript store. If the host does not expose the needed operation, report that capability as unavailable rather than inferring success from saved files.
