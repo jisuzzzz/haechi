@@ -157,6 +157,6 @@ This records user intent, not skill execution, progress or permission to edit. P
 
 MIT. See [LICENSE](LICENSE) and [NOTICE](NOTICE) for attribution.
 
-## 평가 도구
+## Evaluation tools
 
-[Harbor 공통 실행기](evals/harbor/README.md)로 React·FastAPI 자체 과제와 로컬에 준비한 SWE-bench 과제를 비교할 수 있습니다. [기존 결과와 한계](docs/evaluation-results.md)는 실행 코드와 분리해 기록하며, 원시 로그·snapshot·실제 과제 payload는 로컬에 보관합니다.
+Use the [shared Harbor runner](evals/harbor/README.md) to compare constructed React/FastAPI tasks and locally prepared SWE-bench tasks. [Historical findings and limitations](docs/evaluation-results.md) are recorded separately from the reusable tools; raw logs, snapshots and generated task payloads stay in local archives.
