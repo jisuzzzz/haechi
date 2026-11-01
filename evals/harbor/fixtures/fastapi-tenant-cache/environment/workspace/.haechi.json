@@ -1,0 +1,16 @@
+{
+  "commands": {
+    "verify": "python -m compileall -q app",
+    "testOne": "python -m pytest {file} -q",
+    "typecheck": null
+  },
+  "forbidden": [],
+  "testDirs": ["tests"],
+  "pythonTestMap": [{ "source": "app/", "tests": ["tests/test_api.py"] }],
+  "sensitiveData": "none — use synthetic fixture data only",
+  "generated": [],
+  "devServer": null,
+  "worktreeSetup": null,
+  "worktreeTeardown": null,
+  "riskPaths": []
+}

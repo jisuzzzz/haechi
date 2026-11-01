@@ -1,0 +1,34 @@
+{
+  "commands": {
+    "verify": "bash /opt/benchmark/scoped-check.sh verify {files}",
+    "testOne": "bash /opt/benchmark/scoped-check.sh test-one {file}",
+    "typecheck": null
+  },
+  "forbidden": [
+    "npm test",
+    "npm run test",
+    "npm run test:unit",
+    "npm run test:mocha",
+    "npm run test:karma",
+    "npm run lint",
+    "npm run eslint",
+    "npm run format"
+  ],
+  "testDirs": [
+    "test",
+    "compat/test",
+    "debug/test",
+    "devtools/test",
+    "hooks/test",
+    "test-utils/test",
+    "jsx-runtime/test"
+  ],
+  "sensitiveData": "Public repository copy; no real personal, patient, or payment data. Synthetic tests only.",
+  "git": {
+    "base": "benchmark-base",
+    "protected": [
+      "benchmark-base"
+    ],
+    "branch": "codex/{slug}"
+  }
+}

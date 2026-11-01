@@ -1,0 +1,2 @@
+# Python 3.12+. This adapter uses Harbor's versioned Codex interface.
+harbor==0.25.0

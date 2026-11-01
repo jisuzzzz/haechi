@@ -1,0 +1,14 @@
+[
+  {
+    "id": "fastapi-tenant-cache",
+    "kind": "target",
+    "stack": "fastapi",
+    "agentTimeoutSec": 600,
+    "task": "Repair the catalog cache so alternating tenant requests and filtered pages never reuse another view, and successful create/update/delete operations refresh all affected views for that tenant. Follow the explicit API and cache contract in README.md. Reproduce the failure with HTTP regression tests, cover sibling read/write paths and preserve validation, missing-item behavior and pagination totals. Run actual tests and repository verification. Finish with observed results. Do not commit or push.",
+    "criteria": [
+      "Evaluator-owned HTTP requests preserve tenant isolation across overlapping item IDs, list filters and pagination, using fresh stores outside editable tests.",
+      "Create, update and delete invalidate all stale same-tenant detail and list views while retaining warmed views belonging to other tenants.",
+      "The agent demonstrates a failing regression before repair and passing real HTTP tests on final source, with repository verification and accurate reporting."
+    ]
+  }
+]
