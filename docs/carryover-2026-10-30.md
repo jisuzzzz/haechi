@@ -4,13 +4,13 @@ Source: the user-supplied Claude handoff, `haechi-carryover.md`, dated 2026-10-3
 
 The [design document](design.md) now includes the compatible intent behind spec, preview and explanatory writing. This file keeps conflicting older decisions, operational observations and remaining work separate from the current workflow.
 
-## Older decisions that conflict with the current workflow
+## Older decisions and their current treatment
 
 | Topic | Handoff decision | Current rule |
 |---|---|---|
 | Spec before implementation | Discuss the task with the main session, then save a spec before proceeding. The spec step was introduced to reuse this process across tasks. | The [spec skill](../skills/spec/SKILL.md) resolves consequential open decisions or writes an explicitly requested spec. Settled requirements can stay in chat. |
-| A/B/C response formats | Always use the same presentation through `formats/*.md`: A compares options, trade-offs, the fastest approach and a more fundamental solution; B explains the problem, cause, remedy and expected effect; C uses a relatable scenario, especially when explaining a behavior change. | [Writing and design judgment](design.md#writing-and-design-judgment) chooses prose, lists or tables to suit the content. There is no separate response-layout setting or template system. |
-| Prose in code blocks | On 2026-10-29, keep A/B/C responses out of code blocks. Fixed line breaks caused long lines to overflow, and English labels interrupted Korean prose. The user wanted to retain the formats themselves. | Preserve the readability rationale as history. It does not restore the old formats or introduce a new mandatory response layout. |
+| A/B/C response formats | Always use the same presentation through `formats/*.md`: A compares options, trade-offs, the fastest approach and a more fundamental solution; B explains the problem, cause, remedy and expected effect; C uses a relatable scenario, especially when explaining a behavior change. | At the user's renewed request on 2026-10-31, [answer](../skills/answer/SKILL.md) restores these purposes as situational content requirements. The agent selects the pattern; explicit output formats, short answers and existing artifact templates take precedence. Work methods and prose/list/table layout stay autonomous. |
+| Prose in code blocks | On 2026-10-29, keep A/B/C responses out of code blocks. Fixed line breaks caused long lines to overflow, and English labels interrupted Korean prose. The user wanted to retain the formats themselves. | The restored answer skill keeps prose out of code fences and uses the reader's language, without requiring literal A/B/C labels. |
 
 ## Operational observations
 

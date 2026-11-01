@@ -16,6 +16,14 @@
             "command": "node ${PLUGIN_ROOT}/tools/skill-context.mjs SessionStart"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/tools/work-graph-context.mjs SessionStart"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
@@ -32,6 +40,14 @@
           {
             "type": "command",
             "command": "node ${PLUGIN_ROOT}/tools/skill-context.mjs UserPromptSubmit"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${PLUGIN_ROOT}/tools/work-graph-context.mjs UserPromptSubmit"
           }
         ]
       }

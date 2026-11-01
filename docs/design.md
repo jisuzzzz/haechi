@@ -81,13 +81,32 @@ Use authorization already given. Ask before an unauthorized external action or d
 
 ## Done means
 
-Verify output from after the last change, the diff reviewed, each requested outcome mapped to evidence or marked incomplete, task-created temporary resources cleaned up, and one local commit per completed change unit. Bugs also need failing-before and passing-after output. Missing evidence is reported as "implemented, unverified". Read-only work does not require a commit.
+For example, a CSV download button rendering proves that the button exists. A downloaded file proves that the download ran. Checking its rows against the requested filter proves that part of the export behavior. These are different claims and need different evidence.
+
+The main session keeps the required outcomes and unchanged contracts available from the request and repository. They can stay in the conversation. It chooses and revises methods, tools and delegation without a fixed agent sequence or extra approval, but cannot lower acceptance criteria to fit the implementation.
+
+Completion requires repo verification and relevant tests after the last change, a reviewed diff, passing behavior evidence for every required outcome, cleanup of task-created temporary resources, and one local commit per completed change unit. The main agent inspects the assertions or interaction results, not just a command exit code or worker verdict. Evidence must identify the command or interaction, relevant conditions, expected and observed result, and the checked final change. No separate evidence ledger or fixed report format is required.
+
+| Check result | Meaning |
+|---|---|
+| Passed | The executed check confirmed the required behavior under the stated conditions. |
+| Failed | The observed result contradicts the expected result. |
+| Unverified | Evidence is missing, skipped, stale or insufficient. Zero tests and all-skipped tests do not establish a behavior pass. |
+| Needs decision | The required expected behavior is unresolved. |
+
+Successful termination requires all required outcomes to pass, applicable repo checks to pass, and no known defect or unresolved decision preventing the requested result. A defect can prevent success even if its fix lies outside owned files; report the boundary without treating it as edit authorization. Skips unrelated to required behavior may be explained, but do not supply evidence for it. Bugs need the same reproduction failing before and passing after for the intended reason. Read-only work reports the inspected scope and limits; "no defects found" is not proof that the product works, and read-only work needs no commit.
+
+Stopping because access, information, authorization or a consequential decision is missing does not mean success. Report partial results, the remaining outcomes and what would unblock them. Implemented work without required proof is "implemented · unverified". A replacement check must establish the required behavior; a reason for omitting a check is not a waiver.
+
+These are evidence obligations, not a graph executor or a host-level completion lock. Hooks provide instructions and tools check observable command results; the main agent still judges acceptance coverage. Changes to these instructions do not by themselves prove improved host-agent behavior. The [completion forward check](core-validation.md) records six constructed cases and their limits. The [workflow observations](../evals/failures.md) and [pilot decision](../evals/pilot/decision.md) keep earlier evidence separate.
 
 ## Writing and design judgment
 
-Use concise, concrete language. Choose prose, lists or tables to fit the content, and include a concrete example when it helps explain behavior. There is no separate response-layout setting or template system.
+Use concise, concrete language. The [answer skill](../skills/answer/SKILL.md) restores situational A/B/C guidance: A supports a choice with comparable trade-offs and a justified recommendation; B connects a symptom, evidence, cause or uncertainty, remedy and check; C explains behavior through a concrete situation. The agent selects the pattern and includes its relevant content while choosing its own work methods. There is no separate response-layout setting or required work sequence.
 
-The earlier A/B/C formats came from the user's recurring questions: compare options and trade-offs, explain a problem's cause and remedy, and show a concrete scenario that makes a behavior change easy to understand. These are useful reasons to choose a presentation, rather than a requirement to use fixed labels. The old templates and the decision to keep prose out of code blocks are preserved as history in the [carryover notes](carryover-2026-10-30.md).
+Use prose, lists or tables to fit the content; do not print A/B/C labels or empty headings just to satisfy the pattern. Explicit output requests take precedence, simple answers stay short, and existing document Parts/templates remain the structure for cross-team artifacts. Unknown causes, proposed changes and unmeasured effects remain visibly uncertain. The skill reuses the document evaluation's facts, uncertainty, responsibility, answerability and evidence criteria without adding a document-review process to chat. The [evaluation record](core-validation.md) distinguishes checked behavior from any claim of improved human readability. Earlier templates and the decision to keep prose out of code blocks remain in the [carryover notes](carryover-2026-10-30.md).
+
+The answer skill uses the original A/B/C foundation with a local editing check. Read the whole answer before trimming: preserve the explanation, evidence and uncertainty, and remove repetition when it adds reading effort without helping understanding or a decision. A brief recap or reminder can help even when it was not explicitly requested. Do not impose a length target or a one-mention rule. The [flow comparison](core-validation.md) separates content checks, blind model preferences and the user’s choice of the original foundation. The [previous refinement](core-validation.md) remains as historical evidence, not proof of better readability.
 
 A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; screen-design-checker is reserved for its supported visual references.
 
@@ -102,7 +121,7 @@ A repository can finish setup without any Git settings. Completion requires `com
 
 Setup detects execution settings and returns existing settings alongside candidates. Independent machine and repository checks run together, and their results feed one confirmation batch. The agent reuses successful checks when their relevant inputs have not changed. A verifier that actually runs the configured test can satisfy the single-test proof too; a no-tests result cannot. On reruns, unavailable evidence stays unverified until checked. Instruction discovery stays within the repository and its ancestors.
 
-The default verifier uses `pythonTestMap` to select explicit test files for changed Python sources. A configured single-test command takes precedence over detected pytest. Skipped checks produce exit 2 rather than a successful verification result. The [Python backend guide](python-backends.md) defines path rules, command precedence and database prerequisites.
+The default verifier uses `pythonTestMap` to select explicit test files for changed Python sources. A configured single-test command takes precedence over detected pytest. Skipped checks and missing or incomplete test-execution summaries produce exit 2. Reported test failures produce exit 1 even if a wrapper exits 0. The verifier checks runner-reported execution; acceptance coverage still needs the main agent's judgment. The [Python backend guide](python-backends.md) defines supported summaries, path rules, command precedence and database prerequisites.
 
 ## Build and distribution
 

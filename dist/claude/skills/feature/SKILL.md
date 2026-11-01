@@ -16,6 +16,7 @@ The main session runs these steps. Scope, delegation, authorization and completi
 
 1. **Clarify the task.** Use the focus above and keep any summary proportional to the task; fixed labels and tables are optional.
 2. **Acceptance criteria.** Use the requirements already established in the conversation and repository. Run /haechi:spec when the user asks for a spec or consequential behavior or scope choices remain unresolved. Settled requirements can stay as acceptance criteria in the conversation; no separate document or approval is needed.
+   Keep expected results independent of the implementation. Revise the approach freely, but do not drop a requirement or weaken an expected result to obtain a pass. Resolve a consequential scope change with the user.
    Resolve consequential open questions before dependent work. Choose reversible implementation details yourself and continue independent work.
 3. **Design reference.** When the user explicitly requests a UI preview or mockup, run /haechi:preview even when the requirements are otherwise settled; no saved spec is required. Use a supplied design or relevant existing screen when available. When the user asks you to design a screen, draft it using repository patterns and the stated requirements. Ask only about consequential ambiguity; optional variants can help when a choice is hard to describe.
    Keep the reference or stated design criteria available for checking the rendered screen.
@@ -27,10 +28,10 @@ The main session runs these steps. Scope, delegation, authorization and completi
 8. **Attack.** Check sibling paths (`/haechi:sibling-path-map`). Use adversarial-tester when an independent challenge is valuable for the behavior's risk or complexity. Do not invent consequential behavior in a test when the requirements leave it unresolved.
 9. **Verify and review.** Repo verify, then /haechi:review-diff by the main session, or verifier when the session rules call for it.
 10. **Check outside behavior.** Inspect changed screens in a real render against the reference or stated design criteria, opening the captured images to compare their appearance as well as checking structure and measurements. Choose states and interactions relevant to the change; report gaps in that coverage. Use screen-design-checker for an independent comparison only when its supported reference is available: a design-tool URL, screenshot or variant URLs. For a draft with written criteria alone, the main agent checks those criteria in the real render and reports the evidence; no design source is required. For improvements, compare behavior that should stay the same with the previous version; use screen-parity-checker when it adds useful independent evidence. API-only changes: look at a real response.
-11. **Match acceptance criteria.** For each criterion, the evidence: a test name or a screen-check result. A missing criterion is "not done" with a reason.
+11. **Match acceptance criteria.** Inspect the executed behavior check for each criterion, including its conditions, expected and observed result, and whether it applies to the final change. A test name alone is not evidence. Use the completion rules to distinguish passed, failed, unverified and needs decision. An unmet or unverified required criterion prevents success.
 12. **Show the user.** If a visible screen changed, show it before any push.
 13. **Finish.** Local commit, then report the changed behavior and its evidence. If a spec was saved, move its conclusions into the feature's canonical doc, preserving unchanged contracts and exception cases; remove a temporary dated spec after merge when cleanup is authorized.
 
 ## Extra DONE evidence
 
-A behavior check for every required behavior — a test or a real render that exercises it. Reading a setting or a flag does not count.
+A passing behavior check for every required behavior: executed assertions, a real interaction or a real response that confirms the expected result on the final change. A render proves only the states and interactions actually checked. Reading a setting or a flag does not count.
