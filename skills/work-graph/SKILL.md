@@ -13,6 +13,8 @@ Claim work when starting and set it `active`. A claim records responsibility, no
 
 Update on meaningful changes, replacing the latest state rather than appending a progress diary. Use `waiting` with the concrete blocker and next action when needed. Keep only decisions that constrain subsequent work; leave discussions, repeated test descriptions and tool outputs in their original session or artifact. Omit empty fields and terminal “nothing remains” notes. Read the latest graph version before each write; reconcile conflicts instead of blindly retrying.
 
+An update to `completed` or `cancelled` clears the inherited `next` action. Supply `next` in that same update only for a real new handoff; use `next: ""` to clear an obsolete instruction on an existing record. Completion must not tell the next session to repeat preparation that already finished.
+
 ## Reports and follow-ups
 
 Read `show ID` for the task's contract and relationships and `sessions ID` for provider references. Then use [native session coordination](references/sessions.md) to inspect reports, wait for results or send a user-authorized follow-up. Prefer available app tools; do not implement a second transport, scheduler or transcript store. If the host does not expose the needed operation, report that capability as unavailable rather than inferring success from saved files.
@@ -26,6 +28,8 @@ Before continuing, check the task's goal, acceptance, connected results and thei
 For completion, retain the original conditions and a short observed result, tested revision, and resolvable evidence reference for each condition. Inspect the referenced command/interaction, conditions, expected and observed behavior before marking complete. A provider reference should identify the provider, host, session and specific turn/item when available; otherwise name the unique check so it can be located. Do not use an ephemeral session as the only evidence location. Save indispensable proof separately when provider retention cannot preserve it. Missing or unreadable evidence is unverified, not passed. Legacy inline evidence remains readable.
 
 Release responsibility when finished or handing off; keep durable session links and any real remaining work. A completion record is a claim to verify, not proof by itself.
+
+Before removing or archiving a worktree, inspect references to it with `check`, including completed work. Preserve referenced results outside the disposable checkout, verify the original revision or byte hash, and update every affected artifact/evidence path before cleanup. Run `check` again afterward. Missing paths must be repaired from verified sources, never dropped just to make the check pass. New/updated references and completion reject unreadable local paths; hooks also flag paths that disappear later without changing historical records. HTTP and provider references still need their own source checks.
 
 ## Views and boundaries
 

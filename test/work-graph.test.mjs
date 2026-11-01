@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { graphContext, graphPath, readGraph, run, runtimeSession, toolProvider } from '../tools/work-graph.mjs'
 
 const tool = fileURLToPath(new URL('../tools/work-graph.mjs', import.meta.url))
@@ -45,7 +45,8 @@ test('fresh processes and linked worktrees read shared goals, decisions, relatio
   const { root, cwd } = fixture(t)
   const second = join(root, 'other-worktree')
   git(cwd, 'worktree', 'add', '-qb', 'second', second)
-  create(cwd, 'template', { decisions: ['Use the compact template'], artifacts: [{ path: '/fixture/template.md', revision: 'v2' }], evidence: [proof], status: 'completed' })
+  const path = join(root, 'template.md'); writeFileSync(path, 'Verified template')
+  create(cwd, 'template', { decisions: ['Use the compact template'], artifacts: [{ path, revision: 'v2' }], evidence: [proof], status: 'completed' })
   create(cwd, 'formats', { next: 'Read template v2, then finish formats' })
   mutate(cwd, 'link', 'formats', { to: 'template', type: 'uses', reason: 'Use its schema', version: 'v2' })
   assert.equal(graphPath(cwd), graphPath(second))
@@ -134,6 +135,137 @@ test('completion requires evidence for every criterion without claiming semantic
   const completed = mutate(cwd, 'update', 'work', { status: 'completed', evidence: [proof, { ...proof, criterion: 'Existing behavior preserved' }] })
   assert.equal(completed.task.status, 'completed')
   assert.match(cli(cwd, ['--help']).stdout, /cannot judge their truth, coverage or freshness/)
+})
+
+test('terminal updates discard inherited next actions but retain an explicit handoff', t => {
+  const { cwd } = fixture(t)
+  create(cwd, 'work', { status: 'active', next: 'Await the clean base, then publish' })
+  mutate(cwd, 'update', 'work', { decisions: ['Keep the selected scope'] })
+  assert.equal(run(cwd, 'show', 'work').task.next, 'Await the clean base, then publish')
+  const completed = mutate(cwd, 'update', 'work', { status: 'completed', evidence: [proof] })
+  assert.equal(completed.task.next, undefined, 'completion must not advertise old preparation work')
+  assert.deepEqual(completed.task.evidence, [proof])
+  mutate(cwd, 'update', 'work', { status: 'active', next: 'Investigate a new requirement' })
+  const handoff = mutate(cwd, 'update', 'work', { status: 'completed', next: 'Consumer should review the delivered contract' })
+  assert.equal(handoff.task.next, 'Consumer should review the delivered contract')
+  const cleared = mutate(cwd, 'update', 'work', { next: '' })
+  assert.equal(Object.hasOwn(cleared.task, 'next'), false)
+  create(cwd, 'cancel', { next: 'Start the old experiment' })
+  assert.equal(mutate(cwd, 'update', 'cancel', { status: 'cancelled', reason: 'Superseded' }).task.next, undefined)
+})
+
+test('unreadable local references cannot be published and failed completion preserves prior state', t => {
+  const { cwd } = fixture(t)
+  const path = join(cwd, 'proof.json')
+  writeFileSync(path, '{}')
+  const evidence = [{ ...proof, artifact: path }]
+  create(cwd, 'work', { status: 'active', next: 'Finish the check', evidence })
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  rmSync(path)
+  assert.throws(() => mutate(cwd, 'update', 'work', { status: 'completed', session: { provider: 'codex', sessionId: 'not-connected-on-failure' } }), /Unreadable local reference/)
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+  assert.equal(existsSync(`${graphPath(cwd)}.lock`), false)
+  assert.throws(() => create(cwd, 'missing-result', { artifacts: [{ path, revision: 'v1' }] }), /Unreadable local reference/)
+  writeFileSync(path, '{}')
+  assert.equal(mutate(cwd, 'update', 'work', { status: 'completed' }).task.status, 'completed')
+})
+
+test('hooks surface archived references lost after worktree cleanup without rewriting history', t => {
+  const { root, cwd } = fixture(t)
+  const second = join(root, 'reader')
+  git(cwd, 'worktree', 'add', '-qb', 'reader', second)
+  const path = join(cwd, 'result.json')
+  writeFileSync(path, '{}')
+  create(cwd, 'delivered', { status: 'completed', evidence: [{ ...proof, artifact: path }], artifacts: [{ path, revision: 'v1' }] })
+  assert.equal(JSON.parse(graphContext(second, 'reader', tool).split('\n')[1]).referenceIssueCount, undefined)
+  rmSync(path)
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  const snapshot = JSON.parse(graphContext(second, 'reader', tool).split('\n')[1])
+  assert.equal(snapshot.referenceIssueCount, 2, 'archived evidence and result links must remain discoverable')
+  assert.deepEqual(snapshot.referenceTaskIds, ['delivered'])
+  assert.equal(snapshot.openTasks, 0)
+  assert.equal(snapshot.archivedTasks, 1)
+  assert.equal(run(second, 'show', 'delivered').task.status, 'completed')
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+})
+
+test('check detects removed worktree references and accepts a verified durable replacement', t => {
+  const { root, cwd } = fixture(t)
+  const writer = join(root, 'writer')
+  git(cwd, 'worktree', 'add', '-qb', 'writer', writer)
+  const path = join(writer, 'result.json'), stable = join(root, 'preserved.json')
+  writeFileSync(path, '{"result":"verified"}')
+  create(cwd, 'delivered', { status: 'completed', evidence: [{ ...proof, artifact: path }], artifacts: [{ path, revision: 'v1' }] })
+  assert.deepEqual(run(writer, 'check'), { version: 1, ok: true, checkedLocalReferences: 2, issues: [] })
+  writeFileSync(stable, readFileSync(path))
+  git(cwd, 'worktree', 'remove', '--force', writer)
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  const failed = cli(cwd, ['check'])
+  assert.equal(failed.status, 1, failed.stderr)
+  const checked = JSON.parse(failed.stdout)
+  assert.equal(checked.ok, false)
+  assert.deepEqual(checked.issues, ['artifacts[0].path', 'evidence[0].artifact'].map(field => ({ taskId: 'delivered', field, path, code: 'ENOENT' })))
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+  assert.equal(run(cwd, 'show', 'delivered').task.status, 'completed')
+  mutate(cwd, 'update', 'delivered', { artifacts: [{ path: stable, revision: 'v1' }], evidence: [{ ...proof, artifact: stable }] })
+  const fixed = cli(cwd, ['check'])
+  assert.equal(fixed.status, 0, fixed.stderr)
+  assert.equal(JSON.parse(fixed.stdout).ok, true)
+})
+
+test('local files, directories, file URLs and symlinks are checked without fetching provider or HTTP references', t => {
+  const { root, cwd } = fixture(t)
+  const path = join(root, 'proof with spaces.json'), link = join(root, 'proof-link')
+  writeFileSync(path, '{}'); symlinkSync(path, link)
+  const references = [path, pathToFileURL(path).href, link, root, 'https://example.invalid/report', 'codex session native-session host local turn turn-1']
+  create(cwd, 'work', { status: 'completed', evidence: [proof], artifacts: references.map(path => ({ path, revision: 'v1' })) })
+  assert.equal(run(cwd, 'check').checkedLocalReferences, 4)
+  assert.equal(run(cwd, 'check').ok, true)
+  rmSync(path)
+  assert.deepEqual(run(cwd, 'check').issues.map(issue => issue.path), references.slice(0, 3))
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  assert.throws(() => mutate(cwd, 'update', 'work', { artifacts: [{ path: pathToFileURL(path).href, revision: 'v1' }] }), /Unreadable local reference/)
+  assert.throws(() => mutate(cwd, 'update', 'work', { evidence: [{ ...proof, artifact: path }] }), /Unreadable local reference/)
+  assert.throws(() => create(cwd, 'bad-url', { artifacts: [{ path: 'file://remote-host/proof', revision: 'v1' }] }), /Unreadable local reference/)
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+  // Historical missing references stay readable and do not block unrelated work.
+  assert.equal(mutate(cwd, 'update', 'work', { decisions: ['Preserve the original result while repairing links'] }).task.status, 'completed')
+})
+
+test('local reference checks distinguish unreadable files from readable results', t => {
+  if (process.getuid?.() === 0) return t.skip('Root bypasses file permission bits; needs an unprivileged process')
+  const { cwd } = fixture(t)
+  const path = join(cwd, 'proof.json')
+  writeFileSync(path, '{}')
+  create(cwd, 'work', { artifacts: [{ path, revision: 'v1' }] })
+  assert.equal(run(cwd, 'check').ok, true)
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  chmodSync(path, 0)
+  try {
+    assert.deepEqual(run(cwd, 'check').issues, [{ taskId: 'work', field: 'artifacts[0].path', path, code: 'EACCES' }])
+    assert.throws(() => mutate(cwd, 'update', 'work', { status: 'completed', evidence: [proof] }), /Unreadable local reference/)
+    assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
+  } finally { chmodSync(path, 0o600) }
+  assert.equal(run(cwd, 'check').ok, true)
+})
+
+test('file URL scheme variants share write guards, checks and hook warnings', t => {
+  const { cwd } = fixture(t)
+  const path = join(cwd, 'proof.json')
+  writeFileSync(path, '{}')
+  const urls = ['file:', 'FILE:', 'FiLe:'].map(scheme => pathToFileURL(path).href.replace(/^file:/, scheme))
+  urls.forEach((url, index) => create(cwd, `scheme-${index}`, { status: 'completed', artifacts: [{ path: url, revision: 'v1' }], evidence: [{ ...proof, artifact: url }] }))
+  assert.equal(run(cwd, 'check').checkedLocalReferences, 6)
+  assert.equal(run(cwd, 'check').ok, true)
+  rmSync(path)
+  assert.equal(run(cwd, 'check').issues.length, 6)
+  assert.equal(JSON.parse(graphContext(cwd, 'reader', tool).split('\n')[1]).referenceIssueCount, 6)
+  const before = readFileSync(graphPath(cwd), 'utf8')
+  urls.forEach((url, index) => {
+    assert.throws(() => create(cwd, `missing-${index}`, { artifacts: [{ path: url, revision: 'v1' }] }), /Unreadable local reference/)
+    assert.throws(() => mutate(cwd, 'update', `scheme-${index}`, { evidence: [{ ...proof, artifact: url }] }), /Unreadable local reference/)
+  })
+  assert.equal(readFileSync(graphPath(cwd), 'utf8'), before)
 })
 
 test('invalid mutations preserve prior bytes and clean their lock', t => {
@@ -250,7 +382,8 @@ test('Git discovery errors are unavailable while an ordinary non-repository stay
 
 test('terminal work is automatically archived, discoverable and reopenable without losing evidence or links', t => {
   const { root, cwd } = fixture(t)
-  create(cwd, 'source', { status: 'completed', evidence: [proof], artifacts: [{ path: '/fixture/result', revision: 'v1' }] })
+  const path = join(root, 'result'); writeFileSync(path, 'Verified result')
+  create(cwd, 'source', { status: 'completed', evidence: [proof], artifacts: [{ path, revision: 'v1' }] })
   create(cwd, 'consumer', { status: 'active' })
   create(cwd, 'cancelled', { status: 'cancelled', reason: 'No longer needed' })
   mutate(cwd, 'link', 'consumer', { to: 'source', type: 'uses', reason: 'Consumes verified result', version: 'v1' })
@@ -269,7 +402,7 @@ test('terminal work is automatically archived, discoverable and reopenable witho
   const source = JSON.parse(cli(second, ['show', 'source']).stdout)
   assert.equal(source.task.archived, true)
   assert.deepEqual(source.task.evidence, [proof])
-  assert.deepEqual(source.task.artifacts, [{ path: '/fixture/result', revision: 'v1' }])
+  assert.deepEqual(source.task.artifacts, [{ path, revision: 'v1' }])
   assert.equal(source.edges[0].version, 'v1')
   const affected = JSON.parse(cli(second, ['affected', 'source']).stdout)
   assert.deepEqual(affected.tasks.map(task => [task.id, task.archived]), [['consumer', false], ['cancelled', true]])
@@ -444,10 +577,11 @@ test('compact completion evidence requires a source, every criterion and the tes
 
 test('new records omit unused metadata and lists leave details in show', t => {
   const { cwd } = fixture(t)
+  const path = join(cwd, 'result'); writeFileSync(path, 'Verified result')
   create(cwd, 'work')
   const task = readGraph(cwd).tasks[0]
   for (const key of ['reason', 'decisions', 'next', 'artifacts', 'sessions']) assert.equal(Object.hasOwn(task, key), false)
-  mutate(cwd, 'update', 'work', { decisions: ['Only a binding decision'], evidence: [proof], artifacts: [{ path: '/fixture/result', revision: 'v1' }] })
+  mutate(cwd, 'update', 'work', { decisions: ['Only a binding decision'], evidence: [proof], artifacts: [{ path, revision: 'v1' }] })
   const summary = run(cwd, 'list').tasks[0]
   for (const key of ['goal', 'acceptance', 'decisions', 'evidence', 'artifacts']) assert.equal(Object.hasOwn(summary, key), false)
   assert.equal(summary.title, 'work')
@@ -456,7 +590,8 @@ test('new records omit unused metadata and lists leave details in show', t => {
 
 test('schema 1 reads do not migrate; a successful write preserves legacy records and relations', t => {
   const { cwd } = fixture(t)
-  create(cwd, 'legacy', { status: 'completed', reason: '', next: '', decisions: ['Contract decision'], artifacts: [{ path: '/fixture/result', revision: 'v1' }], evidence: [proof] })
+  const path = join(cwd, 'result'); writeFileSync(path, 'Verified result')
+  create(cwd, 'legacy', { status: 'completed', reason: '', next: '', decisions: ['Contract decision'], artifacts: [{ path, revision: 'v1' }], evidence: [proof] })
   create(cwd, 'consumer')
   mutate(cwd, 'link', 'consumer', { to: 'legacy', type: 'uses', reason: 'Needs contract', version: 'v1' })
   const old = readGraph(cwd); old.schemaVersion = 1

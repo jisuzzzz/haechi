@@ -13,6 +13,7 @@ Run `node ${PLUGIN_ROOT}/tools/work-graph.mjs COMMAND [ID]` from the repository,
 - `sessions ID`: durable provider session references only. Follow [native coordination](sessions.md) for reports and authorized messages.
 - `show ID`: full task details and connections, including archived tasks.
 - `affected ID`: direct and indirect consumers, including archived ones. These are review candidates, not automatically failed tasks.
+- `check`: read-only local artifact/evidence readability check across all tasks, including archived work. Returns `ok`, `checkedLocalReferences` and `issues` with task ID, field, original path and filesystem error code. CLI exits 1 for unreadable references, 0 when none are found, and 2 for invalid input or store errors. It does not fetch HTTP/provider references, verify hashes or establish that evidence proves a claim.
 - `--help`: command and field reference.
 
 An absent store reads as an empty graph at version 0 without creating files. Errors reading an existing store are errors, not an empty graph. Commands do not create Git repositories.
@@ -51,10 +52,13 @@ Task fields for create/update:
 - `status`: `planned`, `active`, `waiting`, `completed`, or `cancelled`. Waiting or cancelled work needs a `reason`.
 - `reason`: why work is waiting, cancelled or otherwise incomplete.
 - `decisions`: optional binding decisions only, not a progress log. `next`: optional next useful action or handoff note. Empty optional fields are omitted from new records.
+- An `update` with `status: "completed"` or `"cancelled"` clears an inherited `next`. Include `next` explicitly only for a useful new handoff. `next: ""` removes the field, including on an existing completed task; unrelated updates preserve explicit handoffs.
 - `artifacts`: array of `{ "path": "/absolute/path/to/result", "revision": "commit or content digest" }`. Use absolute paths for local files so another worktree can find them.
 - `evidence`: prefer compact entries `{ "criterion": "exact acceptance condition", "observed": "short actual result", "revision": "tested commit or digest", "artifact": "resolvable proof file or provider/host/session/turn reference" }`. The reference contains check details; inspect it before completion. Old inline entries remain supported as an array of `{ "criterion": "exact acceptance condition", "command": "actual check or interaction", "expected": "expected behavior", "observed": "observed behavior", "revision": "verified commit or content digest", "artifact": "/absolute/path/to/check-output" }`. `artifact` is required for compact entries; it is optional only when both `command` and `expected` are supplied inline. Completion requires an entry for every acceptance condition. The tool does not run checks or judge whether evidence establishes success.
 
 Relations point from the consuming task to its prerequisite. Link targets must already exist. There is no mandatory stage order and no automatic session dispatch. `claim` refuses a different existing owner. The owner is an advisory coordination record; this local CLI is not an authentication boundary.
+
+Create, explicit artifact/evidence updates and completion reject unreadable absolute local paths and `file:` URLs without saving any partial mutation or session link. Other URI/provider references are preserved without network validation. Existing records remain readable when a file disappears later; use `check` to locate and repair it. Before removing a worktree, preserve every referenced result outside it, verify its original revision or byte hash and update affected paths, including archived tasks. Run `check` before and after cleanup; never erase evidence entries to suppress a failure.
 
 ## Storage and recovery
 
@@ -65,3 +69,5 @@ Schema 1 records are read without rewriting. The next successful mutation upgrad
 Writers use an exclusive lock and atomic file replacement. A busy lock fails instead of waiting indefinitely. A crashed writer can leave a lock. Do not delete it merely because it is old: first establish that the writer has stopped, then remove only that lock and reread the graph before retrying. Do not replace an unreadable graph with a new empty one.
 
 Session hooks show at most eight unfinished tasks, prioritizing the current session's work, then confirmation candidates and active work. They report archive and attention counts even when those records are not shown. `hasMore` means more unfinished records exist. Start CLI listing at offset 0 because the session summary uses a different order. Hooks only read; they neither register tasks nor take ownership. If a hook reports unavailable data, use the CLI to diagnose it; do not assume there is no work.
+
+When local references are unreadable, hooks also include `referenceIssueCount` and up to eight `referenceTaskIds`, including archived work. Paths and field-level errors stay in `check` rather than expanding every prompt summary. The warning is current filesystem availability, not a change to task status or proof that the result was never verified.
