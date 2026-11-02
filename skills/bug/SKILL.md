@@ -5,6 +5,8 @@ description: Bug playbook — reproduce, find the first wrong decision, pin it w
 
 # Bug playbook
 
+The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to bugs. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): read **root-cause**, **attack-the-premise** and **failing-test-first** before step 3.
 
 ## Task focus
@@ -24,8 +26,8 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
 5. **Search for the same pattern.** Look for the same cause elsewhere. Same cause: include it in this fix. Different cause: ask whether to record it as an issue.
 6. **Write the failing test (main session).** You write it, not an implementer. Pin the reproduction as a test and confirm it fails for the intended reason, not a typo or a missing import.
    Leave: the failing output. If a test is impossible, write why and the replacement check.
-7. **Fix at the cause.** Smallest change at the cause. Main or implementer by the delegation rules. An implementer only makes your failing test pass; give it the test path. No try/catch, clamp, retry or default value at the symptom site — only when step 3 showed the state is legitimate.
-8. **Verify and attack.** The failing test passes, then repo verify. Check sibling paths (`/haechi:sibling-path-map`); use adversarial-tester when independent context would help challenge a risky or complex fix. Review with /haechi:review-diff, using a verifier when independent review adds value.
+7. **Fix at the cause.** Smallest change at the cause. Main or a worker with /haechi:implement-work through /haechi:delegate. An implementer only makes your failing test pass; give it the test path. No try/catch, clamp, retry or default value at the symptom site — only when step 3 showed the state is legitimate.
+8. **Verify and attack.** The failing test passes, then repo verify. Check sibling paths (`/haechi:sibling-path-map`); use a worker with /haechi:attack-tests when independent context would help challenge a risky or complex fix. Review with /haechi:review-diff, using a separate worker with /haechi:verify-work when independent review adds value.
    Leave: the passing output.
 9. **Finish.** Local commit. Report the cause, the changed behavior and the verification evidence.
 10. **Propose recurrence prevention.** If the cause took deep digging to find, propose an always-on signal (a log line, a lint rule, a type). Propose only; do not build it.
@@ -40,3 +42,90 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
 ## Extra DONE evidence
 
 Failing output before the fix and passing output after it, from the same reproduction test, failing for the bug rather than a setup or import error. If a test is impossible, explain why and show the same trigger failing before and producing the expected result after through a direct executable check. Without that proof, report the fix as unverified rather than successful. Include the relevant nearby behavior checks on the final change.
+
+## Delegation contracts
+
+These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+
+```haechi-handoffs
+{
+  "implement": {
+    "skills": [
+      "implement-work"
+    ],
+    "principles": [
+      "dry",
+      "yagni",
+      "kiss",
+      "boundary-validation",
+      "root-cause",
+      "failing-test-first",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "reproduction",
+      "ownership"
+    ],
+    "completion": [
+      "Run the supplied reproduction before and after a bug fix.",
+      "Check each required outcome on the final change and report gaps."
+    ]
+  },
+  "attack": {
+    "skills": [
+      "attack-tests",
+      "sibling-path-map",
+      "mutation-check"
+    ],
+    "principles": [
+      "sibling-paths",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "changedFiles",
+      "ownership"
+    ],
+    "completion": [
+      "Demonstrate that tests detect the targeted defects without weakening expected behavior."
+    ]
+  },
+  "review": {
+    "skills": [
+      "verify-work",
+      "review-diff",
+      "impact-map"
+    ],
+    "principles": [
+      "evidence-levels",
+      "behavior-tests"
+    ],
+    "checks": [
+      "agent-defects",
+      "sibling-paths",
+      "dry",
+      "yagni",
+      "kiss"
+    ],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "base",
+      "changedFiles",
+      "priorEvidence"
+    ],
+    "completion": [
+      "Report concrete defects with expected and observed behavior and affected consumers.",
+      "Distinguish passing checks, failures, missing proof and unresolved expectations."
+    ]
+  }
+}
+```

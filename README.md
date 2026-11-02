@@ -56,7 +56,7 @@ You can also describe a task in natural language and let the agent select a play
 
 - **Repository facts in the session.** Hooks supply the configured verification commands, forbidden commands and task guidance, including after compaction.
 - **A workflow for the task.** Bugs need failing-before and passing-after evidence. Features need checks for their acceptance criteria. Reviews produce findings without editing code.
-- **Delegation when it helps.** The main agent can use implementers, adversarial testers, reviewers and screen checkers. Each task has a clear scope and file ownership; the main agent checks the results.
+- **Delegation when it helps.** The main session runs the playbook and delegates a bounded step to one generic worker definition. The playbook names required skills, principles, context and evidence; a checked packet carries their bodies. Independent reviews use separate executions, and the main session checks the results.
 - **Evidence for completion.** The agent checks each required outcome against actual results on the final change. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
 
 Settled requirements can stay in the conversation. A separate spec helps when a consequential decision is unresolved or you ask for one. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.
@@ -82,6 +82,7 @@ For example, a review request can stay read-only:
 
 Supporting skills handle individual steps:
 
+- [delegate](skills/delegate/SKILL.md) exposes a compact step input form and assembles complete worker guidance into task files, returning only a coordinator receipt. Direct delivery depends on the host; it does not enforce permissions or prove behavior.
 - [spec](skills/spec/SKILL.md) resolves consequential requirements; [preview](skills/preview/SKILL.md) makes a quick UI prototype; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
 - [impact-map](skills/impact-map/SKILL.md), [sibling-path-map](skills/sibling-path-map/SKILL.md), [mutation-check](skills/mutation-check/SKILL.md) and [review-diff](skills/review-diff/SKILL.md) support verification and review.
 - [eval](skills/eval/SKILL.md) records workflow failures and compares proposed improvements in fresh contexts before changing active guidance. It runs when relevant to an evaluation task and adds no background memory or global rules. Seed observations are in [evals/failures.md](evals/failures.md).
@@ -89,7 +90,7 @@ Supporting skills handle individual steps:
 - [plain](skills/plain/SKILL.md) improves lasting prose; [document](skills/document/SKILL.md) composes cross-team documents from shared Parts and six templates; [request](skills/request/SKILL.md) uses that system to write and update requests in one file.
 - [commit](skills/commit/SKILL.md) makes a local commit; [mr](skills/mr/SKILL.md) opens a GitHub PR or GitLab MR; [ci-watch](skills/ci-watch/SKILL.md) watches and fixes GitLab CI through merge and cleanup. GitHub CI watching is not available yet.
 
-Browse all skills in [skills/](skills/) and the seven subagent roles in [agents/](agents/).
+Browse all skills in [skills/](skills/) and the single generic worker in [agents/](agents/). See [worker migration and validation](docs/worker-validation.md) for upgrade steps, host requirements and measurement limits.
 
 For a document without an earlier request, start from the current observation:
 
@@ -120,7 +121,7 @@ Edit the root source folders. The installed plugins in `dist/` are generated fro
 | Path | Purpose |
 |---|---|
 | [skills/](skills/) | Task playbooks and supporting skills. |
-| [agents/](agents/) | Subagent definitions. |
+| [agents/](agents/) | One generic worker, without fixed model, effort or tool lists. Playbooks define task contracts; the main supplies context and permissions at dispatch. |
 | [hooks/](hooks/) | Shared session rules and platform adapters in `claude/` and `codex/`. |
 | [tools/](tools/), [principles/](principles/) | Verification tools and shared implementation/review principles. |
 | [plugin.json](plugin.json) | Shared plugin metadata. |

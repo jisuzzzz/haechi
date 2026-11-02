@@ -1,11 +1,11 @@
-# 과제의 출처
+# Task provenance
 
-확장 과제는 기록된 실패의 원인과 공개 저장소 이슈에서 설계했다. 원래 저장소의 버그를 그대로 푸는 SWE-bench 과제와, 같은 실패 원리를 작은 React·FastAPI 프로젝트에 옮긴 자체 과제를 구분한다.
+Expanded tasks were designed from recorded failure causes and public repository issues. Distinguish SWE-bench tasks that fix the original repository bug from custom tasks that reproduce the same failure mechanism in small React/FastAPI projects.
 
-- React 요청 순서·내보내기: 비동기 응답의 순서와 페이지/검색 상태를 다룬다.
-- FastAPI 캐시·예약: tenant별 캐시 구분과 SQLite 트랜잭션의 원자성을 다룬다.
-- 검증 보고: 실제 테스트가 0개이거나 실패했는데 명령 종료 코드만 0인 경우를 통과로 세지 않는다.
+- React request ordering and export: asynchronous response ordering and pagination/search state.
+- FastAPI caching and reservations: tenant-specific cache separation and atomic SQLite transactions.
+- Verification reporting: zero executed tests or failed tests do not pass merely because the command exits zero.
 
-[출처와 적용 범위](provenance.json), [상위 소스 해시](upstream-source-hashes.json), [SQLite 관련 소스 해시](sql-upstream-source-hashes.json)를 남긴다. 원문 대화가 없는 도구 재현은 에이전트의 거짓 완료 보고가 실제 발생했다는 증거로 확대하지 않는다.
+Preserve [sources and applicability](provenance.json), [upstream source hashes](upstream-source-hashes.json) and [SQLite-related source hashes](sql-upstream-source-hashes.json). A tool reproduction without the original conversation does not establish that an agent actually made a false completion claim.
 
-당시 재현 로그·컴포넌트 실행 결과·과거 verifier 재생 스크립트는 로컬 원본 작업 공간의 같은 경로에 보존했다. 공개 PR에는 반복 실행 자료를 포함하지 않는다. 보관 위치와 식별자는 [증거 목록](../evidence-index.json)에 있다.
+Reproduction logs, component execution results and historical verifier replay scripts remain at the corresponding paths in the preserved local source workspace. Public PRs exclude repeated execution material. Storage locations and identifiers are in the [evidence index](../evidence-index.json).

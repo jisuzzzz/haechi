@@ -5,6 +5,8 @@ description: Coordinates independent units of work when separate context or para
 
 # Sweep
 
+The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+
 The main session runs this, because agents cannot ask the user, start other agents or commit. The calling playbook decides what one unit's work is and in what order units go; this procedure handles the rest. Delegation and DONE rules are in the session rules.
 
 ## Steps
@@ -19,3 +21,90 @@ The main session runs this, because agents cannot ask the user, start other agen
 ## Report
 
 The calling playbook's report, plus units completed, units left and why. Compare actual effort with a cost preview when one was useful; no fixed report format is required.
+
+## Delegation contracts
+
+These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+
+```haechi-handoffs
+{
+  "implement": {
+    "skills": [
+      "implement-work"
+    ],
+    "principles": [
+      "dry",
+      "yagni",
+      "kiss",
+      "boundary-validation",
+      "root-cause",
+      "failing-test-first",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "acceptanceChecks",
+      "ownership"
+    ],
+    "completion": [
+      "Run the supplied reproduction before and after a bug fix.",
+      "Check each required outcome on the final change and report gaps."
+    ]
+  },
+  "attack": {
+    "skills": [
+      "attack-tests",
+      "sibling-path-map",
+      "mutation-check"
+    ],
+    "principles": [
+      "sibling-paths",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "changedFiles",
+      "ownership"
+    ],
+    "completion": [
+      "Demonstrate that tests detect the targeted defects without weakening expected behavior."
+    ]
+  },
+  "review": {
+    "skills": [
+      "verify-work",
+      "review-diff",
+      "impact-map"
+    ],
+    "principles": [
+      "evidence-levels",
+      "behavior-tests"
+    ],
+    "checks": [
+      "agent-defects",
+      "sibling-paths",
+      "dry",
+      "yagni",
+      "kiss"
+    ],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "base",
+      "changedFiles",
+      "priorEvidence"
+    ],
+    "completion": [
+      "Report concrete defects with expected and observed behavior and affected consumers.",
+      "Distinguish passing checks, failures, missing proof and unresolved expectations."
+    ]
+  }
+}
+```
