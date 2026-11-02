@@ -11,3 +11,7 @@ Write plugin-owned instructions, configuration/setup text, generated guidance an
 Use Node.js 24 for the Cloud development environment. Run `npm run check` to verify generated files. Run relevant tests individually with `node --test test/<file>.test.mjs`; do not run `npm test` or `npm run test`.
 
 When continuing the Cloud migration, start with `docs/cloud-handoff-2026-10-30.md`. It summarizes decisions, current status, verification and remaining work, with links to the design and historical carryover. Current repository rules take precedence over historical notes.
+
+## Commit attribution
+
+Include `Co-authored-by: Codex <codex@openai.com>` in commits created with Codex assistance, including the final squash merge commit.
