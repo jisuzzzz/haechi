@@ -90,7 +90,7 @@ test('full block fills repo facts and leaves no template markers', () => {
   assert.match(text, /^\[haechi\] Workflow rules/)
   assert.match(text, /REPO: verify `npm run verify -- \{files\}` · test one `npx vitest run \{file\}` · base main/)
   assert.match(text, /NEVER RUN: npm test, npm run lint/)
-  assert.match(text, /or these paths: src\/payments/)
+  assert.match(text, /REPOSITORY RISK PATHS: src\/payments/)
   assert.doesNotMatch(text, /ANSWER FORMATS|\/formats\//)
   assert.doesNotMatch(text, /REPO SETUP INCOMPLETE/)
   assert.doesNotMatch(text, /\{\{[#/]?\w+\}\}/)

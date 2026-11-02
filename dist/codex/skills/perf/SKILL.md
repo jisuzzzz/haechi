@@ -1,9 +1,11 @@
 ---
 name: perf
-description: Performance playbook — baseline and bottleneck first, user-picked candidates, a pre-registered measurement run by experiment-runner and checked by experiment-auditor, then adoption through the normal playbooks or a recorded rejection. Use for /haechi:perf, only when the user explicitly asks to measure or speed up something.
+description: Performance playbook — baseline and bottleneck first, user-picked candidates, a pre-registered measurement run by worker with /haechi:run-experiment and checked by worker with /haechi:audit-experiment, then adoption through the normal playbooks or a recorded rejection. Use for /haechi:perf, only when the user explicitly asks to measure or speed up something.
 ---
 
 # Performance playbook
+
+The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to performance. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): read **explain-the-number** before step 3 and **benchmark-checklist** before step 5. The haechi tools folder is two levels above this skill's folder (`<this skill's folder>/../../tools/`); run tools with `node`.
 
@@ -26,7 +28,7 @@ Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. If ei
 
 ## Steps
 
-1. **Clarify the task.** Establish the metric and conditions, the success rule, behavior and other metrics that must not worsen, and the evidence needed for experiment-auditor to rate the result "supported" under the pre-registered rules. Fixed labels and tables are optional.
+1. **Clarify the task.** Establish the metric and conditions, the success rule, behavior and other metrics that must not worsen, and the evidence needed for a worker with /haechi:audit-experiment to rate the result "supported" under the pre-registered rules. Fixed labels and tables are optional.
 2. **Purpose line.** One line on what this measurement decides: whether to adopt a change, or a before/after reference for a change already decided. If adoption is already decided, do not use the result as the reason to adopt.
 3. **Baseline and bottleneck.** Measure the baseline and find what is actually slow with a profiler, separately from the reporting run. No hypothesis about what to change until the bottleneck is known.
    Leave: the baseline number and the bottleneck, with how you found it.
@@ -35,9 +37,9 @@ Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. If ei
 6. **Pre-register.** Write down: the decision metric and how sides are compared, rounds and order shuffling, how noise is measured, the decision rule, conditions for dropping a row, the marker that proves each variant ran, and the expected duration. Get the user's confirmation before running. Never change it after seeing data.
    Leave: the pre-registration, as the first section of the measurement record.
 7. **Build the variant.** In an `exp/<topic>` worktree. Plant a fixed marker string (for example `PERF-MARKER:orders-virtual`) so each row can prove the variant ran.
-8. **Run.** experiment-runner with the pre-registration and the raw-data folder: noise, main run, aggregation, no interpretation. One measurement at a time — if another is running, wait until it ends.
+8. **Run.** Delegate to a worker using /haechi:run-experiment with the pre-registration and the raw-data folder: noise, main run, aggregation, no interpretation. One measurement at a time — if another is running, wait until it ends.
    Leave: raw data in `<notesDir>/perf-runs/<topic>`.
-9. **Audit.** experiment-auditor with the pre-registration, raw data and the conclusion you want to draw. It re-aggregates and rates each claim supported, weak or invalid.
+9. **Audit.** Delegate to a separate worker using /haechi:audit-experiment with the pre-registration, raw data and the conclusion you want to draw. It re-aggregates and rates each claim supported, weak or invalid.
 10. **Adopt.** The experiment code is reference only. Start again at classification and run /haechi:feature or /haechi:refactor from the restatement. The implementer may read the experiment diff for direction; never cherry-pick or merge it. Include a short confirmation measurement on the real code in the evidence. A marker string left in the final diff means not done.
 11. **Or reject.** Add an entry to `perf.rejected` in the format below.
 12. **Record and correct.** Freeze the measurement record. Put the one-line conclusion and the baseline numbers in the area's main doc. Find docs this result contradicts and fix them.
@@ -64,3 +66,53 @@ First use what is already available: the browser profiler, `node --cpu-prof`, `p
 ## Extra DONE evidence
 
 The auditor's "supported" verdict, plus the numbers, round count, scope (which conditions were measured) and the limiting factor. On adoption, the confirmation measurement on the real code and no marker strings in the diff.
+
+## Delegation contracts
+
+These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+
+```haechi-handoffs
+{
+  "measure": {
+    "skills": [
+      "run-experiment"
+    ],
+    "principles": [
+      "explain-the-number"
+    ],
+    "checks": [],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "preregisteredPlan",
+      "artifactLocation"
+    ],
+    "completion": [
+      "Return raw tables and execution log without interpretation or an adoption decision."
+    ]
+  },
+  "audit": {
+    "skills": [
+      "audit-experiment"
+    ],
+    "principles": [
+      "explain-the-number"
+    ],
+    "checks": [
+      "benchmark-checklist"
+    ],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "preregisteredPlan",
+      "rawData",
+      "proposedConclusion",
+      "harness",
+      "runnerReport"
+    ],
+    "completion": [
+      "Re-aggregate independently and rate claims supported, weak or invalid without a new measurement."
+    ]
+  }
+}
+```

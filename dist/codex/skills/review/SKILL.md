@@ -5,6 +5,8 @@ description: Review playbook — judge a diff or an area of existing code withou
 
 # Review playbook
 
+The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules. How to judge — the order to look in, the three buckets, the evidence each needs, the report shape — is all in /haechi:review-diff, so that a main-session review, a verifier review and a user-requested review use the same bar. This file adds only what is specific to a review request. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **evidence-levels** and **behavior-tests** apply.
 
 ## Task focus
@@ -19,7 +21,7 @@ Review without code edits. The easy mistake is fixing what you find during the r
 2. **Establish scope.** Read the target and its intent from the request, merge request description or commit messages. Report findings with a scenario and evidence for each, without code edits. Ask only when unresolved intent would materially change the review; continue independent checks.
 3. **Set the focus.** Default: logic defects, excess (code that does more than needed), sensitive data and safety. If the user names a focus, use that instead.
 4. **Run.**
-   - Diff review: use /haechi:review-diff. Choose a verifier when risk or separate context makes independent review useful. File and line counts may help estimate scope but do not decide delegation.
+   - Diff review: use /haechi:review-diff. Use a separate worker with /haechi:verify-work through /haechi:delegate when risk or separate context makes independent review useful. File and line counts may help estimate scope but do not decide delegation.
    - Area review: review directly unless independent areas benefit from separate context. In that case use /haechi:sweep in read-only mode and /haechi:review-diff for each unit. Read-only units produce findings, never commits.
 5. **Report.** Use the evidence and content requirements in /haechi:review-diff; choose the clearest presentation. State what was inspected and which checks could not be performed. "No defects found in the inspected scope" is valid; it does not certify unchecked behavior or turn missing verification into a pass.
 6. **Follow-up.** Fix nothing during the review. The user decides what to fix; fixes run through /haechi:bug or /haechi:refactor. Posting merge request comments or filing issues is on the ask list.
@@ -31,3 +33,42 @@ Only when the user asks. Copy the repo to a temporary folder outside the reposit
 ## Extra DONE evidence
 
 Every defect has `file:line` and a scenario (input or state, then the wrong result). "No defects" is a conclusion too. The working tree is unchanged — `git status` shows nothing new from the review.
+
+## Delegation contracts
+
+These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+
+```haechi-handoffs
+{
+  "review": {
+    "skills": [
+      "verify-work",
+      "review-diff",
+      "impact-map"
+    ],
+    "principles": [
+      "evidence-levels",
+      "behavior-tests"
+    ],
+    "checks": [
+      "agent-defects",
+      "sibling-paths",
+      "dry",
+      "yagni",
+      "kiss"
+    ],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "base",
+      "changedFiles",
+      "priorEvidence"
+    ],
+    "completion": [
+      "Report concrete defects with expected and observed behavior and affected consumers.",
+      "Distinguish passing checks, failures, missing proof and unresolved expectations."
+    ]
+  }
+}
+```

@@ -1,6 +1,6 @@
 # Capture actual evidence and attach numbered regions
 
-For an empty Failed list, capture the count and list in one viewport. Mark the count as 1 and the list as 2. In the document explain what is inconsistent, link the untouched original, and ask the owning team to confirm the suspected cause. This procedure shares the browser helpers/temporary Playwright approach used by `screen-design-checker` and `screen-parity-checker`; it does not require running a design or parity comparison.
+For an empty Failed list, capture the count and list in one viewport. Mark the count as 1 and the list as 2. In the document explain what is inconsistent, link the untouched original, and ask the owning team to confirm the suspected cause. This procedure shares the browser helpers/temporary Playwright approach used by `worker with /haechi:screen-design` and `worker with /haechi:screen-parity`; it does not require running a design or parity comparison.
 
 ## Collect the actual state
 

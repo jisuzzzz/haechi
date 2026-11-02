@@ -5,6 +5,8 @@ description: Refactor playbook — pin current behavior with tests, delete first
 
 # Refactor playbook
 
+The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to refactors. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **dry**, **yagni**, **kiss** and **behavior-tests** apply.
 
 ## Task focus
@@ -25,10 +27,119 @@ Establish which external behavior stays unchanged and why the structure needs to
 8. **When a test breaks.**
    - The test was tied to internals: rewrite it against observable results and record why.
    - The observable result changed unintentionally: restore the expected behavior; do not adjust the test to accept a regression. If a behavior change is necessary, re-classify and ask only when it is outside the existing authorization.
-9. **Review.** Use /haechi:review-diff, with a verifier when risk or separate context makes independent review useful. Look for leftovers: unused exports, docs or comments pointing at the old path. Step 3 supplies the behavior tests; delegate additional test work only when it adds distinct evidence.
-10. **Prove same behavior.** Existing tests and pinning tests pass. If screens are affected, compare the real rendered behavior with the previous version, excluding intended differences. Use screen-parity-checker when an independent comparison helps.
+9. **Review.** Use /haechi:review-diff, with a separate worker using /haechi:verify-work when risk or separate context makes independent review useful. Look for leftovers: unused exports, docs or comments pointing at the old path. Step 3 supplies the behavior tests; delegate additional test work only when it adds distinct evidence.
+10. **Prove same behavior.** Existing tests and pinning tests pass. If screens are affected, compare the real rendered behavior with the previous version, excluding intended differences. Use a worker with /haechi:screen-parity when an independent comparison helps.
 11. **Finish.** End-state list met, commits split as above. Report the developer-facing change and the evidence that user behavior is unchanged.
 
 ## Extra DONE evidence
 
 Evidence that the required external behavior is unchanged on the final change: executed existing and pinning assertions, and parity results if external behavior could be affected. List any test you edited and why; changing expected behavior to match a regression cannot establish equivalence. Apply the common completion rules to missing or contradictory results.
+
+## Delegation contracts
+
+These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+
+```haechi-handoffs
+{
+  "implement": {
+    "skills": [
+      "implement-work"
+    ],
+    "principles": [
+      "dry",
+      "yagni",
+      "kiss",
+      "boundary-validation",
+      "root-cause",
+      "failing-test-first",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "pinningEvidence",
+      "ownership"
+    ],
+    "completion": [
+      "Run the supplied reproduction before and after a bug fix.",
+      "Check each required outcome on the final change and report gaps."
+    ]
+  },
+  "attack": {
+    "skills": [
+      "attack-tests",
+      "sibling-path-map",
+      "mutation-check"
+    ],
+    "principles": [
+      "sibling-paths",
+      "behavior-tests"
+    ],
+    "checks": [],
+    "writeScope": "scoped",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "changedFiles",
+      "ownership"
+    ],
+    "completion": [
+      "Demonstrate that tests detect the targeted defects without weakening expected behavior."
+    ]
+  },
+  "review": {
+    "skills": [
+      "verify-work",
+      "review-diff",
+      "impact-map"
+    ],
+    "principles": [
+      "evidence-levels",
+      "behavior-tests"
+    ],
+    "checks": [
+      "agent-defects",
+      "sibling-paths",
+      "dry",
+      "yagni",
+      "kiss"
+    ],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "requirements",
+      "base",
+      "changedFiles",
+      "priorEvidence"
+    ],
+    "completion": [
+      "Report concrete defects with expected and observed behavior and affected consumers.",
+      "Distinguish passing checks, failures, missing proof and unresolved expectations."
+    ]
+  },
+  "parity": {
+    "skills": [
+      "screen-parity"
+    ],
+    "principles": [
+      "real-artifact"
+    ],
+    "checks": [],
+    "writeScope": "read-only",
+    "contextRequired": [
+      "repository",
+      "beforeUrl",
+      "afterUrl",
+      "states",
+      "intendedDifferences",
+      "artifactLocation",
+      "loginContext"
+    ],
+    "completion": [
+      "Return PASS or FAIL against real rendered comparisons and the noise baseline, or BLOCKED."
+    ]
+  }
+}
+```

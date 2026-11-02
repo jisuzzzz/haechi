@@ -18,8 +18,8 @@ Status: v0 in progress. This document describes what the plugin does and why. It
               Claude Code: a mod (function hooks). Codex: command hooks. Both call one core.
 [2] main      the main session chooses the approach, delegates when useful, checks evidence and reports
 [3] playbooks bug · feature · refactor · perf · review · test hardening, plus spec and sweep procedures
-[4] agents    implementer · adversarial-tester · verifier · screen-design-checker · screen-parity-checker
-              · experiment-runner · experiment-auditor
+[4] handoff   main selects a playbook step and supplies its context, scope and acceptance criteria
+[5] worker    one generic definition, separate executions, host/session model and effort defaults
 ```
 
 Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md` (human judgment rules), `~/.haechi/user.json` (per-person settings and paths outside the repo).
@@ -108,7 +108,7 @@ Use prose, lists or tables to fit the content; do not print A/B/C labels or empt
 
 The answer skill uses the original A/B/C foundation with a local editing check. Read the whole answer before trimming: preserve the explanation, evidence and uncertainty, and remove repetition when it adds reading effort without helping understanding or a decision. A brief recap or reminder can help even when it was not explicitly requested. Do not impose a length target or a one-mention rule. The [flow comparison](core-validation.md) separates content checks, blind model preferences and the user’s choice of the original foundation. The [previous refinement](core-validation.md) remains as historical evidence, not proof of better readability.
 
-A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; screen-design-checker is reserved for its supported visual references.
+A single caller does not make a file or abstraction wrong. Separation should clarify a responsibility, isolate a dependency or make behavior easier to test. Avoid layers that add work without those benefits. When the user asks the agent to design a UI, it can use the existing product patterns and make a draft without first demanding a design reference. The main agent checks a draft with written criteria in a real render; the screen-design procedure is reserved for its supported visual references and variant capture.
 
 ## Settings
 
@@ -126,9 +126,14 @@ The default verifier uses `pythonTestMap` to select explicit test files for chan
 ## Build and distribution
 
 - Sources live in the root `skills/`, `agents/`, `hooks/`, `tools/` and `principles/` folders, with metadata in `plugin.json`. Platform adapters live in `hooks/claude/` and `hooks/codex/`. `build/build.mjs` generates `dist/claude` and `dist/codex`; CI fails when `dist` is stale.
-- Agents name their principles, checks and procedures in frontmatter. The build writes them into the agent body, so Claude Code and Codex agents get the same text.
+- There is one generic `worker` definition, without preset model, effort or tools. Implementation, review, test attack, screen comparison and experiment procedures remain in skills. Their previous ownership and output contracts remain with the corresponding procedures.
+- Each playbook's `haechi-handoffs` block is the source of its delegated steps' required skills, principle Do/Check sections, context fields, repository write scope and completion criteria. References may appear in several playbooks; procedure and principle bodies have one source. Skills do not contain a hidden role-to-principle dependency map.
+- The main selects a step and uses `delegate-task.mjs describe ROOT PLAYBOOK STEP` for the contract's input form, required acceptance and guidance inventory, without loading worker bodies or helper source. It fills task-specific values and preserves the form's exact write mode and playbook hash; changed playbooks require reviewing a fresh form. Fixed completion criteria are merged automatically.
+- `assemble ROOT BRIEF_JSON NEW_OUTPUT_DIR` validates the brief, saves a complete packet and rendered message in a new directory, and returns only task/acceptance, source hashes, guidance inventory and paths. It refuses to replace existing task artifacts. Legacy `prepare` and `render` retain their formats. `render` rejects changed or tampered packets and oversized output. A host adapter should call it immediately before passing the full task directly to a fresh worker; the main need not receive those bodies. A string-only dispatch tool still requires full text in the main context, so this CLI alone does not remove delivery cost or establish token savings. No native dispatcher is added. Workers may load extra relevant skills.
+- Repository ownership and explicitly authorized external artifact paths are distinct. No packet grants a sandbox permission; use host controls where enforcement is required. A packet hash proves consistency, not receipt, compliance or quality. Hooks supply repository facts but do not enforce dispatch. The main must check selection, delivery and behavior evidence.
+- For an existing shared graph task, `delegate-return.mjs publish` performs raw-record integrity checks, proof storage, criterion-reference validation and graph update in one host call. It returns compact decision inputs, including relevant command outcomes and all nonzero exits, instead of intermediate full bundles. The graph schema and hooks are unchanged. Records remain pending main review; unknown/stale evidence is rejected, conflicts are not retried automatically, and short standalone work skips this path. The host supplies real identity, observed records and criterion claims; the tool does not infer semantic success or authenticate the host. Runtime savings remain an evaluation question.
 - Both tools install from this repository: `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.
-- Codex plugins cannot carry agents, so setup installs the generated agent TOML files.
+- The build emits the Codex worker TOML but this repository does not currently register it through setup. If the host has no custom worker type, the main can use its generic agent with the worker instructions and complete rendered packet. Native registration and permission enforcement must be checked in the actual host; generated files alone are not proof.
 
 ## Findings that shaped the design
 
