@@ -7,6 +7,14 @@ description: Reviews a diff for defects with evidence — logic defects first, t
 
 The haechi tools folder is in the task's "[haechi] Repo facts" block, or two levels above this skill's folder. Run tools with `node`.
 
+## Establish expected behavior
+
+Before reading the changed code, changed tests, implementation explanation or verification results, read the original request, agreed amendments and established behavior contracts. Note the observable success and failure conditions and behavior that must stay unchanged, with their sources. Keep this brief in the existing review notes; no separate document or agent is required.
+
+For example, if the request says to export all matching products, check that matching products on later pages are included. A report saying that the visible page exports correctly does not narrow that requirement. After establishing the conditions, read the implementation and its evidence and check both against them. Add a missing condition when its source supports it; do not change an expectation just to match the code.
+
+An implementer's summary is a claim to check, not a substitute for the request. If a requirement source is unavailable or ambiguous, identify the gap and continue checks supported by known contracts; do not invent an expectation. If you already saw implementation details, disclose that prior exposure when reporting verification limits rather than claiming an independent first reading. This ordering is an instruction, not enforced information isolation.
+
 ## Order
 
 1. **Mechanical results first.** Use the repo's verify output the orchestrator gave you; run the verify command once yourself only if none was given. Every failure it prints is a finding — quote it. Do not redo by hand what lint or the verifier already checks.
