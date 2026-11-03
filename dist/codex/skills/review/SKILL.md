@@ -5,7 +5,7 @@ description: Review playbook — judge a diff or an area of existing code withou
 
 # Review playbook
 
-The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules. How to judge — the order to look in, the three buckets, the evidence each needs, the report shape — is all in /haechi:review-diff, so that a main-session review, a verifier review and a user-requested review use the same bar. This file adds only what is specific to a review request. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **evidence-levels** and **behavior-tests** apply.
 
