@@ -33,7 +33,7 @@ To raise a claim's evidence, write a repro script in a temporary folder **outsid
 
 "No defects" is a valid result.
 
-Keep findings separate from verification status. For required outcomes, missing or stale evidence is unverified and undefined expected behavior needs a decision. Neither establishes a pass, even when there are no proven defects. State the inspected scope and limits; do not certify behavior you did not check.
+Keep findings separate from verification status. For each required outcome in the reviewed scope, return passed, failed, unverified or needs decision, with the evidence reference and checked version, or the reason evidence is insufficient or the expectation unresolved. Include required outcomes with no check; absence of a finding or omitted result never establishes a pass. Keep this in the existing report, without a mandatory table or separate document. State the inspected scope and limits; a completed review does not certify unchecked behavior. The main uses these results to decide overall completion.
 
 ## Discipline
 

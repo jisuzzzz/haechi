@@ -5,7 +5,7 @@ description: Bug playbook — reproduce, find the first wrong decision, pin it w
 
 # Bug playbook
 
-The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to bugs. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): read **root-cause**, **attack-the-premise** and **failing-test-first** before step 3.
 
