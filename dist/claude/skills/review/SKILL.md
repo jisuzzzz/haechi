@@ -17,12 +17,12 @@ Review without code edits. The easy mistake is fixing what you find during the r
 
 1. **Pick the mode.**
    - Diff review (default): a merge request, a branch against its base, or uncommitted changes.
-   - Area review: existing code with no diff, for example "review `src/orders`". Defects and risks only, no style. Raise a structural problem only with a concrete case where it made a change hard or caused a bug.
+   - Area review: existing code with no diff, for example "review `src/orders`". Inspect the target and relevant consumers for defects, risks and evidence-backed quality improvements. Separate improvement suggestions from proven defects; taste alone is not a finding.
 2. **Establish scope.** Read the target and its intent from the request, merge request description or commit messages. Report findings with a scenario and evidence for each, without code edits. Ask only when unresolved intent would materially change the review; continue independent checks.
 3. **Set the focus.** Default: logic defects, excess (code that does more than needed), sensitive data and safety. If the user names a focus, use that instead.
 4. **Run.**
    - Diff review: use /haechi:review-diff. Use a separate worker with /haechi:verify-work through /haechi:delegate when risk or separate context makes independent review useful. File and line counts may help estimate scope but do not decide delegation.
-   - Area review: review directly unless independent areas benefit from separate context. In that case use /haechi:sweep in read-only mode and /haechi:review-diff for each unit. Read-only units produce findings, never commits.
+   - Area review: use the [code quality rubric](references/code-quality.md) alongside logic review. A base or diff is not required; inspect the target, its dependencies, consumers and relevant tests. Use review-diff's evidence and reporting rules, but skip diff-specific commands and do not invent a change history. Review directly unless independent areas benefit from separate context; then use /haechi:sweep in read-only mode with the same area scope. Read-only units produce findings, never commits.
 5. **Report.** Use the evidence and content requirements in /haechi:review-diff; choose the clearest presentation. State what was inspected and which checks could not be performed. "No defects found in the inspected scope" is valid; it does not certify unchecked behavior or turn missing verification into a pass.
 6. **Follow-up.** Fix nothing during the review. The user decides what to fix; fixes run through /haechi:bug or /haechi:refactor. Posting merge request comments or filing issues is on the ask list.
 
