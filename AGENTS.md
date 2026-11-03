@@ -14,4 +14,6 @@ When continuing the Cloud migration, start with `docs/cloud-handoff-2026-10-30.m
 
 ## Commit attribution
 
+Use `jisuzzzz <105335033+jisuzzzz@users.noreply.github.com>` as the human Git author for this repository. Set repository-local `user.name` and `user.email` accordingly in each environment before creating commits. Do not add alternate identities for the same person as `Co-authored-by` trailers.
+
 Include `Co-authored-by: Codex <codex@openai.com>` in commits created with Codex assistance, including the final squash merge commit.
