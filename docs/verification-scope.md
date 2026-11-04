@@ -26,7 +26,7 @@ The existing `commands.verify` is the natural integration point for repositories
 
 ## Command evidence limits
 
-The default verifier checks command exit status, not test discovery counts. A configured single-test command can print `no tests collected` and exit 0. With a successful lint command, [`verify-default.mjs`](../tools/verify-default.mjs) now reports `commands complete` and explains that successful commands do not prove tests were collected or executed. It preserves the command output for review. A failed command still exits 1; skipped checks still exit 2 when no command fails.
+The default verifier checks command exit status, not test discovery counts. A configured single-test command can print `no tests collected` and exit 0. With a successful lint command, [`verify-default.mts`](../tools/verify-default.mts) now reports `commands complete` and explains that successful commands do not prove tests were collected or executed. It preserves the command output for review. A failed command still exits 1; skipped checks still exit 2 when no command fails.
 
 Its success result proves that the planned commands exited successfully. Agents must judge test execution from the repository's own output. The setup skill already requires treating an exit-0/no-tests result as unverified when an agent checks command output. The fallback adds no runner-specific output parsing, test count detection or new mapping settings.
 

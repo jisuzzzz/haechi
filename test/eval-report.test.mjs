@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-const tool = join(import.meta.dirname, '..', 'tools', 'eval-report.mjs')
+const tool = join(import.meta.dirname, '..', 'dist', 'claude', 'tools', 'eval-report.mjs')
 const hash = (text) => createHash('sha256').update(text).digest('hex')
 const invoke = (...args) => spawnSync(process.execPath, [tool, ...args], { encoding: 'utf8' })
 

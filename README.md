@@ -98,7 +98,7 @@ For a document without an earlier request, start from the current observation:
 /haechi:document Draft a backend request for a support queue: the Open tab shows 12 tickets but no rows. If the development screen is accessible, capture it and mark the count and empty list. Keep the suspected backend cause unconfirmed.
 ```
 
-The document skill reuses browser helpers or temporary Playwright scripts for captures. `tools/screenshot-annotate.mjs` preserves the original PNG and creates a separate PNG with numbered borders; GIF is optional when motion matters. Agent-facing [Parts and templates](skills/document/assets/COMBINATIONS.md) use English, while work documents follow the recipient's language. The [capture guide](skills/document/references/capture.md) covers coordinates, attachments and missing access. See the [validation scope and unresolved quality claims](docs/document-validation.md) before treating the templates as a writing standard.
+The document skill reuses browser helpers or temporary Playwright scripts for captures. `screenshot-annotate.mjs` in the installed plugin preserves the original PNG and creates a separate PNG with numbered borders; GIF is optional when motion matters. Agent-facing [Parts and templates](skills/document/assets/COMBINATIONS.md) use English, while work documents follow the recipient's language. The [capture guide](skills/document/references/capture.md) covers coordinates, attachments and missing access. See the [validation scope and unresolved quality claims](docs/document-validation.md) before treating the templates as a writing standard.
 
 ## Settings
 
@@ -123,21 +123,24 @@ Edit the root source folders. The installed plugins in `dist/` are generated fro
 | [skills/](skills/) | Task playbooks and supporting skills. |
 | [agents/](agents/) | One generic worker, without fixed model, effort or tool lists. Playbooks define task contracts; the main supplies context and permissions at dispatch. |
 | [hooks/](hooks/) | Shared session rules and platform adapters in `claude/` and `codex/`. |
-| [tools/](tools/), [principles/](principles/) | Verification tools and shared implementation/review principles. |
+| [tools/](tools/), [principles/](principles/) | TypeScript tool sources and shared implementation/review principles. |
 | [plugin.json](plugin.json) | Shared plugin metadata. |
 | [build/](build/) | Generates both platform distributions. |
 | [dist/claude/](dist/claude/), [dist/codex/](dist/codex/) | Generated plugins that users install. |
 | [test/](test/) | Tests for the tools, hooks and build. |
-| [docs/](docs/), [examples/](examples/) | Design notes, verification guides and runnable examples. |
+| [docs/](docs/) | Design notes and verification guides. |
 
 Use the Node.js version in [CI](.github/workflows/ci.yml) when building the distributions. After editing source:
 
 ```bash
+npm ci
 npm run build
 npm run check
 ```
 
-`npm run check` checks whether the distributions match the source. Run affected tests individually with `node --test test/<name>.test.mjs`, then commit the source and regenerated `dist/` files together. For a README-only change, run `npm run check` and check the links.
+`tools/*.mts` and `hooks/rules.mts` are TypeScript sources. Keep relative tool imports ending in `.mjs`; TypeScript resolves them to `.mts` during development. The build removes types and emits the existing `.mjs` paths into both distributions. Plugin users need no TypeScript compiler.
+
+`npm run typecheck` checks the sources with strict TypeScript settings. Both `npm run build` and `npm run check` run it first. `npm run check` also checks whether the distributions match the source. Tests import the generated JavaScript, so rebuild before testing source changes. Run affected tests individually with `node --test test/<name>.test.mjs`, then commit the source and regenerated `dist/` files together. For a README-only change, run `npm run check` and check the links.
 
 Open a pull request for your changes. The [design notes](docs/design.md) explain the architecture; the [verification scope decision](docs/verification-scope.md) records earlier verification changes and limits.
 

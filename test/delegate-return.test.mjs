@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { test } from 'node:test'
-import { preparePacket } from '../tools/delegate-task.mjs'
-import { prepareReturn, checkReturn } from '../tools/delegate-return.mjs'
+import { preparePacket } from '../dist/claude/tools/delegate-task.mjs'
+import { prepareReturn, checkReturn } from '../dist/claude/tools/delegate-return.mjs'
 const sha = x => createHash('sha256').update(x).digest('hex')
 const write = (root, p, text) => { mkdirSync(join(root,p,'..'),{recursive:true});writeFileSync(join(root,p),text) }
 const fixture = t => {
@@ -72,7 +72,7 @@ test('native ordered traces retain zero-test output and mark excerpts without in
   events.pop();write(root,'worker.json',events.map(e=>JSON.stringify(e)).join('\n'));assert.throws(()=>prepareReturn(root,request),/Incomplete/)
 })
 test('CLI prepares and checks the host return without modifying its inputs',t=>{
-  const {root,request}=fixture(t),tool=new URL('../tools/delegate-return.mjs',import.meta.url).pathname
+  const {root,request}=fixture(t),tool=new URL('../dist/claude/tools/delegate-return.mjs',import.meta.url).pathname
   write(root,'request.json',JSON.stringify(request));const p=spawnSync(process.execPath,[tool,'prepare',root,join(root,'request.json')],{encoding:'utf8'});assert.equal(p.status,0,p.stderr)
   write(root,'return.json',p.stdout);const c=spawnSync(process.execPath,[tool,'check',root,join(root,'request.json'),join(root,'return.json')],{encoding:'utf8'});assert.equal(c.status,0,c.stderr)
   assert.deepEqual(JSON.parse(readFileSync(join(root,'request.json'))),request)

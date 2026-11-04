@@ -8,6 +8,9 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+
+
+
 const ALWAYS_EXCLUDED = ['*.json', '*.md', '*.lock']
 // "next to source" means tests sit beside the code, so they are recognised by file name instead of folder
 const TEST_FILE_GLOBS = ['*.test.*', '*.spec.*', 'test_*.py', '*_test.py']
@@ -21,13 +24,13 @@ const IMPORT_PATTERNS = [
 ]
 
 // Blank lines go too: git's --ignore-blank-lines still counts blank lines that share a hunk with a real change
-export const stripImports = (text) =>
+export const stripImports = (text        ) =>
   IMPORT_PATTERNS.reduce((acc, pattern) => acc.replace(pattern, ''), text.replace(/\r\n/g, '\n'))
     .split('\n')
     .filter((line) => line.trim())
 
 // Myers' O(ND) diff; D is exactly the number of added + deleted lines in a minimal diff
-const editDistance = (a, b) => {
+const editDistance = (a          , b          ) => {
   const n = a.length
   const m = b.length
   const offset = n + m + 1
@@ -48,7 +51,7 @@ const editDistance = (a, b) => {
 }
 
 // Whitespace is removed inside lines as well, like `git diff -w`
-export const countLogicLines = (before, after) => {
+export const countLogicLines = (before        , after        ) => {
   const a = stripImports(before).map((line) => line.replace(/\s+/g, ''))
   const b = stripImports(after).map((line) => line.replace(/\s+/g, ''))
   let start = 0
@@ -62,9 +65,9 @@ export const countLogicLines = (before, after) => {
   return editDistance(a.slice(start, endA), b.slice(start, endB))
 }
 
-const cleanEntry = (entry) => entry.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '')
+const cleanEntry = (entry        ) => entry.replace(/\\/g, '/').replace(/^\.\//, '').replace(/\/+$/, '')
 
-export const excludePathspecs = (settings) => {
+export const excludePathspecs = (settings                    ) => {
   const globs = [...ALWAYS_EXCLUDED]
   const dirs = []
   for (const entry of [...(settings?.testDirs ?? []), ...(settings?.generated ?? [])]) {
@@ -75,7 +78,7 @@ export const excludePathspecs = (settings) => {
   return [...new Set(globs)].map((glob) => `:(exclude,glob)**/${glob}`).concat([...new Set(dirs)].map((dir) => `:(exclude)${dir}`))
 }
 
-const git = (root, args) =>
+const git = (root        , args          ) =>
   execFileSync('git', ['-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false', '-c', 'core.quotePath=false', ...args], {
     cwd: root,
     encoding: 'utf8',
@@ -83,7 +86,7 @@ const git = (root, args) =>
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-const revContent = (root, rev, path) => {
+const revContent = (root        , rev        , path        ) => {
   try {
     return git(root, ['show', `${rev}:${path}`])
   } catch {
@@ -91,7 +94,7 @@ const revContent = (root, rev, path) => {
   }
 }
 
-const readSettings = (root) => {
+const readSettings = (root        )                                => {
   const file = join(root, '.haechi.json')
   if (!existsSync(file)) return undefined
   try {
@@ -102,9 +105,9 @@ const readSettings = (root) => {
 }
 
 // paths are repo-root relative; returns { files: [{ path, label, lines }], total }
-export const countChanges = ({ root, base = 'HEAD', head, paths }) => {
+export const countChanges = ({ root, base = 'HEAD', head, paths }               ) => {
   const pathspec = [...paths, ...excludePathspecs(readSettings(root))]
-  const afterContent = (path) => {
+  const afterContent = (path        ) => {
     if (head) return revContent(root, head, path)
     return existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : ''
   }
@@ -134,11 +137,11 @@ export const countChanges = ({ root, base = 'HEAD', head, paths }) => {
 
 const main = () => {
   const args = process.argv.slice(2)
-  const takeOption = (name) => {
+  const takeOption = (name        ) => {
     const index = args.indexOf(name)
     return index === -1 ? undefined : args.splice(index, 2)[1]
   }
-  const takeFlag = (name) => {
+  const takeFlag = (name        ) => {
     const index = args.indexOf(name)
     if (index !== -1) args.splice(index, 1)
     return index !== -1

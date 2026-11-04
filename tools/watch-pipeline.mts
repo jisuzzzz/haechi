@@ -11,6 +11,15 @@ import { execFile } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
+type WatchArgs = { iid: string; sha?: string; error?: undefined }
+type Pipeline = { id: number; status: string; sha: string; ref?: string; web_url?: string }
+type MergeRequest = { sha?: string; diff_refs?: { head_sha?: string }; head_pipeline?: Pipeline; state: string }
+type Job = { id: number; name: string; status: string; allow_failure?: boolean; stage?: string; failure_reason?: string; web_url?: string; downstream_pipeline?: { web_url?: string } }
+type WatchConfig = { glab: string; pollMs: number; appearMs: number; timeoutMs: number; backoffMs: number }
+type DecisionInput = { pipeline: Pick<Pipeline, 'id' | 'status'>; jobs: Job[]; bridges?: Job[]; traces: Record<number, string>; retries: Record<string, number> }
+type Decision = { action: 'failed'; job: Job; others: Job[]; bridge?: boolean } | { action: 'give_up'; reason: string; job?: Job } | { action: 'retry'; jobs: Job[] } | { action: 'green' | 'wait' }
+type WatchResult = { code: number; lines: string[] }
+
 const INFRA_RETRY_MAX = 3
 const API_ATTEMPTS = 4
 const TRACE_TAIL_LINES = 80
@@ -28,13 +37,14 @@ const BLOCKED_STATUSES = ['manual']
 const PAGE_SIZE = 100
 
 class GiveUp extends Error {
-  constructor(lines) {
+  declare lines: string[]
+  constructor(lines: string[]) {
     super(lines[0])
     this.lines = lines
   }
 }
 
-export const parseArgs = (argv) => {
+export const parseArgs = (argv: string[]) => {
   let iid
   let sha
   for (let i = 0; i < argv.length; i++) {
@@ -49,7 +59,7 @@ export const parseArgs = (argv) => {
 }
 
 // Strips ANSI colors, GitLab section markers, carriage-return overwrites and timestamp prefixes; keeps the last lines.
-export const cleanTrace = (trace, lines = TRACE_TAIL_LINES) =>
+export const cleanTrace = (trace: string, lines = TRACE_TAIL_LINES) =>
   trace
     .replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')
     .replace(/section_(start|end):\d+:[^\r\n]*?\r/g, '')
@@ -58,13 +68,13 @@ export const cleanTrace = (trace, lines = TRACE_TAIL_LINES) =>
     .slice(-lines)
     .join('\n')
 
-export const isInfraFailure = (trace) => INFRA_PATTERNS.some((pattern) => pattern.test(trace))
+export const isInfraFailure = (trace: string) => INFRA_PATTERNS.some((pattern) => pattern.test(trace))
 
-const isBlockingFailure = (job) => job.status === 'failed' && !job.allow_failure
+const isBlockingFailure = (job: Job) => job.status === 'failed' && !job.allow_failure
 
 // One poll step. bridges are trigger jobs (downstream pipelines); traces holds the trace of every failed job;
 // retries counts infra retries per job name. A real failure wins over infra failures: the session can fix it.
-export const decide = ({ pipeline, jobs, bridges = [], traces, retries }) => {
+export const decide = ({ pipeline, jobs, bridges = [], traces, retries }: DecisionInput): Decision => {
   const failed = jobs.filter(isBlockingFailure)
   const failedBridges = bridges.filter(isBlockingFailure)
   const infra = failed.filter((job) => isInfraFailure(traces[job.id] ?? ''))
@@ -82,7 +92,7 @@ export const decide = ({ pipeline, jobs, bridges = [], traces, retries }) => {
   if (infra.length > 0) return { action: 'retry', jobs: infra }
   // A pipeline blocked on a manual job never finishes by itself.
   if (BLOCKED_STATUSES.includes(pipeline.status)) {
-    const blocker = [...jobs, ...bridges].find((job) => job.status === pipeline.status)
+    const blocker = [...jobs, ...bridges].find((job: Job) => job.status === pipeline.status)
     return { action: 'give_up', reason: `pipeline ${pipeline.id} is ${pipeline.status}: waiting for ${pipeline.status} job ${blocker?.name ?? '(not found)'}` }
   }
   if (pipeline.status === 'success') return { action: 'green' }
@@ -93,8 +103,8 @@ export const decide = ({ pipeline, jobs, bridges = [], traces, retries }) => {
   return { action: 'wait' }
 }
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-const envMs = (name, fallback) => Number(process.env[name]) || fallback
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const envMs = (name: string, fallback: number) => Number(process.env[name]) || fallback
 const runFile = promisify(execFile)
 
 const readConfig = () => ({
@@ -106,57 +116,57 @@ const readConfig = () => ({
 })
 
 // glab api sometimes answers Unauthenticated or a network error once and succeeds right after.
-const glabApi = async (config, endpoint, { method = 'GET', raw = false } = {}) => {
+const glabApi = async <T = unknown,>(config: WatchConfig, endpoint: string, { method = 'GET', raw = false }: { method?: string; raw?: boolean } = {}): Promise<T> => {
   // Node refuses to spawn .cmd/.bat files on Windows without a shell.
   const shell = process.platform === 'win32' && /\.(cmd|bat)$/i.test(config.glab)
   // Through cmd.exe an unquoted & in a query string would split the command.
-  const quote = (value) => (shell ? `"${value}"` : value)
-  let lastError
+  const quote = (value: string) => (shell ? `"${value}"` : value)
+  let lastError: unknown
   for (let attempt = 1; attempt <= API_ATTEMPTS; attempt++) {
     try {
       const { stdout } = await runFile(quote(config.glab), ['api', '-X', method, quote(endpoint)], { maxBuffer: 64 * 1024 * 1024, shell })
-      return raw ? stdout : JSON.parse(stdout)
+      return (raw ? stdout : JSON.parse(stdout)) as T
     } catch (error) {
       lastError = error
       if (attempt < API_ATTEMPTS) await sleep(attempt * config.backoffMs)
     }
   }
-  const detail = String(lastError?.stderr || lastError?.message || lastError).trim().split('\n')[0]
+  const detail = String((lastError as { stderr?: unknown } | undefined)?.stderr || (lastError as { message?: unknown } | undefined)?.message || lastError).trim().split('\n')[0]
   throw new GiveUp([
     `GIVE_UP glab api ${endpoint} failed ${API_ATTEMPTS} times: ${detail}`,
     'If it keeps saying 401 or Unauthenticated, the token expired: run glab auth login.',
   ])
 }
 
-const fetchAllPages = async (config, endpoint) => {
-  const items = []
+const fetchAllPages = async (config: WatchConfig, endpoint: string) => {
+  const items: Job[] = []
   for (let page = 1; ; page++) {
-    const batch = await glabApi(config, `${endpoint}?per_page=${PAGE_SIZE}&page=${page}`)
+    const batch = await glabApi<Job[]>(config, `${endpoint}?per_page=${PAGE_SIZE}&page=${page}`)
     items.push(...batch)
     if (batch.length < PAGE_SIZE) return items
   }
 }
 
 // MR sha is the source branch head; head_pipeline.sha can instead be a temporary merged-results commit.
-const sourceHead = (mr, iid) => {
+const sourceHead = (mr: MergeRequest, iid: string) => {
   const sha = mr.sha || mr.diff_refs?.head_sha
   if (!sha) throw new GiveUp([`GIVE_UP MR !${iid} source head is unavailable; cannot verify pipeline freshness`])
   return sha
 }
 
-const staleHead = (iid, expected, current) => new GiveUp([
+const staleHead = (iid: string, expected: string, current: string) => new GiveUp([
   `GIVE_UP stale MR !${iid} source head changed from ${expected} to ${current}; restart watching the latest head`,
 ])
 
-const checkSourceHead = async (config, iid, expected) => {
-  const mr = await glabApi(config, `projects/:id/merge_requests/${iid}`)
+const checkSourceHead = async (config: WatchConfig, iid: string, expected: string) => {
+  const mr = await glabApi<MergeRequest>(config, `projects/:id/merge_requests/${iid}`)
   const current = sourceHead(mr, iid)
   if (current !== expected) throw staleHead(iid, expected, current)
 }
 
-const findPipeline = async (config, iid, sha, startedAt) => {
+const findPipeline = async (config: WatchConfig, iid: string, sha: string | undefined, startedAt: number) => {
   for (;;) {
-    const mr = await glabApi(config, `projects/:id/merge_requests/${iid}`)
+    const mr = await glabApi<MergeRequest>(config, `projects/:id/merge_requests/${iid}`)
     const head = mr.head_pipeline
     const mergedResults = head?.ref === `refs/merge-requests/${iid}/merge`
     if (head && (!sha || head.sha.startsWith(sha) || mergedResults)) {
@@ -166,7 +176,7 @@ const findPipeline = async (config, iid, sha, startedAt) => {
       } else if (head.sha === sourceSha) return { head, sourceSha }
       else if (mergedResults) {
         // The merge ref alone can still point at the previous source head's temporary commit.
-        const commit = await glabApi(config, `projects/:id/repository/commits/${head.sha}`)
+        const commit = await glabApi<{ parent_ids?: unknown }>(config, `projects/:id/repository/commits/${head.sha}`)
         if (!Array.isArray(commit.parent_ids)) {
           throw new GiveUp([`GIVE_UP unverified MR !${iid} pipeline ${head.id}: merge commit parents are unavailable`])
         }
@@ -181,24 +191,24 @@ const findPipeline = async (config, iid, sha, startedAt) => {
   }
 }
 
-export const watch = async ({ iid, sha }, config = readConfig(), print = console.log) => {
+export const watch = async ({ iid, sha }: WatchArgs, config: WatchConfig = readConfig(), print: (line: string) => void = console.log): Promise<WatchResult> => {
   const startedAt = Date.now()
   const { head, sourceSha } = await findPipeline(config, iid, sha, startedAt)
   const pipelineId = head.id
   print(`WATCHING MR !${iid} pipeline ${pipelineId} (${head.sha.slice(0, 9)}) ${head.web_url ?? ''}`.trimEnd())
-  const retries = {}
+  const retries: Record<string, number> = {}
   for (;;) {
     if (Date.now() - startedAt > config.timeoutMs) {
       return { code: 2, lines: [`GIVE_UP pipeline ${pipelineId} still running after ${Math.round(config.timeoutMs / 60_000)} min`] }
     }
-    const pipeline = await glabApi(config, `projects/:id/pipelines/${pipelineId}`)
+    const pipeline = await glabApi<Pipeline>(config, `projects/:id/pipelines/${pipelineId}`)
     // Without include_retried GitLab lists only the latest attempt per job name, so a retried old failure drops out.
     const jobs = await fetchAllPages(config, `projects/:id/pipelines/${pipelineId}/jobs`)
     // Trigger jobs are not in the jobs list; their failure is in the downstream pipeline, which has its own jobs.
     const bridges = await fetchAllPages(config, `projects/:id/pipelines/${pipelineId}/bridges`)
-    const traces = {}
+    const traces: Record<number, string> = {}
     for (const job of jobs.filter(isBlockingFailure)) {
-      traces[job.id] = await glabApi(config, `projects/:id/jobs/${job.id}/trace`, { raw: true })
+      traces[job.id] = await glabApi<string>(config, `projects/:id/jobs/${job.id}/trace`, { raw: true })
     }
     // A push can supersede this pipeline while the poll's API reads are in flight.
     await checkSourceHead(config, iid, sourceSha)
@@ -242,10 +252,10 @@ const main = async () => {
   }
   let result
   try {
-    result = await watch(args)
+    result = await watch(args as WatchArgs)
   } catch (error) {
     // Exit 1 means a failed job, so any other error must exit 2.
-    result = error instanceof GiveUp ? { code: 2, lines: error.lines } : { code: 2, lines: [`GIVE_UP unexpected error: ${error?.message ?? error}`] }
+    result = error instanceof GiveUp ? { code: 2, lines: error.lines } : { code: 2, lines: [`GIVE_UP unexpected error: ${(error as { message?: unknown } | null | undefined)?.message ?? error}`] }
   }
   for (const line of result.lines) console.log(line)
   process.exitCode = result.code

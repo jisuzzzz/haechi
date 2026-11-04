@@ -5,9 +5,9 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { graphContext, graphPath, readGraph, run, runtimeSession, toolProvider } from '../tools/work-graph.mjs'
+import { graphContext, graphPath, readGraph, run, runtimeSession, toolProvider } from '../dist/claude/tools/work-graph.mjs'
 
-const tool = fileURLToPath(new URL('../tools/work-graph.mjs', import.meta.url))
+const tool = fileURLToPath(new URL('../dist/claude/tools/work-graph.mjs', import.meta.url))
 const git = (cwd, ...args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 const fixture = t => {
   const root = mkdtempSync(join(tmpdir(), 'haechi-work-graph-'))

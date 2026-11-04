@@ -9,10 +9,21 @@ import { existsSync, lstatSync, readdirSync, readFileSync, unlinkSync } from 'no
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+
+
+
+
+
+
+
+
+
+
+
 const LEGACY_TEARDOWN = 'unlink-reparse-points'
 
-export const parseArgs = (argv) => {
-  const options = { branch: null, base: null, yes: false, discard: false }
+export const parseArgs = (argv          )                                 => {
+  const options                                                                                 = { branch: null, base: null, yes: false, discard: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--yes') options.yes = true
@@ -28,12 +39,12 @@ export const parseArgs = (argv) => {
   return options
 }
 
-export const parseWorktreeList = (porcelain) =>
+export const parseWorktreeList = (porcelain        )             =>
   porcelain
     .split(/\r?\n\r?\n/)
     .filter((block) => block.trim() !== '')
     .map((block, index) => ({
-      path: block.match(/^worktree (.+)$/m)?.[1],
+      path: block.match(/^worktree (.+)$/m)?.[1] ,
       branch: block.match(/^branch refs\/heads\/(.+)$/m)?.[1] ?? null,
       // git always lists the main worktree first
       isMain: index === 0,
@@ -41,13 +52,13 @@ export const parseWorktreeList = (porcelain) =>
 
 // Lines of "<sha> <refname>" (for-each-ref) or "<sha>\t<refname>" (ls-remote). Exact, case-sensitive match:
 // a loose revision would also resolve a tag of the same name, and Windows refs match case-insensitively.
-export const findRefSha = (output, ref) =>
+export const findRefSha = (output        , ref        ) =>
   output
     .split(/\r?\n/)
     .map((line) => line.split(/\s+/))
     .find(([, name]) => name === ref)?.[0] ?? null
 
-export const sameDir = (a, b, platform = process.platform) => {
+export const sameDir = (a        , b        , platform = process.platform) => {
   const left = resolve(a)
   const right = resolve(b)
   return platform === 'win32' ? left.toLowerCase() === right.toLowerCase() : left === right
@@ -55,11 +66,11 @@ export const sameDir = (a, b, platform = process.platform) => {
 
 // facts: { branch, base, discard, currentBranch, local: null | { merged }, remote: null | { sha, merged },
 //          worktree: null | { path, isMain, isCurrent, status } }
-export const buildPlan = ({ branch, base, discard, currentBranch, local, remote, worktree }) => {
-  const plan = []
+export const buildPlan = ({ branch, base, discard, currentBranch, local, remote, worktree }              ) => {
+  const plan             = []
   const skipped = []
   // A pushed branch may hold work someone else relies on, so --discard only drops branches that never left this machine
-  const deletable = Boolean(local) && (discard ? !local.hasUpstream : local.merged)
+  const deletable = Boolean(local) && (discard ? !(local               ).hasUpstream : (local               ).merged)
   if (!local) skipped.push(`no local branch named exactly ${branch}`)
   else if (discard && local.hasUpstream) skipped.push(`${branch} has an upstream (it was pushed) — --discard keeps it`)
   else if (!deletable) {
@@ -86,24 +97,24 @@ export const buildPlan = ({ branch, base, discard, currentBranch, local, remote,
   return { plan, skipped }
 }
 
-export const describeItem = (item, branch) =>
+export const describeItem = (item          , branch        ) =>
   ({
     worktree: `worktree ${item.path}`,
     branch: `local branch ${branch} (git branch ${item.force ? '-D' : '-d'})`,
     remote: `remote branch origin/${branch}`,
   })[item.kind]
 
-const git = (args, options = {}) =>
+const git = (args          , options             = {}) =>
   execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options }).trim()
-const tryGit = (args, options) => {
+const tryGit = (args          , options             ) => {
   try {
     return { ok: true, out: git(args, options) }
   } catch (error) {
-    return { ok: false, out: `${error.stdout ?? ''}${error.stderr ?? ''}`.trim() }
+    return { ok: false, out: `${(error                       ).stdout ?? ''}${(error                       ).stderr ?? ''}`.trim() }
   }
 }
 
-const fail = (message) => {
+const fail                             = (message) => {
   console.error(message)
   process.exit(2)
 }
@@ -111,13 +122,13 @@ const fail = (message) => {
 // git worktree remove follows symlinks and junctions anywhere in the worktree and deletes their targets (for example
 // pkg/node_modules -> the main checkout's), so every link is unlinked first, without following it. Tracked content
 // cannot be a junction and a tracked symlink is a file git restores, so only untracked and ignored entries are walked.
-const unlinkLinks = (worktree) => {
-  const listed = (args) => git(['-C', worktree, 'ls-files', '-z', '-o', '--directory', '--exclude-standard', ...args]).split('\0')
-  const unlink = (path) => {
+const unlinkLinks = (worktree        ) => {
+  const listed = (args          ) => git(['-C', worktree, 'ls-files', '-z', '-o', '--directory', '--exclude-standard', ...args]).split('\0')
+  const unlink = (path        ) => {
     unlinkSync(path)
     console.log(`Unlinked: ${path}`)
   }
-  const walk = (dir) => {
+  const walk = (dir        )       => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
       const path = join(dir, entry.name)
@@ -145,7 +156,7 @@ const unlinkLinks = (worktree) => {
   }
 }
 
-const removeWorktree = (path, teardown) => {
+const removeWorktree = (path        , teardown               ) => {
   unlinkLinks(path)
   if (teardown) {
     try {
@@ -161,7 +172,7 @@ const removeWorktree = (path, teardown) => {
   return result.ok
 }
 
-const isInBase = (sha, base) => tryGit(['merge-base', '--is-ancestor', sha, `refs/remotes/origin/${base}`]).ok
+const isInBase = (sha        , base        ) => tryGit(['merge-base', '--is-ancestor', sha, `refs/remotes/origin/${base}`]).ok
 
 const main = () => {
   const options = parseArgs(process.argv.slice(2))
@@ -171,13 +182,13 @@ const main = () => {
   const worktrees = parseWorktreeList(git(['worktree', 'list', '--porcelain']))
 
   // Settings come from the main worktree, so a branch's own .haechi.json cannot supply the teardown command
-  let settings = {}
+  let settings                  = {}
   const settingsFile = join(worktrees[0].path, '.haechi.json')
   if (existsSync(settingsFile)) {
     try {
       settings = JSON.parse(readFileSync(settingsFile, 'utf8'))
     } catch (error) {
-      fail(`Cannot read ${settingsFile}: ${error.message}`)
+      fail(`Cannot read ${settingsFile}: ${(error         ).message}`)
     }
   }
   const base = options.base ?? settings.git?.base

@@ -8,6 +8,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export type Language = 'js' | 'python'
+export type LineRange = [number, number]
+export type ChangedFile = { ranges: LineRange[]; added: { line: number; text: string }[] }
+export type GrepHit = { path: string; line: number; text: string }
+export type ChangedFiles = Map<string, ChangedFile>
+export type Grep = (names: string[]) => Map<string, GrepHit[]>
+
 const HITS_PER_IDENTIFIER = 15
 const CODE_FILE = /\.([cm]?[jt]sx?|vue|svelte|py)$/i
 
@@ -35,16 +42,16 @@ const STOPLIST = new Set(
   endswith value data item key props state event args result`.split(/\s+/),
 )
 
-export const languageOf = (path) => (/\.py$/i.test(path) ? 'python' : 'js')
+export const languageOf = (path: string): Language => (/\.py$/i.test(path) ? 'python' : 'js')
 
 // Strings become "" and trailing comments go, so neither text nor commented code triggers a match
-const codeOnly = (text, language) =>
+const codeOnly = (text: string, language: Language) =>
   text
     .replace(/(['"`])(?:\\.|(?!\1).)*\1/g, '""')
     .replace(language === 'python' ? /#.*$/ : /\/\/.*$/, '')
     .trim()
 
-export const isGuardLine = (text, language = 'js') => {
+export const isGuardLine = (text: string, language: Language = 'js') => {
   const code = codeOnly(text, language)
   if (!code || (language === 'js' && /^(\*|\/\*)/.test(code))) return false
   return GUARDS[language].some((pattern) => pattern.test(code))
@@ -53,10 +60,10 @@ export const isGuardLine = (text, language = 'js') => {
 const IDENT = '[A-Za-z_$][\\w$]*'
 const COMPARE = '===|!==|==|!=|<=|>=|<|>'
 
-export const extractIdentifiers = (text, language = 'js') => {
+export const extractIdentifiers = (text: string, language: Language = 'js') => {
   const code = codeOnly(text, language)
-  const found = []
-  const add = (name) => {
+  const found: string[] = []
+  const add = (name: string) => {
     if (name && name.length >= 3 && !STOPLIST.has(name) && !found.includes(name)) found.push(name)
   }
   for (const match of code.matchAll(new RegExp(`(?:\\?\\.|\\.)\\s*(${IDENT})`, 'g'))) add(match[1])
@@ -74,7 +81,7 @@ export const extractIdentifiers = (text, language = 'js') => {
 }
 
 // git appends a tab to names with spaces and C-quotes names with special characters
-const unquote = (raw) => {
+const unquote = (raw: string): string => {
   const path = raw.replace(/\t$/, '')
   if (!path.startsWith('"')) return path
   try {
@@ -85,9 +92,9 @@ const unquote = (raw) => {
 }
 
 // Map path → { ranges: [[start, end]] on the new side, added: [{ line, text }] } from `git diff -U0`
-export const parseDiff = (diffText) => {
-  const files = new Map()
-  let file = null
+export const parseDiff = (diffText: string) => {
+  const files: ChangedFiles = new Map()
+  let file: ChangedFile | null = null
   let current = 0
   let header = false
   for (const raw of diffText.replace(/\r\n/g, '\n').split('\n')) {
@@ -116,9 +123,9 @@ export const parseDiff = (diffText) => {
   return files
 }
 
-export const inRanges = (ranges, line) => ranges.some(([start, end]) => line >= start && line <= end)
+export const inRanges = (ranges: LineRange[], line: number) => ranges.some(([start, end]) => line >= start && line <= end)
 
-const git = (root, args, input) =>
+const git = (root: string, args: string[], input?: string) =>
   execFileSync('git', ['-c', 'core.quotePath=false', ...args], {
     cwd: root,
     encoding: 'utf8',
@@ -127,7 +134,7 @@ const git = (root, args, input) =>
     stdio: [input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
   })
 
-export const changedFiles = (root, base, paths) => {
+export const changedFiles = (root: string, base: string, paths: string[]) => {
   const files = parseDiff(git(root, ['diff', '-U0', '--no-color', '--no-ext-diff', '--src-prefix=a/', '--dst-prefix=b/', base, '--', ...paths]))
   for (const path of git(root, ['ls-files', '-o', '--exclude-standard', '--', ...paths]).split('\n').filter(Boolean)) {
     if (!existsSync(join(root, path))) continue
@@ -140,28 +147,28 @@ export const changedFiles = (root, base, paths) => {
 }
 
 // One `git grep` for every name; each hit is then assigned to the names it contains (git -w word rules)
-export const grepWords = (root, names) => {
-  const hits = new Map(names.map((name) => [name, []]))
+export const grepWords = (root: string, names: string[]) => {
+  const hits = new Map<string, GrepHit[]>(names.map((name) => [name, []]))
   if (!names.length) return hits
   let out = ''
   try {
     out = git(root, ['grep', '-n', '-w', '-I', '-F', '--no-color', '-f', '-'], `${names.join('\n')}\n`)
   } catch (error) {
     // exit 1 means no match
-    out = error.stdout ?? ''
+    out = (error as { stdout?: string }).stdout ?? ''
   }
-  const matchers = names.map((name) => [name, new RegExp(`(?<![A-Za-z0-9_])${name.replace(/\$/g, '\\$')}(?![A-Za-z0-9_])`)])
+  const matchers = names.map<[string, RegExp]>((name) => [name, new RegExp(`(?<![A-Za-z0-9_])${name.replace(/\$/g, '\\$')}(?![A-Za-z0-9_])`)])
   for (const line of out.split('\n')) {
     const match = line.match(/^(.+?):(\d+):(.*)$/)
     if (!match) continue
     const hit = { path: match[1], line: Number(match[2]), text: match[3].replace(/\r$/, '').trim().slice(0, 200) }
-    for (const [name, pattern] of matchers) if (pattern.test(match[3])) hits.get(name).push(hit)
+    for (const [name, pattern] of matchers) if (pattern.test(match[3])) hits.get(name)!.push(hit)
   }
   return hits
 }
 
-export const siblingSites = (files, grep) => {
-  const triggers = new Map()
+export const siblingSites = (files: ChangedFiles, grep: Grep) => {
+  const triggers = new Map<string, GrepHit>()
   for (const [path, file] of files) {
     if (!CODE_FILE.test(path)) continue
     const language = languageOf(path)
@@ -175,7 +182,7 @@ export const siblingSites = (files, grep) => {
   const hits = grep([...triggers.keys()])
   const sites = []
   for (const [identifier, trigger] of triggers) {
-    const outside = (hits.get(identifier) ?? []).filter((hit) => !(files.has(hit.path) && inRanges(files.get(hit.path).ranges, hit.line)))
+    const outside = (hits.get(identifier) ?? []).filter((hit) => !(files.has(hit.path) && inRanges(files.get(hit.path)!.ranges, hit.line)))
     if (!outside.length) continue
     sites.push({ identifier, trigger, hits: outside.slice(0, HITS_PER_IDENTIFIER), more: Math.max(0, outside.length - HITS_PER_IDENTIFIER) })
   }

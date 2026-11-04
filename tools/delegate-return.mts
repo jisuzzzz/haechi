@@ -7,10 +7,28 @@ import { fileURLToPath } from 'node:url'
 import { renderPacket } from './delegate-task.mjs'
 import { run as workGraph } from './work-graph.mjs'
 
-const hash = x => createHash('sha256').update(x).digest('hex')
-const canonical = x => JSON.stringify(x, (_, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v)
-const required = (x, key) => { if (typeof x !== 'string' || !x.trim()) throw new Error(`Missing ${key}`); return x }
-const inside = (root, path, missing = false) => {
+import type { Packet } from './delegate-task.mjs'
+import type { Session, Task } from './work-graph.mjs'
+
+interface TraceReference { path: string; format: 'codex-jsonl' | 'tool-records-v1' }
+interface FileChange { path: string; kind: string }
+type ToolRecord = { id: string; type: 'command_execution'; command: string; output: string; exitCode: number; changes?: never }
+  | { id: string; type: 'file_change'; changes: FileChange[]; command?: never; output?: never; exitCode?: never }
+interface RawEvent { type: string; item?: { id: string; type: string; command: string; aggregated_output: string; exit_code: number; changes: FileChange[] } }
+interface ReturnRequest {
+  repositoryRoot: string; packet: Packet; sessionId: string; taskId: string; mainTrace: TraceReference; workerTrace: TraceReference
+  targets: { path: string; before: string | null; after: string | null }[]
+}
+interface Handoff {
+  expectedVersion: number; session: Session; status: 'active' | 'waiting'; reason?: string; next: string
+  observations: { criterion: string; outcome: 'passed' | 'failed' | 'unverified' | 'needs-decision'; observed: string; recordIds: string[] }[]
+}
+type ReturnBundle = ReturnType<typeof prepareReturn>
+
+const hash = (x: import('node:crypto').BinaryLike) => createHash('sha256').update(x).digest('hex')
+const canonical = (x: unknown) => JSON.stringify(x, (_, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v)
+const required = (x: unknown, key: string) => { if (typeof x !== 'string' || !x.trim()) throw new Error(`Missing ${key}`); return x }
+const inside = (root: string, path: string, missing = false) => {
   if (isAbsolute(path) || path.split(/[\\/]/).some(p => !p || p === '.' || p === '..')) throw new Error(`Invalid target: ${path}`)
   const full = resolve(root, path)
   let parent = full
@@ -19,19 +37,19 @@ const inside = (root, path, missing = false) => {
   if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error(`Outside root: ${path}`)
   return real
 }
-const source = path => {
+const source = (path: string) => {
   required(path, 'trace path')
   const full = realpathSync(path), bytes = readFileSync(full)
   if (!bytes.length || bytes.length > 16 * 1024 * 1024) throw new Error('Missing or oversized trace')
   return { path: full, sha256: hash(bytes), text: bytes.toString('utf8') }
 }
-function records(ref) {
+function records(ref: TraceReference) {
   const s = source(ref.path)
-  let rows
+  let rows: ToolRecord[]
   if (ref.format === 'codex-jsonl') {
-    const events = s.text.trim().split('\n').map(line => JSON.parse(line))
+    const events: RawEvent[] = s.text.trim().split('\n').map(line => JSON.parse(line))
     if (!events.some(e => e.type === 'turn.completed')) throw new Error('Incomplete execution trace')
-    rows = events.filter(e => e.type === 'item.completed' && ['command_execution','file_change'].includes(e.item?.type)).map(({ item: i }) => ({ id: i.id, type: i.type, ...(i.type === 'command_execution' ? { command: i.command, output: i.aggregated_output, exitCode: i.exit_code } : { changes: i.changes }) }))
+    rows = events.filter(e => e.type === 'item.completed' && ['command_execution','file_change'].includes(e.item?.type!)).map(({ item: i }) => ({ id: i!.id, type: i!.type, ...(i!.type === 'command_execution' ? { command: i!.command, output: i!.aggregated_output, exitCode: i!.exit_code } : { changes: i!.changes }) })) as ToolRecord[]
   } else if (ref.format === 'tool-records-v1') {
     const data = JSON.parse(s.text)
     if (data.complete !== true || !Array.isArray(data.records)) throw new Error('Incomplete normalized host records')
@@ -49,9 +67,9 @@ function records(ref) {
   }
   return { source: { path: s.path, sha256: s.sha256 }, rows }
 }
-const excerpt = (text, max = 1800) => text.length <= max ? { text, truncated: false } : { text: text.slice(0, max / 2) + '\n[excerpt; use record reference for complete output]\n' + text.slice(-max / 2), truncated: true }
+const excerpt = (text: string, max = 1800) => text.length <= max ? { text, truncated: false } : { text: text.slice(0, max / 2) + '\n[excerpt; use record reference for complete output]\n' + text.slice(-max / 2), truncated: true }
 
-export function prepareReturn(pluginRoot, request) {
+export function prepareReturn(pluginRoot: string, request: ReturnRequest) {
   // This input must be constructed by the trusted caller from observed records,
   // not accepted as a worker-created proof manifest.
   const root = realpathSync(pluginRoot), repository = realpathSync(request.repositoryRoot)
@@ -65,7 +83,7 @@ export function prepareReturn(pluginRoot, request) {
   for (const t of targets) {
     if (seen.has(t.path)) throw new Error('Duplicate target')
     seen.add(t.path)
-    for (const key of ['before','after']) if (t[key] !== null && !/^[a-f0-9]{64}$/.test(t[key] ?? '')) throw new Error(`Missing target ${key} hash`)
+    for (const key of ['before','after'] as const) if (t[key] !== null && !/^[a-f0-9]{64}$/.test(t[key] ?? '')) throw new Error(`Missing target ${key} hash`)
     if (t.before === null && t.after === null) throw new Error('Target never existed')
     const path = inside(repository, t.path, t.after === null)
     const actual = existsSync(path) ? hash(readFileSync(path)) : null
@@ -90,7 +108,7 @@ export function prepareReturn(pluginRoot, request) {
   return bundle
 }
 
-export function checkReturn(pluginRoot, request, bundle) {
+export function checkReturn(pluginRoot: string, request: ReturnRequest, bundle: ReturnBundle) {
   const expected = prepareReturn(pluginRoot, request)
   if (canonical(expected) !== canonical(bundle)) throw new Error('Stale or mismatched return, guidance, scope, session or evidence')
   return { status: 'integrity-checked-not-semantic-pass', returnSha256: bundle.returnSha256, packetSha256: bundle.binding.packetSha256, guidanceReuse: bundle.guidanceReuse }
@@ -98,8 +116,8 @@ export function checkReturn(pluginRoot, request, bundle) {
 
 // Optional publication for an existing shared task. Claims remain pending main review.
 // No new task, stage, dispatcher, hook, completion decision or transcript copy is created.
-export function recordReturn(pluginRoot, request, bundlePath, handoff) {
-  const saved = source(bundlePath), bundle = JSON.parse(saved.text)
+export function recordReturn(pluginRoot: string, request: ReturnRequest, bundlePath: string, handoff: Handoff) {
+  const saved = source(bundlePath), bundle = JSON.parse(saved.text) as ReturnBundle
   checkReturn(pluginRoot, request, bundle)
   if (!handoff || typeof handoff !== 'object' || Array.isArray(handoff)) throw new Error('Missing handoff')
   for (const key of Object.keys(handoff)) if (!['expectedVersion','session','status','reason','next','observations'].includes(key)) throw new Error(`Unknown handoff field: ${key}`)
@@ -107,7 +125,7 @@ export function recordReturn(pluginRoot, request, bundlePath, handoff) {
   if (!['active','waiting'].includes(handoff.status)) throw new Error('A returned task must remain active or waiting until main review')
   required(handoff.next, 'next action')
   if (handoff.status === 'waiting') required(handoff.reason, 'blocker')
-  const current = workGraph(bundle.binding.repository, 'show', bundle.binding.taskId)
+  const current = workGraph(bundle.binding.repository, 'show', bundle.binding.taskId) as { version: number; task: Task }
   if (handoff.expectedVersion !== current.version) throw new Error('Version conflict: read the current work graph before recording the handoff')
   const task = current.task
   if (['completed','cancelled'].includes(task.status)) throw new Error('Do not reopen a terminal task through a worker return')
@@ -129,7 +147,7 @@ export function recordReturn(pluginRoot, request, bundlePath, handoff) {
   const patch = { status: handoff.status, reason: handoff.reason ?? '', next: handoff.next, evidence, artifacts }
   const selectedIds = new Set(handoff.observations.flatMap(item => item.recordIds))
   const selectedRecords = bundle.evidence.filter(e => selectedIds.has(e.id) || (Number.isInteger(e.exitCode) && e.exitCode !== 0))
-  const compact = (version, sessionConnection, changed) => ({
+  const compact = (version: number, sessionConnection: unknown, changed: boolean) => ({
     status: 'recorded-pending-main-review', changed, version, sessionConnection,
     task: { id: task.id, title: task.title, goal: task.goal, acceptance: task.acceptance, status: patch.status, ...(patch.reason ? { reason: patch.reason } : {}), next: patch.next },
     evidence: evidence.map(({ criterion, observed, revision, artifact }) => ({ criterion, observed: excerpt(observed, 1200), revision, ...(artifact ? { artifact } : {}) })),
@@ -145,23 +163,23 @@ export function recordReturn(pluginRoot, request, bundlePath, handoff) {
   // Bound the coordinator view before any mutation; never truncate the task contract.
   if (Buffer.byteLength(JSON.stringify(compact(current.version, undefined, false))) > 64 * 1024) throw new Error('Handoff summary exceeds 64 KiB; narrow the task')
   const sameSession = (task.sessions ?? []).some(s => canonical(s) === canonical(handoff.session))
-  if (sameSession && Object.entries(patch).every(([key, value]) => canonical(task[key] ?? (key === 'reason' ? '' : undefined)) === canonical(value))) {
+  if (sameSession && Object.entries(patch).every(([key, value]) => canonical(task[key as keyof Task] ?? (key === 'reason' ? '' : undefined)) === canonical(value))) {
     return compact(current.version, { state: 'connected', session: handoff.session }, false)
   }
   const result = workGraph(bundle.binding.repository, 'update', task.id, { expectedVersion: handoff.expectedVersion, session: handoff.session, ...patch })
-  return compact(result.version, result.sessionConnection, true)
+  return compact(result.version, (result as { sessionConnection?: unknown }).sessionConnection, true)
 }
 
 // One host call: inspect raw records, assemble proof, save it, update the existing
 // graph and return only decision inputs. No intermediate full bundle is printed.
-export function publishReturn(pluginRoot, request, handoff, outputDirectory) {
+export function publishReturn(pluginRoot: string, request: ReturnRequest, handoff: Handoff, outputDirectory: string) {
   required(outputDirectory, 'new evidence directory')
   const bundle = prepareReturn(pluginRoot, request)
   const directory = resolve(outputDirectory), path = resolve(directory, 'return.json')
   mkdirSync(directory)
   writeFileSync(path, JSON.stringify(bundle, null, 2) + '\n', { flag: 'wx', mode: 0o600 })
   try { return recordReturn(pluginRoot, request, path, handoff) }
-  catch (error) { throw new Error(`${error.message}; prepared evidence retained at ${path}. No automatic retry.`) }
+  catch (error) { throw new Error(`${(error as Error).message}; prepared evidence retained at ${path}. No automatic retry.`) }
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -170,9 +188,9 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
     if (!['prepare','check','record','publish'].includes(mode) || !root || !input || extra.length || (mode !== 'prepare') !== Boolean(saved) || ['record','publish'].includes(mode) !== Boolean(handoff)) throw new Error('Usage: delegate-return.mjs prepare ROOT HOST_REQUEST_JSON | check ROOT HOST_REQUEST_JSON RETURN_JSON | record ROOT HOST_REQUEST_JSON RETURN_JSON HANDOFF_JSON | publish ROOT HOST_REQUEST_JSON HANDOFF_JSON NEW_EVIDENCE_DIR')
     const request = JSON.parse(readFileSync(input, 'utf8'))
     const result = mode === 'prepare' ? prepareReturn(root, request)
-      : mode === 'publish' ? publishReturn(root, request, JSON.parse(readFileSync(saved, 'utf8')), handoff)
-      : mode === 'record' ? recordReturn(root, request, saved, JSON.parse(readFileSync(handoff, 'utf8')))
-      : checkReturn(root, request, JSON.parse(readFileSync(saved, 'utf8')))
+      : mode === 'publish' ? publishReturn(root, request, JSON.parse(readFileSync(saved!, 'utf8')), handoff!)
+      : mode === 'record' ? recordReturn(root, request, saved!, JSON.parse(readFileSync(handoff!, 'utf8')))
+      : checkReturn(root, request, JSON.parse(readFileSync(saved!, 'utf8')))
     process.stdout.write(JSON.stringify(result, null, 2) + '\n')
-  } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1 }
+  } catch (error) { process.stderr.write(`${(error as Error).message}\n`); process.exitCode = 1 }
 }

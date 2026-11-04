@@ -6,18 +6,30 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+interface Heading { index: number; level: number; title: string }
+type Placement = 'narrative' | 'records' | 'attachments' | 'endnotes'
+interface PartDefinition { id: string; file: string; placement: Placement; [key: string]: unknown }
+interface Part extends PartDefinition { body: string; notes: string }
+interface Catalog { language: string; parts: PartDefinition[]; [key: string]: unknown }
+interface Preset { id: string; title: string; phase: string; required: string[]; optional: string[]; narrative_order: string[]; headings: Record<string, string>; reading_flow: string }
+interface KitConfig { part_order: string[]; common_required: string[]; presets: Preset[]; conditional_rules: { id: string; required: string[] }[] }
+export interface DocumentKit { catalog: Catalog; config: KitConfig; parts: Map<string, Part> }
+export interface ComposeOptions { parts?: string[]; conditions?: string[]; kit?: DocumentKit }
+type ValueFlag = '--type' | '--out' | '--parts' | '--conditions' | '--format'
+type CliOptions = Partial<Record<ValueFlag, string> & Record<'--list' | '--help', boolean>>
+
 const ASSETS = fileURLToPath(new URL('../skills/document/assets/', import.meta.url))
 const USAGE = 'Usage: node document-template.mjs --list | --type <fact|change|bug|retirement|performance|handoff> --out <file> [--parts P15,P03] [--conditions C-VISUAL,C-EVIDENCE] | --format <file>'
-const bareTitle = (title) => title.replace(/^\d+(?:\.\d+)*\.?\s+/, '').trim()
-const isSummary = (title) => /^(?:요약|summary)$/i.test(bareTitle(title))
-const isContents = (title) => /^(?:목차|table of contents|contents)$/i.test(bareTitle(title))
-const isEndnotes = (title) => /^(?:근거 주석|evidence notes|endnotes)$/i.test(bareTitle(title))
+const bareTitle = (title: string) => title.replace(/^\d+(?:\.\d+)*\.?\s+/, '').trim()
+const isSummary = (title: string) => /^(?:요약|summary)$/i.test(bareTitle(title))
+const isContents = (title: string) => /^(?:목차|table of contents|contents)$/i.test(bareTitle(title))
+const isEndnotes = (title: string) => /^(?:근거 주석|evidence notes|endnotes)$/i.test(bareTitle(title))
 
 // Keep fences intact: code headings and example footnotes are never document structure.
-const scan = (lines) => {
-  const headings = []
-  const code = new Set()
-  let fence
+const scan = (lines: string[]) => {
+  const headings: Heading[] = []
+  const code = new Set<number>()
+  let fence: { mark: string; length: number } | undefined
   lines.forEach((line, index) => {
     const block = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
     if (block) {
@@ -33,17 +45,17 @@ const scan = (lines) => {
   return { headings, code }
 }
 
-export const headingAnchor = (title) => title
+export const headingAnchor = (title: string) => title
   .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
   .replace(/<[^>]+>/g, '')
   .normalize('NFC').toLowerCase()
   .replace(/[^\p{L}\p{N}_\s-]/gu, '').replace(/\s/g, '-')
 
-export const formatDocument = (text) => {
+export const formatDocument = (text: string): string => {
   let lines = text.replace(/\r\n/g, '\n').split('\n')
   const { code } = scan(lines)
   lines = lines.filter((line, i) => code.has(i) || !/^\s*<!-- part:P\d+ -->\s*$/.test(line))
-  let existingContents
+  let existingContents: string | undefined
   // Drop only the old generated contents section; quoted/fenced headings remain untouched.
   for (;;) {
     const headings = scan(lines).headings
@@ -62,7 +74,7 @@ export const formatDocument = (text) => {
     ? (/^(?:table of contents|contents)$/i.test(existingContents ?? '') ? existingContents : 'Table of contents')
     : '목차'
   const counters = Array(7).fill(0)
-  const entries = []
+  const entries: string[] = []
   let top = -1
   let previousLevel = 1
   for (const heading of sections) {
@@ -90,11 +102,11 @@ export const formatDocument = (text) => {
   return formatted
 }
 
-export const validateNotes = (text) => {
+export const validateNotes = (text: string): void => {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
   const { headings, code } = scan(lines)
-  const definitions = new Map()
-  const calls = new Set()
+  const definitions = new Map<string, number>()
+  const calls = new Set<string>()
   lines.forEach((line, index) => {
     if (code.has(index)) return
     const readable = line.replace(/(`+).*?\1/g, '')
@@ -115,10 +127,10 @@ export const validateNotes = (text) => {
   if ([...definitions.values()].some((index) => index <= evidence.index)) throw new Error('Endnote definitions must be in the final 근거 주석 section')
 }
 
-export const loadKit = (assets = ASSETS) => {
-  const catalog = JSON.parse(readFileSync(join(assets, 'catalog.json'), 'utf8'))
-  const config = JSON.parse(readFileSync(join(assets, 'presets.json'), 'utf8'))
-  const parts = new Map()
+export const loadKit = (assets = ASSETS): DocumentKit => {
+  const catalog = JSON.parse(readFileSync(join(assets, 'catalog.json'), 'utf8')) as Catalog
+  const config = JSON.parse(readFileSync(join(assets, 'presets.json'), 'utf8')) as KitConfig
+  const parts = new Map<string, Part>()
   for (const part of catalog.parts) {
     if (parts.has(part.id)) throw new Error(`Duplicate Part: ${part.id}`)
     const raw = readFileSync(join(assets, part.file), 'utf8').replace(/\r\n/g, '\n')
@@ -132,7 +144,7 @@ export const loadKit = (assets = ASSETS) => {
     if (order.length !== parts.size || new Set(order).size !== parts.size || order.some((id) => !parts.has(id)) || order.at(-1) !== 'P03') {
       throw new Error('Every reading order must contain each Part once, with endnotes last')
     }
-    if (order.some((id, i) => i && rank[parts.get(id).placement] < rank[parts.get(order[i - 1]).placement])) throw new Error('Invalid Part placement order')
+    if (order.some((id, i) => i && rank[parts.get(id)!.placement] < rank[parts.get(order[i - 1])!.placement])) throw new Error('Invalid Part placement order')
   }
   for (const preset of config.presets) {
     if (config.common_required.some((id) => !preset.required.includes(id))) throw new Error(`Missing common Part in ${preset.id}`)
@@ -144,7 +156,7 @@ export const loadKit = (assets = ASSETS) => {
   return { catalog, config, parts }
 }
 
-export const composeDocument = (type, { parts: extra = [], conditions = [], kit = loadKit() } = {}) => {
+export const composeDocument = (type: string, { parts: extra = [], conditions = [], kit = loadKit() }: ComposeOptions = {}): string => {
   const preset = kit.config.presets.find((p) => p.id === type)
   if (!preset) throw new Error(`Unknown document type: ${type}`)
   const selected = new Set(preset.required)
@@ -160,9 +172,9 @@ export const composeDocument = (type, { parts: extra = [], conditions = [], kit 
   const ordered = preset.narrative_order.filter((id) => selected.has(id))
   const chunks = [`# ${preset.title}\n`]
   let records = false
-  const endnotes = []
+  const endnotes: string[] = []
   for (const id of ordered) {
-    const part = kit.parts.get(id)
+    const part = kit.parts.get(id)!
     let body = part.body
     if (id === 'P03') {
       endnotes.unshift(body)
@@ -187,18 +199,18 @@ export const composeDocument = (type, { parts: extra = [], conditions = [], kit 
 
 const main = () => {
   const args = process.argv.slice(2)
-  const options = {}
-  const flags = new Set(['--type', '--out', '--parts', '--conditions', '--format'])
+  const options: CliOptions = {}
+  const flags: Set<string> = new Set(['--type', '--out', '--parts', '--conditions', '--format'])
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--list' || arg === '--help') {
       if (options[arg]) throw new Error(`Duplicate option: ${arg}`)
       options[arg] = true
     } else if (flags.has(arg)) {
-      if (options[arg] !== undefined) throw new Error(`Duplicate option: ${arg}`)
+      if (options[arg as ValueFlag] !== undefined) throw new Error(`Duplicate option: ${arg}`)
       const value = args[++i]
       if (!value || value.startsWith('--')) throw new Error(`Missing value for ${arg}`)
-      options[arg] = value
+      options[arg as ValueFlag] = value
     } else throw new Error(`Unknown option: ${arg}`)
   }
   if (options['--help'] && Object.keys(options).length === 1) return void console.log(USAGE)
@@ -213,7 +225,7 @@ const main = () => {
     return void console.log(file)
   }
   if (options['--type'] && options['--out'] && !options['--format'] && !options['--list'] && !options['--help']) {
-    const csv = (key) => options[key] ? options[key].split(',').map((x) => x.trim()).filter(Boolean) : []
+    const csv = (key: ValueFlag) => options[key] ? options[key]!.split(',').map((x) => x.trim()).filter(Boolean) : []
     const text = composeDocument(options['--type'], { parts: csv('--parts'), conditions: csv('--conditions') })
     const file = resolve(options['--out'])
     mkdirSync(dirname(file), { recursive: true })
@@ -224,5 +236,5 @@ const main = () => {
 }
 
 if (process.argv[1] && existsSync(process.argv[1]) && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
-  try { main() } catch (error) { console.error(error.message); process.exitCode = 2 }
+  try { main() } catch (error) { console.error((error as Error).message); process.exitCode = 2 }
 }

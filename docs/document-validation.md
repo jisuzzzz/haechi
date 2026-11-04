@@ -23,7 +23,7 @@ node --test test/document-quality-eval.test.mjs
 
 These tests generate small synthetic fixtures in temporary directories. They check nested text/binary asset packaging, template composition and Korean/English navigation/endnotes, original-preserving PNG annotation, and evaluation-record integrity. They do not reproduce a company application, independent human reading or the historical model experiments.
 
-`tools/document-quality-eval.mjs` is the relocated legacy baseline-diagnostic verifier. Run it with `--root <saved-evaluation-directory>` and optionally `--preflight`. It checks the old six-type, two-trial, six-question schema and its saved hashes, links and coverage. It neither grades writing nor accepts the later reader/decision study schema. No frozen package copy or historical run bundle ships with it.
+`dist/codex/tools/document-quality-eval.mjs` is the relocated legacy baseline-diagnostic verifier. Run it with `--root <saved-evaluation-directory>` and optionally `--preflight`. It checks the old six-type, two-trial, six-question schema and its saved hashes, links and coverage. It neither grades writing nor accepts the later reader/decision study schema. No frozen package copy or historical run bundle ships with it.
 
 ## 3. Historical findings
 

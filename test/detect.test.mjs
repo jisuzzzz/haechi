@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { detect, snapshot } from '../tools/detect.mjs'
+import { detect, snapshot } from '../dist/claude/tools/detect.mjs'
 
 const snap = (overrides = {}) => ({
   files: [],

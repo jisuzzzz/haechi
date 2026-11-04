@@ -6,19 +6,25 @@ import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const EXEC = { yarn: 'yarn', pnpm: 'pnpm exec', npm: 'npx', bun: 'bunx' }
-const PY_PREFIX = { uv: 'uv run ', poetry: 'poetry run ', pip: '' }
+
+
+
+
+
+
+const EXEC                         = { yarn: 'yarn', pnpm: 'pnpm exec', npm: 'npx', bun: 'bunx' }
+const PY_PREFIX                         = { uv: 'uv run ', poetry: 'poetry run ', pip: '' }
 
 const JS_FILE = /\.[cm]?[jt]sx?$/
 const PY_FILE = /\.py$/
 const PY_TEST = /(^|\/)(test_[^/]+|[^/]+_test)\.py$/
 
-const quote = (path) => (/[\s"]/.test(path) ? `"${path.replaceAll('"', '\\"')}"` : path)
-const list = (files) => files.map(quote).join(' ')
+const quote = (path        ) => (/[\s"]/.test(path) ? `"${path.replaceAll('"', '\\"')}"` : path)
+const list = (files          ) => files.map(quote).join(' ')
 
-const testCommand = (template, file) => template.replace(/"(?:\\.|[^"\\])*"|'[^']*'|\{file\}/g, (part) => {
+const testCommand = (template        , file        ) => template.replace(/"(?:\\.|[^"\\])*"|'[^']*'|\{file\}/g, (part) => {
   if (part === '{file}') return quote(file)
-  return part.replaceAll('{file}', (_, index) => {
+  return part.replaceAll('{file}', (_        , index        ) => {
     const before = part[index - 1]
     if (!['"', "'"].includes(before) || part[index + 6] !== before || part[index - 2] === '\\') {
       throw new Error('commands.testOne: quote {file} separately inside a quoted shell snippet')
@@ -29,19 +35,19 @@ const testCommand = (template, file) => template.replace(/"(?:\\.|[^"\\])*"|'[^'
 })
 
 // Commands are repository settings, but interpolated paths must stay literal on POSIX and Windows shells.
-const checkPath = (path, label, directory = false) => {
+const checkPath                                                                                = (path, label, directory = false) => {
   const parts = typeof path === 'string' ? (directory ? path.replace(/\/$/, '') : path).split('/') : []
-  if (!parts.length || !/^[\p{L}\p{N}_. /@+-]+$/u.test(path) || /^[-@]/.test(path) ||
+  if (!parts.length || !/^[\p{L}\p{N}_. /@+-]+$/u.test(path          ) || /^[-@]/.test(path          ) ||
       parts.some((part) => !part || part === '.' || part === '..')) {
     throw new Error(`${label}: expected a relative path using letters, numbers, spaces, ., _, /, @, + or -`)
   }
 }
 
-const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const checkSettings = (settings) => {
+const object = (value         )                                   => value !== null && typeof value === 'object' && !Array.isArray(value)
+const checkSettings = (settings         )                      => {
   if (!object(settings)) throw new Error('settings must be a JSON object')
   if (settings.commands !== undefined && !object(settings.commands)) throw new Error('settings.commands must be an object')
-  const command = settings.commands?.testOne
+  const command = (settings.commands                                       )?.testOne
   if (command !== undefined && (typeof command !== 'string' || !command.includes('{file}'))) {
     throw new Error('commands.testOne must be a command containing {file}')
   }
@@ -60,9 +66,9 @@ const checkSettings = (settings) => {
 }
 
 // tools: { pm, js: { eslint, vitest, jest }, py: { runner, ruff, pytest } }
-export const planChecks = (files, tools, settings = {}) => {
+export const planChecks = (files          , tools       , settings           = {}) => {
   const map = checkSettings(settings)
-  const plan = []
+  const plan              = []
   const skipped = []
   const js = files.filter((file) => JS_FILE.test(file))
   const py = files.filter((file) => PY_FILE.test(file))
@@ -93,9 +99,9 @@ export const planChecks = (files, tools, settings = {}) => {
   return { plan, skipped, pythonTests }
 }
 
-export const detectTools = (root) => {
-  const read = (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : '')
-  const pkg = read('package.json') ? JSON.parse(read('package.json')) : {}
+export const detectTools = (root        ) => {
+  const read = (path        ) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : '')
+  const pkg = (read('package.json') ? JSON.parse(read('package.json')) : {})
   const deps = { ...pkg.dependencies, ...pkg.devDependencies }
   const lock = [['yarn.lock', 'yarn'], ['pnpm-lock.yaml', 'pnpm'], ['bun.lockb', 'bun']].find(([file]) => existsSync(join(root, file)))
   const python = `${read('pyproject.toml')}\n${read('requirements.txt')}\n${read('requirements-dev.txt')}`.toLowerCase()
@@ -110,25 +116,25 @@ export const detectTools = (root) => {
   }
 }
 
-const changedFiles = (root) => {
-  const run = (args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).split('\0').filter(Boolean)
+const changedFiles = (root        ) => {
+  const run = (args          ) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).split('\0').filter(Boolean)
   const files = new Set([...run(['diff', '--name-only', '-z', '--diff-filter=d', 'HEAD']), ...run(['ls-files', '-z', '-o', '--exclude-standard'])])
   return [...files].filter((file) => existsSync(join(root, file)))
 }
 
 // Recognize runner summaries, not arbitrary "passed" text. Unknown output stays unverified.
 // These counts attest execution only; the caller still checks behavior coverage and final-change validity.
-const testEvidence = (output) => {
+const testEvidence = (output        )             => {
   const text = output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll('\r', '')
-  const summaries = []
+  const summaries               = []
   let executed = false
-  const record = (status, testCases = false) => {
+  const record = (status            , testCases = false) => {
     summaries.push(status)
     if (testCases && status === 'passed') executed = true
   }
-  const counts = (body, total) => {
+  const counts = (body        , total         )             => {
     const values = { passed: 0, failed: 0, skipped: 0 }
-    const seen = new Set()
+    const seen = new Set        ()
     let valid = true
     for (const token of body.split(/\s*[,|]\s*/)) {
       const match = token.trim().match(/^(\d+)\s+(passed|failed|skipped|todo|xfailed|xpassed|deselected|errors?|warnings?)$/)
@@ -182,8 +188,8 @@ const testEvidence = (output) => {
       return [key, matches.length === 1 ? Number(matches[0][1]) : undefined]
     }))
     if (failed) record('failed')
-    else if (keys.some((key) => tap[key] === undefined) || tap.tests !== tap.pass + tap.fail + tap.cancelled + tap.skipped + tap.todo) record('unverified')
-    else record(tap.pass > 0 && tap.skipped === 0 && tap.todo === 0 ? 'passed' : 'unverified', true)
+    else if (keys.some((key) => tap[key] === undefined) || tap.tests !== tap.pass  + tap.fail  + tap.cancelled  + tap.skipped  + tap.todo ) record('unverified')
+    else record(tap.pass  > 0 && tap.skipped === 0 && tap.todo === 0 ? 'passed' : 'unverified', true)
   }
   if (summaries.includes('failed')) return 'failed'
   if (/no tests (?:found|collected)|collected 0 items/i.test(text)) return 'unverified'
@@ -238,7 +244,7 @@ const main = () => {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try { main() }
   catch (error) {
-    console.error(`verify-default: ${error.message}`)
+    console.error(`verify-default: ${(error         ).message}`)
     process.exitCode = 1
   }
 }

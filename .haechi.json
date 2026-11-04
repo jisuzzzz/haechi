@@ -2,7 +2,7 @@
   "commands": {
     "verify": "npm run check",
     "testOne": "node --test {file}",
-    "typecheck": null
+    "typecheck": "npm run typecheck"
   },
   "forbidden": ["npm test", "npm run test"],
   "testDirs": ["test"],

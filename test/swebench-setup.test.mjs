@@ -4,7 +4,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSy
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
-import { excludePathspecs } from '../tools/count-logic-lines.mjs'
+import { excludePathspecs } from '../dist/claude/tools/count-logic-lines.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const configured = join(root, 'evals/harbor/swebench/configured')

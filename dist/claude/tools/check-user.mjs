@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url'
 export const CODEX_HOOK_EVENTS = ['session_start', 'user_prompt_submit', 'post_compact', 'subagent_start']
 
 // Codex keeps one table per trusted hook: [hooks.state."<plugin>@<market>:hooks/hooks.json:<event>:<i>:<j>"] trusted_hash = "..."
-export const parseCodexTrust = (configText, plugin = 'haechi') => {
-  const trusted = new Set()
+export const parseCodexTrust = (configText        , plugin = 'haechi') => {
+  const trusted = new Set        ()
   const table = /^\[hooks\.state\."([^"]+)"\]\s*\n((?:(?!\[)[^\n]*\n?)*)/gm
   for (const [, key, body] of configText.matchAll(table)) {
     const match = key.match(/^([^@]+)@[^:]+:hooks\/hooks\.json:([a-z_]+):/)
@@ -23,18 +23,18 @@ export const parseCodexTrust = (configText, plugin = 'haechi') => {
 }
 
 // Every host a CLI reports as logged in; `auth status` exits non-zero when any one host fails, so its exit code is not the answer
-export const loggedInHosts = (statusText) => [...statusText.matchAll(/Logged in to (\S+)/g)].map((match) => match[1])
+export const loggedInHosts = (statusText        ) => [...statusText.matchAll(/Logged in to (\S+)/g)].map((match) => match[1])
 
 // Arguments here are fixed literals; on Windows the CLIs may be .cmd shims that need a shell.
 // stderr is kept on success too: `glab auth status` prints its report there and exits 0
-const run = (command, args) => {
-  const options = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+const run = (command        , args          ) => {
+  const options                                                                  = { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
   const result =
     process.platform === 'win32' ? spawnSync([command, ...args].join(' '), { ...options, shell: true }) : spawnSync(command, args, options)
   return { ok: result.status === 0, out: `${result.stdout ?? ''}${result.stderr ?? ''}`.trim() }
 }
 
-const version = (command) => {
+const version = (command        ) => {
   const result = run(command, ['--version'])
   return result.ok ? result.out.split('\n')[0] : null
 }

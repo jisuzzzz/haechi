@@ -17,15 +17,19 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+
+
+
+
 const REQUIRED = ['base', 'paths', 'revisit when']
 
 // Backticks are stripped because markdown authors often write `src/orders`; left in, the path would match nothing
-const splitList = (value) => value.split(',').map((item) => item.trim().replace(/^`+|`+$/g, '').trim()).filter(Boolean)
-const stripBom = (text) => text.replace(/^\uFEFF/, '')
+const splitList = (value        ) => value.split(',').map((item) => item.trim().replace(/^`+|`+$/g, '').trim()).filter(Boolean)
+const stripBom = (text        ) => text.replace(/^\uFEFF/, '')
 
-export const parseRejected = (text) => {
-  const entries = []
-  let current = null
+export const parseRejected = (text        ) => {
+  const entries                                                                    = []
+  let current                                                                         = null
   stripBom(text).replace(/\r\n/g, '\n').split('\n').forEach((line, index) => {
     const heading = line.match(/^##\s+(.+?)\s*$/)
     if (heading) {
@@ -34,7 +38,7 @@ export const parseRejected = (text) => {
       return
     }
     const field = current && line.match(/^([A-Za-z][A-Za-z ]*?)\s*:\s*(.*?)\s*$/)
-    if (field) current.fields[field[1].toLowerCase()] = field[2]
+    if (field) current .fields[field[1].toLowerCase()] = field[2]
   })
   return entries.map(({ title, line, fields }) => {
     const missing = REQUIRED.filter((key) => !fields[key])
@@ -59,17 +63,17 @@ export const parseRejected = (text) => {
 }
 
 // The last "@" splits name and version, so scoped packages like @scope/pkg@1.0.0 keep their name
-export const parseDependency = (spec) => {
+export const parseDependency = (spec        ) => {
   const at = spec.lastIndexOf('@')
   return at > 0 ? { name: spec.slice(0, at), recorded: spec.slice(at + 1) || null } : { name: spec, recorded: null }
 }
 
-const normalizeVersion = (version) => version?.replace(/^[\s^~=<>v]+/, '').trim() || null
-const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const normalizeVersion = (version                           ) => version?.replace(/^[\s^~=<>v]+/, '').trim() || null
+const escapeRegex = (text        ) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // Python treats "-", "_" and "." in names as the same and ignores case; extras like name[fast] are skipped.
 // No line anchor, because pyproject lists several pins on one line: dependencies = ["a==1", "b>=2"]
-const pythonPin = (text, name) => {
+const pythonPin = (text        , name        ) => {
   const flexibleName = escapeRegex(name).replace(/(?:\\\.|-|_)+/g, '[-_.]+')
   const pattern = new RegExp(`(?<![\\w.-])${flexibleName}\\s*(?:\\[[^\\]]*\\])?\\s*(?:==|>=|~=)\\s*([\\w.+-]+)`, 'i')
   return text.match(pattern)?.[1] ?? null
@@ -77,11 +81,11 @@ const pythonPin = (text, name) => {
 
 // package.json first, then requirements*.txt, then pyproject.toml. version is null when the name is pinned nowhere;
 // note says why a file could not be read, so "unknown" is not mistaken for "not a dependency".
-export const currentVersion = (repo, name) => {
-  let note = null
+export const currentVersion = (repo        , name        ) => {
+  let note                = null
   const packageJson = join(repo, 'package.json')
   if (existsSync(packageJson)) {
-    let pkg = null
+    let pkg                                                                                             = null
     try {
       pkg = JSON.parse(stripBom(readFileSync(packageJson, 'utf8')))
     } catch {
@@ -101,8 +105,8 @@ export const currentVersion = (repo, name) => {
 
 // C locale keeps --shortstat in English ("5 insertions(+)") so parseShortstat works under a localized git
 const GIT_ENV = { ...process.env, LC_ALL: 'C', LANG: 'C' }
-const git = (repo, args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env: GIT_ENV, stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-const succeeds = (repo, args) => {
+const git = (repo        , args          ) => execFileSync('git', args, { cwd: repo, encoding: 'utf8', env: GIT_ENV, stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+const succeeds = (repo        , args          ) => {
   try {
     git(repo, args)
     return true
@@ -111,7 +115,7 @@ const succeeds = (repo, args) => {
   }
 }
 // ls-tree refuses magic pathspecs (`:(glob)…`) and paths outside the repo; those count as not found, not as a crash
-const existsAt = (repo, rev, path) => {
+const existsAt = (repo        , rev        , path        ) => {
   try {
     return git(repo, ['ls-tree', '-r', '--name-only', rev, '--', path]) !== ''
   } catch {
@@ -119,12 +123,12 @@ const existsAt = (repo, rev, path) => {
   }
 }
 
-export const parseShortstat = (text) => {
-  const count = (word) => Number(text.match(new RegExp(`(\\d+) ${word}`))?.[1] ?? 0)
+export const parseShortstat = (text        ) => {
+  const count = (word        ) => Number(text.match(new RegExp(`(\\d+) ${word}`))?.[1] ?? 0)
   return count('insertion') + count('deletion')
 }
 
-export const checkEntry = (repo, entry) => {
+export const checkEntry = (repo        , entry               )               => {
   const dependencies = entry.dependencies.map(({ name, recorded }) => {
     const { version, note } = currentVersion(repo, name)
     const state = version === null ? 'unknown' : normalizeVersion(recorded) === version ? 'same' : 'differs'
@@ -134,10 +138,10 @@ export const checkEntry = (repo, entry) => {
   if (entry.problems.length) return { ...result, status: 'invalid', problems: entry.problems }
   // A base on a side branch would diff against unrelated history, so it counts as unknown too
   const baseKnown =
-    succeeds(repo, ['rev-parse', '--verify', '--quiet', `${entry.base}^{commit}`]) && succeeds(repo, ['merge-base', '--is-ancestor', entry.base, 'HEAD'])
+    succeeds(repo, ['rev-parse', '--verify', '--quiet', `${entry.base}^{commit}`]) && succeeds(repo, ['merge-base', '--is-ancestor', entry.base , 'HEAD'])
   if (!baseKnown) return { ...result, status: 'unknown-base' }
   // A path matching nothing (typo, rename before Base) always shows zero changes and would bury the idea as "unchanged"
-  const notFound = entry.paths.filter((path) => !existsAt(repo, entry.base, path) && !existsAt(repo, 'HEAD', path))
+  const notFound = entry.paths.filter((path) => !existsAt(repo, entry.base , path) && !existsAt(repo, 'HEAD', path))
   if (notFound.length) return { ...result, status: 'invalid', problems: notFound.map((path) => `path not found: ${path}`) }
   const range = `${entry.base}..HEAD`
   const commits = Number(git(repo, ['rev-list', '--count', range, '--', ...entry.paths]))
@@ -146,8 +150,8 @@ export const checkEntry = (repo, entry) => {
   return { ...result, status: changed ? 'changed' : 'unchanged', commits, changedLines }
 }
 
-export const parseArgs = (argv) => {
-  const options = { file: null, repo: '.', json: false }
+export const parseArgs = (argv          ) => {
+  const options                                                       = { file: null, repo: '.', json: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--json') options.json = true
@@ -159,9 +163,9 @@ export const parseArgs = (argv) => {
   return options
 }
 
-const describe = (entry) => {
+const describe = (entry              ) => {
   const lines = [`## ${entry.title}  (line ${entry.line})`, `  status: ${entry.status}`]
-  if (entry.status === 'invalid') for (const problem of entry.problems) lines.push(`  ${problem}`)
+  if (entry.status === 'invalid') for (const problem of entry.problems ) lines.push(`  ${problem}`)
   if (entry.status === 'unknown-base') lines.push(`  base ${entry.base} is not a commit in the history of HEAD`)
   if (entry.commits !== undefined) {
     lines.push(`  since ${entry.base} in ${entry.paths.join(', ')}: ${entry.commits} commit(s), ${entry.changedLines} line(s) changed`)
@@ -184,7 +188,7 @@ const main = () => {
       throw new Error(`${options.repo} is not a git repository`)
     }
   } catch (error) {
-    console.error(`rejected-staleness: ${error.message}`)
+    console.error(`rejected-staleness: ${(error         ).message}`)
     console.error('usage: node rejected-staleness.mjs <rejected.md> [--repo <dir>] [--json]')
     process.exit(2)
   }

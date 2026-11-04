@@ -80,10 +80,13 @@ export const loadSource = (sourceDir) => {
     agents.push({ file, ...parseFrontmatter(readFileSync(file, 'utf8'), file) })
   }
   const readOptional = (path) => (existsSync(join(sourceDir, path)) ? readFileSync(join(sourceDir, path), 'utf8').replace(/\r\n/g, '\n') : undefined)
-  const tools = new Map(listDir(join(sourceDir, 'tools')).filter((file) => file.endsWith('.mjs')).map((file) => [file, readOptional(`tools/${file}`)]))
+  const tools = new Map(listDir(join(sourceDir, 'tools')).filter((file) => file.endsWith('.mts')).map((file) => [
+    file.replace(/\.mts$/, '.mjs'),
+    stripTypeScriptTypes(readOptional(`tools/${file}`), { mode: 'strip' }).replace(/[ \t]+$/gm, ''),
+  ]))
   const hooks = {
     rulesTemplate: readOptional('hooks/rules.md'),
-    rulesSource: readOptional('hooks/rules.ts'),
+    rulesSource: readOptional('hooks/rules.mts'),
     claude: { 'register.ts': readOptional('hooks/claude/register.ts'), 'hooks.json': readOptional('hooks/claude/hooks.json') },
     codex: { 'inject.mjs': readOptional('hooks/codex/inject.mjs'), 'hooks.json': readOptional('hooks/codex/hooks.json') },
   }
