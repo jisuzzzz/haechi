@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { buildFiles, loadSource, parseFrontmatter } from '../build/build.mjs'
-import { describeStep, preparePacket, renderPacket } from '../tools/delegate-task.mjs'
+import { describeStep, preparePacket, renderPacket } from '../dist/claude/tools/delegate-task.mjs'
 const root = join(import.meta.dirname, '..'), core = loadSource(root), files = buildFiles(core)
 
 test('both distributions have one worker with no preset model, effort or tools', () => {

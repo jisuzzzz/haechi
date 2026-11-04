@@ -9,21 +9,24 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export interface PreviewContent { title: string; variants: string[]; states: string[] }
+interface PreviewArgs { out?: string; title?: string; variants: string[]; states: string[]; problems: string[] }
+
 const USAGE = 'Usage: node preview-scaffold.mjs --out <file.html> --title "<title>" [--variants "A,B"] [--states "Empty,Loaded"]'
 
-const splitNames = (value, flag, problems) => {
+const splitNames = (value: string, flag: string, problems: string[]): string[] => {
   const names = value.split(',').map((name) => name.trim())
   if (names.some((name) => !name)) problems.push(`${flag} has an empty name`)
   if (new Set(names).size !== names.length) problems.push(`${flag} has a duplicate name`)
   return names
 }
 
-export const parseArgs = (argv) => {
-  const values = { variants: 'A', states: 'Default' }
-  const problems = []
+export const parseArgs = (argv: string[]): PreviewArgs => {
+  const values: { out?: string; title?: string; variants: string; states: string } = { variants: 'A', states: 'Default' }
+  const problems: string[] = []
   for (let i = 0; i < argv.length; i += 2) {
     const flag = argv[i]
-    const key = { '--out': 'out', '--title': 'title', '--variants': 'variants', '--states': 'states' }[flag]
+    const key = ({ '--out': 'out', '--title': 'title', '--variants': 'variants', '--states': 'states' } as Record<string, 'out' | 'title' | 'variants' | 'states'>)[flag]
     if (!key) problems.push(`unknown argument ${flag}`)
     else if (argv[i + 1] === undefined) problems.push(`${flag} needs a value`)
     else values[key] = argv[i + 1]
@@ -36,11 +39,11 @@ export const parseArgs = (argv) => {
   return { out: values.out, title: values.title?.trim(), variants, states, problems }
 }
 
-const escapeHtml = (text) => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const escapeHtml = (text: string): string => text.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as Record<string, string>)[c])
 // JSON inside <script> must not close the tag early.
-const jsString = (text) => JSON.stringify(text).replaceAll('</', '<\\/')
+const jsString = (text: string): string => JSON.stringify(text).replaceAll('</', '<\\/')
 
-export const buildHtml = ({ title, variants, states }) => {
+export const buildHtml = ({ title, variants, states }: PreviewContent): string => {
   const stateLines = states.map((name) => `  ${jsString(name)}: {},`).join('\n')
   const variantLines = variants
     .map((name) => `  ${jsString(name)}: {\n    note: '',\n    render(data, root) {\n      root.innerHTML = \`<p>${escapeHtml(name).replace(/[`$\\]/g, '\\$&')}</p>\`\n    },\n  },`)
@@ -157,10 +160,10 @@ render()
 `
 }
 
-const nearestExisting = (path) => (existsSync(path) ? path : nearestExisting(dirname(path)))
-const insideGitWorkTree = (dir) => spawnSync('git', ['-C', dir, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8' }).stdout.trim() === 'true'
+const nearestExisting = (path: string): string => (existsSync(path) ? path : nearestExisting(dirname(path)))
+const insideGitWorkTree = (dir: string): boolean => spawnSync('git', ['-C', dir, 'rev-parse', '--is-inside-work-tree'], { encoding: 'utf8' }).stdout.trim() === 'true'
 
-export const main = (argv) => {
+export const main = (argv: string[]): number => {
   const { problems, ...args } = parseArgs(argv)
   const out = args.out && resolve(args.out)
   if (out && existsSync(out)) problems.push(`${out} already exists`)
@@ -169,8 +172,8 @@ export const main = (argv) => {
     console.error([...problems, USAGE].join('\n'))
     return 2
   }
-  mkdirSync(dirname(out), { recursive: true })
-  writeFileSync(out, buildHtml(args))
+  mkdirSync(dirname(out!), { recursive: true })
+  writeFileSync(out!, buildHtml(args as PreviewContent))
   console.log(out)
   return 0
 }

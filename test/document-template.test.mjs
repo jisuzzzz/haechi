@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { test } from 'node:test'
-import { composeDocument, formatDocument, headingAnchor, loadKit, validateNotes } from '../tools/document-template.mjs'
+import { composeDocument, formatDocument, headingAnchor, loadKit, validateNotes } from '../dist/claude/tools/document-template.mjs'
 
-const tool = resolve('tools/document-template.mjs')
+const tool = resolve('dist/claude/tools/document-template.mjs')
 const assets = resolve('skills/document/assets')
 const cli = (...args) => spawnSync(process.execPath, [tool, ...args], { encoding: 'utf8' })
 const temp = (t) => {

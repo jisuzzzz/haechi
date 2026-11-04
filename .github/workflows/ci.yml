@@ -15,11 +15,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Tests
-        run: npm test
-      - name: dist matches core
+          node-version: 24
+      - run: npm ci
+      - name: Types and dist match source
         run: npm run check
+      - name: Tests
+        run: |
+          for file in test/*.test.mjs; do
+            node --test "$file" || exit "$?"
+          done
       - name: No private words
         run: npm run scan
         env:

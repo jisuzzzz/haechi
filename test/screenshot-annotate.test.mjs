@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { deflateSync, inflateSync } from 'node:zlib'
-import { annotate, decodePng } from '../tools/screenshot-annotate.mjs'
+import { annotate, decodePng } from '../dist/claude/tools/screenshot-annotate.mjs'
 
-const tool = join(import.meta.dirname, '..', 'tools', 'screenshot-annotate.mjs')
+const tool = join(import.meta.dirname, '..', 'dist', 'claude', 'tools', 'screenshot-annotate.mjs')
 const run = (args) => spawnSync(process.execPath, [tool, ...args], { encoding: 'utf8' })
 const crc = (bytes) => {
   let c = 0xffffffff

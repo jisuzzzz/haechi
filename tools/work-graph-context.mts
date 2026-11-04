@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { graphContext, toolProvider } from './work-graph.mjs'
 
-export const handle = (event, input, provider = toolProvider()) => {
+export const handle = (event: string, input: { cwd?: string; session_id?: string }, provider = toolProvider()) => {
   if (!['SessionStart', 'UserPromptSubmit'].includes(event)) return undefined
   const toolPath = join(dirname(fileURLToPath(import.meta.url)), 'work-graph.mjs')
   return graphContext(input.cwd ?? process.cwd(), input.session_id, toolPath, provider)

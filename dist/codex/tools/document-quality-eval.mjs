@@ -6,14 +6,31 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { headingAnchor, validateNotes } from './document-template.mjs'
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const TYPES = ['fact', 'change', 'bug', 'retirement', 'performance', 'handoff']
 const HASH = /^(?:sha256:)?([a-f0-9]{64})$/i
 const LIMIT = 'Integrity/coverage checks only. AI judgments are recorded claims, not proof of human readability or causal template improvement.'
-export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
-const present = (value) => typeof value === 'string' ? Boolean(value.trim()) : Array.isArray(value) ? value.length > 0 : value !== null && typeof value === 'object' && Object.keys(value).length > 0
-const exactIds = (rows, ids) => Array.isArray(rows) && rows.length === ids.length && new Set(rows.map((r) => r?.id)).size === ids.length && ids.every((id) => rows.some((row) => row?.id === id))
+export const sha256 = (bytes        )         => createHash('sha256').update(bytes).digest('hex')
+const present = (value         )          => typeof value === 'string' ? Boolean(value.trim()) : Array.isArray(value) ? value.length > 0 : value !== null && typeof value === 'object' && Object.keys(value).length > 0
+const exactIds =                             (rows                 , ids           )              => Array.isArray(rows) && rows.length === ids.length && new Set(rows.map((r) => r?.id)).size === ids.length && ids.every((id) => rows.some((row) => row?.id === id))
 
-const readableLines = (text) => {
+const readableLines = (text        )           => {
   let fence
   return text.replace(/\r\n/g, '\n').split('\n').map((line) => {
     const block = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/)
@@ -26,11 +43,11 @@ const readableLines = (text) => {
   })
 }
 
-export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.url)), { preflight = false } = {}) => {
+export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.url)), { preflight = false }                          = {}) => {
   const root = resolve(directory)
-  const errors = []
-  const add = (message) => errors.push(message)
-  const local = (path, from = root) => {
+  const errors           = []
+  const add = (message        ) => errors.push(message)
+  const local = (path         , from = root)         => {
     if (typeof path !== 'string' || !path.trim() || isAbsolute(path) || /^[a-z][a-z\d+.-]*:/i.test(path)) throw new Error('expected a relative evaluation path')
     const full = resolve(from, path)
     const rel = relative(root, full)
@@ -42,19 +59,19 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
     }
     return full
   }
-  const bytes = (path) => {
+  const bytes = (path        )         => {
     const full = local(path)
     if (!statSync(full).isFile()) throw new Error(`${path}: not a file`)
     const data = readFileSync(full)
     if (!data.length) throw new Error(`${path}: empty file`)
     return data
   }
-  const json = (path) => JSON.parse(bytes(path).toString('utf8').replace(/^\uFEFF/, ''))
-  const attempt = (label, fn) => {
-    try { return fn() } catch (error) { add(`${label}: ${error.message}`); return undefined }
+  const json =     (path        )    => JSON.parse(bytes(path).toString('utf8').replace(/^\uFEFF/, ''))
+  const attempt =     (label        , fn         )                => {
+    try { return fn() } catch (error) { add(`${label}: ${(error         ).message}`); return undefined }
   }
-  const walk = (dir) => existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(resolve(dir, e.name)) : [relative(root, resolve(dir, e.name)).split(sep).join('/')]) : []
-  const validateSource = (reference, caseDir, label) => {
+  const walk = (dir        )           => existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(resolve(dir, e.name)) : [relative(root, resolve(dir, e.name)).split(sep).join('/')]) : []
+  const validateSource = (reference         , caseDir        , label        )       => {
     if (Array.isArray(reference)) {
       if (!reference.length) add(`${label}: source list is empty`)
       reference.forEach((item) => validateSource(item, caseDir, label))
@@ -77,7 +94,7 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
     })
   }
   const planBytes = attempt('plan.json', () => bytes('plan.json'))
-  const plan = attempt('plan.json', () => json('plan.json'))
+  const plan = attempt('plan.json', () => json                ('plan.json'))
   const expectedHash = attempt('plan.sha256', () => {
     const match = bytes('plan.sha256').toString('utf8').trim().match(HASH)
     if (!match) throw new Error('expected one SHA-256 digest')
@@ -85,10 +102,10 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
   })
   const planHash = planBytes && sha256(planBytes)
   if (expectedHash && planHash !== expectedHash) add('plan.json changed after freezing')
-  const manifest = attempt('manifest.json', () => json('manifest.json'))
+  const manifest = attempt('manifest.json', () => json          ('manifest.json'))
   const manifestBytes = attempt('manifest.json', () => bytes('manifest.json'))
   if (!plan?.manifestSha256 || (manifestBytes && plan.manifestSha256 !== sha256(manifestBytes))) add('manifest.json does not match the hash bound into the frozen plan')
-  const frozen = new Set()
+  const frozen = new Set        ()
   if (!Array.isArray(manifest?.files) || !manifest.files.length) add('manifest.files must be a nonempty list')
   else for (const entry of manifest.files) {
     attempt('manifest entry', () => {
@@ -104,16 +121,16 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
     if (!frozen.has(path)) add(`input is not frozen: ${path}`)
   }
   for (const path of ['rubric.json', 'sources.md']) if (existsSync(resolve(root, path)) && !frozen.has(path)) add(`input is not frozen: ${path}`)
-  const rubric = attempt('rubric.json', () => json('rubric.json'))
+  const rubric = attempt('rubric.json', () => json        ('rubric.json'))
   const criteria = rubric?.criticalCriteria?.map((c) => c?.id)
   if (!Array.isArray(criteria) || !criteria.length || criteria.some((id) => !present(id)) || new Set(criteria).size !== criteria.length) add('rubric must declare unique criticalCriteria ids')
 
-  const caseQuestions = new Map()
+  const caseQuestions = new Map                  ()
   for (const type of TYPES) {
     const caseDir = resolve(root, 'cases', type)
     attempt(`${type}/case.md`, () => bytes(`cases/${type}/case.md`))
-    const questions = attempt(`${type}/questions.json`, () => json(`cases/${type}/questions.json`))
-    const key = attempt(`${type}/answer-key.json`, () => json(`cases/${type}/answer-key.json`))
+    const questions = attempt(`${type}/questions.json`, () => json            (`cases/${type}/questions.json`))
+    const key = attempt(`${type}/answer-key.json`, () => json           (`cases/${type}/answer-key.json`))
     const ids = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6']
     if (!exactIds(questions, ids) || questions.some((q) => !present(q.text))) add(`${type}: questions must contain Q1..Q6 once with text`)
     else caseQuestions.set(type, ids)
@@ -133,7 +150,7 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
   if (plan?.mode !== 'baseline_diagnostic') add('plan.mode must be baseline_diagnostic')
   if (!Array.isArray(plan?.types) || plan.types.length !== TYPES.length || new Set(plan.types).size !== TYPES.length || TYPES.some((type) => !plan.types.includes(type))) add('plan must declare exactly the six document types')
   if (plan?.trialsPerType !== 2) add('plan.trialsPerType must be 2')
-  const planned = new Map(), tuples = new Set()
+  const planned = new Map                    (), tuples = new Set        ()
   if (!Array.isArray(plan?.runs) || plan.runs.length !== 12) add('plan must contain exactly 12 runs')
   else for (const run of plan.runs) {
     if (!run || !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(run.id ?? '') || planned.has(run.id)) add('plan has an invalid/duplicate run id')
@@ -145,13 +162,13 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
 
   const counts = { cases: caseQuestions.size, plannedRuns: planned.size, resultRuns: 0, documents: 0, readerAnswers: 0 }
   if (!preflight) {
-    const results = attempt('results.json', () => json('results.json'))
+    const results = attempt('results.json', () => json                   ('results.json'))
     if (results?.mode !== 'baseline_diagnostic' || results?.planSha256 !== planHash) add('results mode/hash do not match the frozen plan')
     const human = results?.humanValidation
     if (human?.executed !== false || human?.participants !== 0 || results?.humanValidated === true || /^(?:pass|passed|validated|approved|completed)$/i.test(human?.outcome ?? '')) add('human validation was not executed; aggregate must not claim otherwise')
     const rows = results?.runs
     if (!Array.isArray(rows) || rows.length !== planned.size) add('results must cover every planned run')
-    const seen = new Set(), artifacts = new Set()
+    const seen = new Set        (), artifacts = new Set         ()
     for (const row of Array.isArray(rows) ? rows : []) {
       const run = planned.get(row?.id)
       if (!run || seen.has(row.id)) { add(`unknown/duplicate result run: ${row?.id}`); continue }
@@ -176,14 +193,14 @@ export const verifyEvaluation = (directory = dirname(fileURLToPath(import.meta.u
           })
         }
       }
-      const reader = attempt(`${row.id}/reader`, () => json(row.reader))
+      const reader = attempt(`${row.id}/reader`, () => json        (row.reader))
       const ids = caseQuestions.get(run.type) ?? []
       if (!exactIds(reader?.answers, ids)) add(`${row.id}: reader must answer each question exactly once`)
       else for (const answer of reader.answers) {
         counts.readerAnswers++
         if (!present(answer.answer) || !['answered', 'not_stated', 'ambiguous'].includes(answer.status) || (answer.status === 'answered' && !present(answer.support))) add(`${row.id}/${answer.id}: incomplete reader answer/status/support`)
       }
-      const judgment = attempt(`${row.id}/judgment`, () => json(row.judgment))
+      const judgment = attempt(`${row.id}/judgment`, () => json          (row.judgment))
       if (judgment?.id !== row.id) add(`${row.id}: judgment id mismatch`)
       if (!Array.isArray(judgment?.criticalChecks) || !judgment.criticalChecks.length) add(`${row.id}: critical checks missing`)
       else if (judgment.criticalChecks.some((check) => !present(check?.criterion))) add(`${row.id}: critical checks must identify their criterion`)
@@ -211,5 +228,5 @@ const main = () => {
   if (!report.ok) process.exitCode = 2
 }
 if (process.argv[1] && existsSync(process.argv[1]) && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
-  try { main() } catch (error) { console.error(error.message); process.exitCode = 2 }
+  try { main() } catch (error) { console.error((error         ).message); process.exitCode = 2 }
 }

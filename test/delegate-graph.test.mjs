@@ -5,9 +5,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { preparePacket } from '../tools/delegate-task.mjs'
-import { prepareReturn, publishReturn, recordReturn } from '../tools/delegate-return.mjs'
-import { graphPath, readGraph, run } from '../tools/work-graph.mjs'
+import { preparePacket } from '../dist/claude/tools/delegate-task.mjs'
+import { prepareReturn, publishReturn, recordReturn } from '../dist/claude/tools/delegate-return.mjs'
+import { graphPath, readGraph, run } from '../dist/claude/tools/work-graph.mjs'
 
 const sha = text => createHash('sha256').update(text).digest('hex')
 const write = (root, path, text) => { mkdirSync(join(root, path, '..'), { recursive: true }); writeFileSync(join(root, path), text) }
@@ -40,7 +40,7 @@ test('one publish command validates, stores evidence, updates graph and returns 
   const { root, repo, request, handoff } = fixture(t)
   write(root, 'request.json', JSON.stringify(request)); write(root, 'handoff.json', JSON.stringify(handoff))
   const output = join(root, 'published')
-  const p = spawnSync(process.execPath, [new URL('../tools/delegate-return.mjs', import.meta.url).pathname, 'publish', root, join(root, 'request.json'), join(root, 'handoff.json'), output], { encoding: 'utf8' })
+  const p = spawnSync(process.execPath, [new URL('../dist/claude/tools/delegate-return.mjs', import.meta.url).pathname, 'publish', root, join(root, 'request.json'), join(root, 'handoff.json'), output], { encoding: 'utf8' })
   assert.equal(p.status, 0, p.stderr)
   const result = JSON.parse(p.stdout), task = readGraph(repo).tasks[0]
   assert.equal(result.status, 'recorded-pending-main-review'); assert.equal(task.status, 'active')

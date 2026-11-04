@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { assembleTask, describeStep, preparePacket, renderPacket } from '../tools/delegate-task.mjs'
+import { assembleTask, describeStep, preparePacket, renderPacket } from '../dist/claude/tools/delegate-task.mjs'
 const write=(root,path,text)=>{mkdirSync(join(root,path,'..'),{recursive:true});writeFileSync(join(root,path),text)}
 const brief=()=>({playbook:'review',step:'check',objective:'Check change',context:{repository:'Commands and boundaries',base:'HEAD'},writeScope:'read-only',ownedPaths:[],artifactPaths:[],constraints:['No repository edits'],completion:['Concrete evidence']})
 const fixture=t=>{
@@ -16,7 +16,7 @@ const fixture=t=>{
  return root
 }
 test('CLI prepares and renders complete guidance and preserves input',t=>{
- const root=fixture(t),input=join(root,'brief.json'),packet=join(root,'packet.json'),tool=new URL('../tools/delegate-task.mjs',import.meta.url).pathname
+ const root=fixture(t),input=join(root,'brief.json'),packet=join(root,'packet.json'),tool=new URL('../dist/claude/tools/delegate-task.mjs',import.meta.url).pathname
  writeFileSync(input,JSON.stringify(brief()))
  const p=spawnSync(process.execPath,[tool,'prepare',root,input],{encoding:'utf8'});assert.equal(p.status,0,p.stderr);writeFileSync(packet,p.stdout)
  const r=spawnSync(process.execPath,[tool,'render',root,packet],{encoding:'utf8'});assert.equal(r.status,0,r.stderr)
@@ -36,7 +36,7 @@ test('missing context, contradictory scope, unknown steps and invalid paths are 
 })
 test('CLI invoked through an aliased directory still executes and rejects empty input',t=>{
  const root=fixture(t),dir=join(root,'actual-tools'),alias=join(root,'aliased-tools'),input=join(root,'brief.json')
- mkdirSync(dir);writeFileSync(join(dir,'delegate-task.mjs'),readFileSync(new URL('../tools/delegate-task.mjs',import.meta.url)))
+ mkdirSync(dir);writeFileSync(join(dir,'delegate-task.mjs'),readFileSync(new URL('../dist/claude/tools/delegate-task.mjs',import.meta.url)))
  symlinkSync(dir,alias);writeFileSync(input,JSON.stringify(brief()))
  const p=spawnSync(process.execPath,[join(alias,'delegate-task.mjs'),'prepare',root,input],{encoding:'utf8'})
  assert.equal(p.status,0,p.stderr);assert.equal(JSON.parse(p.stdout).brief.step,'check')
@@ -95,7 +95,7 @@ test('stale forms, incomplete tasks and missing guidance cannot leave dispatch a
 })
 
 test('assemble CLI saves full artifacts once, emits only receipt and never overwrites earlier work',t=>{
- const root=fixture(t),tool=new URL('../tools/delegate-task.mjs',import.meta.url).pathname
+ const root=fixture(t),tool=new URL('../dist/claude/tools/delegate-task.mjs',import.meta.url).pathname
  const form=spawnSync(process.execPath,[tool,'describe',root,'review','check'],{encoding:'utf8'})
  assert.equal(form.status,0,form.stderr)
  const input=join(root,'brief.json'),output=join(root,'task')

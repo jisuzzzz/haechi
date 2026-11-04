@@ -17,6 +17,15 @@ import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+export type ScreenKind = 'design' | 'parity' | 'variants'
+export interface ScreenImage { label: string; path: string }
+export interface ScreenItem { class: string; text: string }
+export interface ScreenState { name: string; verdict?: string; images: ScreenImage[]; items?: ScreenItem[] }
+export interface ScreenResult { kind: ScreenKind; task: string; verdict?: string; states: ScreenState[]; consoleErrors?: string[]; noise?: string; openQuestions?: string[] }
+export interface ResultEntry { file: string; result: ScreenResult }
+export interface ReportOptions { out: string; embed: boolean }
+interface ParsedOptions { out: string | null; embed: boolean; inputs: string[] }
+
 const KINDS = ['design', 'parity', 'variants']
 const VERDICTS = ['PASS', 'FAIL', 'BLOCKED']
 const STATE_VERDICTS = ['PASS', 'FAIL', 'BLOCKED']
@@ -24,11 +33,11 @@ const STATE_VERDICTS = ['PASS', 'FAIL', 'BLOCKED']
 const CLASS_ORDER = ['UNEXPECTED', 'MISMATCH', 'MISSING', 'EXPECTED', 'MATCH', 'NOISE']
 const PROBLEM_CLASSES = new Set(['UNEXPECTED', 'MISMATCH', 'MISSING'])
 const KIND_TITLES = { design: 'Design check (Figma | AFTER | Diff)', parity: 'Parity check (BEFORE | AFTER | Diff)', variants: 'Variants comparison' }
-const MIME = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' }
+const MIME: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' }
 
-export const parseArgs = (argv) => {
-  const options = { out: null, embed: false, inputs: [] }
-  const errors = []
+export const parseArgs = (argv: string[]) => {
+  const options: ParsedOptions = { out: null, embed: false, inputs: [] }
+  const errors: string[] = []
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--out') {
@@ -44,23 +53,23 @@ export const parseArgs = (argv) => {
   return { options, errors }
 }
 
-const isStringArray = (value) => Array.isArray(value) && value.every((entry) => typeof entry === 'string')
-const isText = (value) => typeof value === 'string' && value.trim() !== ''
+const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+const isText = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 
-export const validateResult = (result) => {
+export const validateResult = (result: unknown): string[] => {
   if (!result || typeof result !== 'object' || Array.isArray(result)) return ['top level must be an object']
-  const problems = []
-  const variants = result.kind === 'variants'
-  if (!KINDS.includes(result.kind)) problems.push(`kind must be one of ${KINDS.join(', ')}`)
-  if (!isText(result.task)) problems.push('task must be a non-empty string')
-  if (!(variants && result.verdict === undefined) && !VERDICTS.includes(result.verdict)) problems.push(`verdict must be one of ${VERDICTS.join(', ')}`)
-  if (!Array.isArray(result.states) || !result.states.length) problems.push('states must be a non-empty array')
+  const problems: string[] = []
+  const variants = (result as ScreenResult).kind === 'variants'
+  if (!KINDS.includes((result as ScreenResult).kind)) problems.push(`kind must be one of ${KINDS.join(', ')}`)
+  if (!isText((result as ScreenResult).task)) problems.push('task must be a non-empty string')
+  if (!(variants && (result as ScreenResult).verdict === undefined) && !VERDICTS.includes((result as ScreenResult).verdict!)) problems.push(`verdict must be one of ${VERDICTS.join(', ')}`)
+  if (!Array.isArray((result as ScreenResult).states) || !(result as ScreenResult).states.length) problems.push('states must be a non-empty array')
   else {
-    result.states.forEach((state, index) => {
+    (result as ScreenResult).states.forEach((state, index) => {
       const at = `states[${index}]`
       if (!state || typeof state !== 'object') return problems.push(`${at} must be an object`)
       if (!isText(state.name)) problems.push(`${at}.name must be a non-empty string`)
-      if (!(variants && state.verdict === undefined) && !STATE_VERDICTS.includes(state.verdict)) problems.push(`${at}.verdict must be one of ${STATE_VERDICTS.join(', ')}`)
+      if (!(variants && state.verdict === undefined) && !STATE_VERDICTS.includes(state.verdict!)) problems.push(`${at}.verdict must be one of ${STATE_VERDICTS.join(', ')}`)
       if (!Array.isArray(state.images)) problems.push(`${at}.images must be an array`)
       else
         state.images.forEach((image, i) => {
@@ -75,36 +84,36 @@ export const validateResult = (result) => {
       })
     })
   }
-  if (result.consoleErrors !== undefined && !isStringArray(result.consoleErrors)) problems.push('consoleErrors must be an array of strings')
-  if (result.openQuestions !== undefined && !isStringArray(result.openQuestions)) problems.push('openQuestions must be an array of strings')
-  if (result.noise !== undefined && typeof result.noise !== 'string') problems.push('noise must be a string')
+  if ((result as ScreenResult).consoleErrors !== undefined && !isStringArray((result as ScreenResult).consoleErrors)) problems.push('consoleErrors must be an array of strings')
+  if ((result as ScreenResult).openQuestions !== undefined && !isStringArray((result as ScreenResult).openQuestions)) problems.push('openQuestions must be an array of strings')
+  if ((result as ScreenResult).noise !== undefined && typeof (result as ScreenResult).noise !== 'string') problems.push('noise must be a string')
   return problems
 }
 
 // Reads and validates every input; returns the parsed results or every problem prefixed with its file name.
-export const loadResults = (inputs) => {
-  const results = []
-  const problems = []
+export const loadResults = (inputs: string[]) => {
+  const results: ResultEntry[] = []
+  const problems: string[] = []
   for (const file of inputs) {
-    let result
+    let result: unknown
     try {
       // Windows editors and PowerShell's Out-File write a BOM that JSON.parse rejects.
       result = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''))
     } catch (error) {
-      problems.push(`${file}: ${error.code === 'ENOENT' ? 'file not found' : `not valid JSON (${error.message})`}`)
+      problems.push(`${file}: ${(error as NodeJS.ErrnoException).code === 'ENOENT' ? 'file not found' : `not valid JSON (${(error as Error).message})`}`)
       continue
     }
     const found = validateResult(result)
     problems.push(...found.map((problem) => `${file}: ${problem}`))
-    if (!found.length) results.push({ file, result })
+    if (!found.length) results.push({ file, result } as ResultEntry)
   }
   return { results, problems }
 }
 
-export const escapeHtml = (value) =>
-  String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch])
+export const escapeHtml = (value: unknown): string =>
+  String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>)[ch])
 
-export const overallVerdict = (results) => {
+export const overallVerdict = (results: ResultEntry[]): string | null => {
   const verdicts = results.map(({ result }) => result.verdict).filter(Boolean)
   if (verdicts.includes('FAIL')) return 'FAIL'
   if (verdicts.includes('BLOCKED')) return 'BLOCKED'
@@ -112,13 +121,13 @@ export const overallVerdict = (results) => {
 }
 
 // On Windows a file on another drive has no relative path (relative() returns it absolute), so it gets a file: URL.
-export const linkTo = (absolute, fromDir) => {
+export const linkTo = (absolute: string, fromDir: string): string => {
   const path = relative(fromDir, absolute)
   return isAbsolute(path) ? pathToFileURL(absolute).href : path.split(/[\\/]/).map(encodeURIComponent).join('/')
 }
 
 // Returns the src to write into the HTML, or null when the path is not a readable file (absent, a folder, no access).
-export const imageSource = (imagePath, resultFile, outFile, embed) => {
+export const imageSource = (imagePath: string, resultFile: string, outFile: string, embed: boolean): string | null => {
   const absolute = isAbsolute(imagePath) ? imagePath : resolve(dirname(resultFile), imagePath)
   try {
     if (!statSync(absolute).isFile()) return null
@@ -129,9 +138,9 @@ export const imageSource = (imagePath, resultFile, outFile, embed) => {
   }
 }
 
-const badge = (verdict) => (verdict ? `<span class="badge v-${verdict}">${escapeHtml(verdict)}</span>` : '')
+const badge = (verdict?: string): string => (verdict ? `<span class="badge v-${verdict}">${escapeHtml(verdict)}</span>` : '')
 
-const renderImages = (images, resultFile, options) => {
+const renderImages = (images: ScreenImage[], resultFile: string, options: ReportOptions): string => {
   const figures = images.map(({ label, path }) => {
     const src = imageSource(path, resultFile, options.out, options.embed)
     const body = src
@@ -142,7 +151,7 @@ const renderImages = (images, resultFile, options) => {
   return figures.length ? `<div class="images">${figures.join('')}</div>` : ''
 }
 
-const renderItems = (items = []) =>
+const renderItems = (items: ScreenItem[] = []): string =>
   CLASS_ORDER.map((itemClass) => {
     const matching = items.filter((item) => item.class === itemClass)
     if (!matching.length) return ''
@@ -152,10 +161,10 @@ const renderItems = (items = []) =>
     return `<div class="items c-${itemClass}${PROBLEM_CLASSES.has(itemClass) ? ' problem' : ''}"><h4>${heading}</h4>${list}</div>`
   }).join('')
 
-const renderList = (title, entries) =>
+const renderList = (title: string, entries?: string[]): string =>
   entries?.length ? `<div class="extra"><h4>${title}</h4><ul>${entries.map((entry) => `<li>${escapeHtml(entry)}</li>`).join('')}</ul></div>` : ''
 
-const renderSection = ({ file, result }, options) => {
+const renderSection = ({ file, result }: ResultEntry, options: ReportOptions): string => {
   const states = result.states
     .map(
       (state) =>
@@ -184,7 +193,7 @@ dialog{max-width:96vw;max-height:96vh;padding:0;border:0;background:transparent}
 // Inline only: the report must work offline and from file://. A data: URI cannot be opened as a new tab, hence the dialog.
 const SCRIPT = `document.addEventListener('click',function(e){var t=e.target;var d=document.getElementById('full');if(t.tagName==='IMG'&&t.closest('figure')){d.querySelector('img').src=t.src;d.showModal()}else if(d.open&&d.contains(t)){d.close()}})`
 
-export const renderReport = (results, options) => {
+export const renderReport = (results: ResultEntry[], options: ReportOptions): string => {
   const verdict = overallVerdict(results)
   const tasks = [...new Set(results.map(({ result }) => result.task))]
   const title = `Screen report: ${tasks.join(' / ')}`
@@ -209,9 +218,9 @@ const main = () => {
     console.error(problems.join('\n'))
     process.exit(2)
   }
-  mkdirSync(dirname(resolve(options.out)), { recursive: true })
-  writeFileSync(options.out, renderReport(results, options))
-  console.log(resolve(options.out))
+  mkdirSync(dirname(resolve(options.out!)), { recursive: true })
+  writeFileSync(options.out!, renderReport(results, options as ReportOptions))
+  console.log(resolve(options.out!))
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()

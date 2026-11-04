@@ -128,3 +128,30 @@ test('check reports missing, stale and extra files', () => {
   const actual = new Map([['b', 'old'], ['c', '3']])
   assert.deepEqual(diffTree(expected, actual), ['missing: dist/a', 'stale: dist/b', 'extra: dist/c'])
 })
+
+test('TypeScript tools run as plain JavaScript with relative imports in both distributions', (t) => {
+  const root = makeCore()
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  write(root, 'tools/message.mts', "export interface Message { value: string }\nexport const message: Message = { value: 'typed tool' }\n")
+  write(root, 'tools/probe.mts', `import { message } from './message.mjs'
+const read = (arg: string | undefined): string => {
+  if (arg !== 'ok') throw new Error('expected ok')
+  return message.value
+}
+process.stdout.write(read(process.argv[2]))
+`)
+  const files = buildFiles(loadSource(root))
+  for (const [path, content] of files) write(root, `dist/${path}`, content)
+  for (const target of ['claude', 'codex']) {
+    assert.equal(files.has(`${target}/tools/probe.mts`), false)
+    const tool = join(root, 'dist', target, 'tools/probe.mjs')
+    const valid = spawnSync(process.execPath, [tool, 'ok'], { encoding: 'utf8' })
+    assert.equal(valid.status, 0, valid.stderr)
+    assert.equal(valid.stdout, 'typed tool')
+    assert.equal(valid.stderr, '')
+    const invalid = spawnSync(process.execPath, [tool, 'bad'], { encoding: 'utf8' })
+    assert.equal(invalid.status, 1)
+    assert.equal(invalid.stdout, '')
+    assert.match(invalid.stderr, /expected ok/)
+  }
+})

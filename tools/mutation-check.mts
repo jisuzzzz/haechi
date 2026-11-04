@@ -12,14 +12,26 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import type { ChildProcess } from 'node:child_process'
+
+type Language = 'js' | 'python'
+type MutationSite = { line: number; column: number; operator: string; before: string; after: string }
+type Mutant = MutationSite & { original: string; mutated: string }
+type MutationOperator = { operator: string; pattern: RegExp; swap: Record<string, string> | ((token: string) => string) }
+type CommandResult = { status: 'pass' | 'fail' | 'timeout'; output: string; exitCode: number | null; signal: NodeJS.Signals | null; spawnError: string | null }
+type MutationArguments = { tests: string[]; base: string; limit: number | string; timeout: number | string; json: boolean; file?: string; testCmd?: string; lines?: string | number[] }
+type MutationOptions = { tests: string[]; base: string; limit: number; timeout: number; json: boolean; file: string; testCmd: string; lines?: number[] }
+type MutationResult = Pick<Mutant, 'line' | 'operator' | 'before' | 'after' | 'mutated'> & { status: 'killed' | 'survived' | 'timeout' } & Partial<Pick<CommandResult, 'output' | 'exitCode' | 'signal' | 'spawnError'>>
+type Report = { file: string; baseline: 'pass' | 'fail'; mutants: MutationResult[]; summary: { killed: number; survived: number; timeout: number } } & Partial<Pick<CommandResult, 'output' | 'exitCode' | 'signal' | 'spawnError'>>
+
 const JS_REGEX_BEFORE = /[(,=:[!&|?{};+\-*%<>~^]/
 const JS_REGEX_KEYWORD = /\b(return|typeof|case|do|else|in|of|void|yield|await|delete|instanceof|new)$/
 
 // Replaces every character inside strings and regex literals with \0 and inside comments with \x01 (newlines kept),
 // so operator patterns only ever match real code. Template literals are masked whole, ${} included.
-export const maskNonCode = (text, language) => {
+export const maskNonCode = (text: string, language: Language) => {
   const out = text.split('')
-  const hide = (from, to, mark) => {
+  const hide = (from: number, to: number, mark: string) => {
     for (let i = from; i < to; i++) if (out[i] !== '\n') out[i] = mark
   }
   const python = language === 'python'
@@ -73,7 +85,7 @@ export const maskNonCode = (text, language) => {
 const JS_CALL_KEYWORDS = new Set(['if', 'for', 'while', 'switch', 'catch', 'function', 'return', 'super', 'typeof', 'import', 'with'])
 const PY_CALL_KEYWORDS = new Set(['if', 'elif', 'while', 'for', 'return', 'assert', 'del', 'not', 'yield', 'raise', 'with', 'def', 'class', 'lambda', 'except', 'and', 'or', 'in', 'is'])
 
-const OPERATORS = {
+const OPERATORS: Record<Language, MutationOperator[]> = {
   js: [
     { operator: 'comparison', pattern: /(?<![=!<>])(===|!==|==|!=)(?!=)/g, swap: { '===': '!==', '!==': '===', '==': '!=', '!=': '==' } },
     { operator: 'comparison', pattern: /(?<=\s)(<=|>=|<|>)(?=\s)/g, swap: { '<': '<=', '<=': '<', '>': '>=', '>=': '>' } },
@@ -92,7 +104,7 @@ const OPERATORS = {
   ],
 }
 
-const balanced = (code) => {
+const balanced = (code: string) => {
   let depth = 0
   for (const ch of code) {
     if (ch === '(') depth += 1
@@ -103,12 +115,12 @@ const balanced = (code) => {
 }
 
 // Comments vanish; a string stays as one value token
-const codeOf = (masked) => masked.replace(/\x01/g, '').replace(/\0+/g, '0').trim()
+const codeOf = (masked: string) => masked.replace(/\x01/g, '').replace(/\0+/g, '0').trim()
 
 // A line that is a whole call statement; its neighbours must not continue it, or commenting it out breaks the syntax
-const dropCallSite = (lineText, maskedLines, index, python) => {
+const dropCallSite = (lineText: string, maskedLines: string[], index: number, python: boolean): MutationSite | null => {
   const masked = maskedLines[index]
-  const indent = masked.match(/^\s*/)[0].length
+  const indent = masked.match(/^\s*/)![0].length
   if (masked[indent] === undefined || /[\0\x01]/.test(masked[indent])) return null
   const code = masked.slice(indent).replace(/[\s\x01]+$/, '')
   const call = python
@@ -127,7 +139,7 @@ const dropCallSite = (lineText, maskedLines, index, python) => {
   return { line: index + 1, column: indent, operator: 'drop-call', before, after: python ? 'pass' : `// ${before}` }
 }
 
-const sitesOnLine = (lineText, maskedLines, index, language) => {
+const sitesOnLine = (lineText: string, maskedLines: string[], index: number, language: Language) => {
   const masked = maskedLines[index]
   const sites = []
   for (const { operator, pattern, swap } of OPERATORS[language]) {
@@ -143,11 +155,11 @@ const sitesOnLine = (lineText, maskedLines, index, language) => {
   return sites.sort((a, b) => a.column - b.column)
 }
 
-export const languageOf = (file) => (/\.py$/i.test(file) ? 'python' : 'js')
+export const languageOf = (file: string): Language => (/\.py$/i.test(file) ? 'python' : 'js')
 
 // lines: 1-based line numbers, or null for every line. The limit is spread round-robin over lines,
 // so a long first line cannot use up the whole budget.
-export const generateMutants = (text, lines, language, { limit = Infinity } = {}) => {
+export const generateMutants = (text: string, lines: number[] | null, language: Language, { limit = Infinity }: { limit?: number } = {}) => {
   const lineTexts = text.split('\n').map((line) => line.replace(/\r$/, ''))
   const maskedLines = maskNonCode(text, language).split('\n')
   const wanted = lines ? [...new Set(lines)].filter((line) => line >= 1 && line <= lineTexts.length).sort((a, b) => a - b) : lineTexts.map((_, i) => i + 1)
@@ -166,7 +178,7 @@ export const generateMutants = (text, lines, language, { limit = Infinity } = {}
 }
 
 // Keeps the file's own line endings
-export const applyMutant = (text, mutant) => {
+export const applyMutant = (text: string, mutant: MutationSite) => {
   const lines = text.split('\n')
   const raw = lines[mutant.line - 1]
   const cr = raw.endsWith('\r') ? '\r' : ''
@@ -175,7 +187,7 @@ export const applyMutant = (text, mutant) => {
   return lines.join('\n')
 }
 
-export const parseLineRanges = (spec) => {
+export const parseLineRanges = (spec: string) => {
   const lines = []
   for (const part of spec.split(',').map((item) => item.trim()).filter(Boolean)) {
     const match = part.match(/^(\d+)(?:-(\d+))?$/)
@@ -188,7 +200,7 @@ export const parseLineRanges = (spec) => {
 }
 
 // New-side numbers of the added lines in a `git diff -U0` output
-export const addedLines = (diffText) => {
+export const addedLines = (diffText: string) => {
   const lines = []
   let current = 0
   for (const line of diffText.replace(/\r\n/g, '\n').split('\n')) {
@@ -199,8 +211,8 @@ export const addedLines = (diffText) => {
   return lines
 }
 
-const changedLines = (file, base) => {
-  const git = (args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 })
+const changedLines = (file: string, base: string) => {
+  const git = (args: string[]) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 })
   try {
     if (!git(['ls-files', '--', file]).trim()) return null
     return addedLines(git(['diff', '-U0', '--no-color', '--no-ext-diff', base, '--', file]))
@@ -213,17 +225,17 @@ const changedLines = (file, base) => {
 // A hard kill skips every exit and signal handler, so the original also waits on disk until it is put back
 const BACKUP_DIR = join(tmpdir(), 'haechi-mutation-check')
 
-const isAlive = (pid) => {
+const isAlive = (pid: number) => {
   try {
     process.kill(pid, 0)
     return true
   } catch (error) {
-    return error.code === 'EPERM'
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
   }
 }
 
 // Written to a temp name and renamed, so a kill during the write never leaves a half backup behind
-export const saveBackup = (file, original, dir = BACKUP_DIR) => {
+export const saveBackup = (file: string, original: Buffer, dir = BACKUP_DIR) => {
   mkdirSync(dir, { recursive: true })
   const path = resolve(file)
   const backup = join(dir, `${createHash('sha1').update(path).digest('hex')}.json`)
@@ -234,10 +246,10 @@ export const saveBackup = (file, original, dir = BACKUP_DIR) => {
 
 // Puts back the sources of runs that died before restoring them; a backup whose run is still alive is left alone
 export const recoverInterrupted = (dir = BACKUP_DIR) => {
-  const restored = []
+  const restored: string[] = []
   for (const name of existsSync(dir) ? readdirSync(dir).filter((entry) => entry.endsWith('.json')) : []) {
     const backup = join(dir, name)
-    const { pid, path, content } = JSON.parse(readFileSync(backup, 'utf8'))
+    const { pid, path, content } = JSON.parse(readFileSync(backup, 'utf8')) as { pid: number; path: string; content: string }
     if (isAlive(pid)) continue
     writeFileSync(path, Buffer.from(content, 'base64'))
     rmSync(backup)
@@ -246,37 +258,37 @@ export const recoverInterrupted = (dir = BACKUP_DIR) => {
   return restored
 }
 
-const killTree = (child) => {
+const killTree = (child: ChildProcess) => {
   if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
   else {
     try {
-      process.kill(-child.pid, 'SIGKILL')
+      process.kill(-child.pid!, 'SIGKILL')
     } catch {
       child.kill('SIGKILL')
     }
   }
 }
 
-let running = null
+let running: ChildProcess | null = null
 
-const runCommand = (command, timeoutMs) =>
-  new Promise((resolve) => {
+const runCommand = (command: string, timeoutMs: number) =>
+  new Promise<CommandResult>((resolve) => {
     // detached on POSIX makes the shell a process-group leader, so a timeout can kill the test runner under it too
     const child = spawn(command, { shell: true, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' })
     running = child
     let tail = ''
-    const keep = (chunk) => {
+    const keep = (chunk: Buffer | string) => {
       tail = (tail + chunk.toString()).slice(-4000)
     }
     child.stdout.on('data', keep)
     child.stderr.on('data', keep)
     let timedOut = false
-    let spawnError = null
+    let spawnError: string | null = null
     const timer = setTimeout(() => {
       timedOut = true
       killTree(child)
     }, timeoutMs)
-    const finish = (code, signal) => {
+    const finish = (code: number | null, signal: NodeJS.Signals | null) => {
       clearTimeout(timer)
       running = null
       resolve({ status: timedOut ? 'timeout' : code === 0 ? 'pass' : 'fail', output: tail, exitCode: code, signal, spawnError })
@@ -285,11 +297,11 @@ const runCommand = (command, timeoutMs) =>
     child.on('close', finish)
   })
 
-const STATUS = { pass: 'survived', fail: 'killed', timeout: 'timeout' }
+const STATUS: Record<CommandResult['status'], MutationResult['status']> = { pass: 'survived', fail: 'killed', timeout: 'timeout' }
 
-export const parseArgs = (argv) => {
-  const options = { tests: [], base: 'HEAD', limit: 20, timeout: 120, json: false }
-  const single = { '--file': 'file', '--test-cmd': 'testCmd', '--lines': 'lines', '--base': 'base', '--limit': 'limit', '--timeout': 'timeout' }
+export const parseArgs = (argv: string[]): MutationOptions => {
+  const options: MutationArguments = { tests: [], base: 'HEAD', limit: 20, timeout: 120, json: false }
+  const single: Record<string, 'file' | 'testCmd' | 'lines' | 'base' | 'limit' | 'timeout'> = { '--file': 'file', '--test-cmd': 'testCmd', '--lines': 'lines', '--base': 'base', '--limit': 'limit', '--timeout': 'timeout' }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--json') options.json = true
@@ -305,11 +317,11 @@ export const parseArgs = (argv) => {
   options.limit = Number(options.limit)
   options.timeout = Number(options.timeout)
   if (!(options.limit > 0) || !(options.timeout > 0)) throw new Error('--limit and --timeout must be positive numbers')
-  if (options.lines !== undefined) options.lines = parseLineRanges(options.lines)
-  return options
+  if (options.lines !== undefined) options.lines = parseLineRanges(options.lines as string)
+  return options as MutationOptions
 }
 
-const report = (result, json) => {
+const report = (result: Report, json: boolean) => {
   if (json) {
     console.log(JSON.stringify(result, null, 2))
     return
@@ -338,7 +350,7 @@ const main = async () => {
   try {
     options = parseArgs(process.argv.slice(2))
   } catch (error) {
-    console.error(`mutation-check: ${error.message}`)
+    console.error(`mutation-check: ${(error as Error).message}`)
     console.error('usage: node mutation-check.mjs --file <source> --test-cmd "<cmd with {tests}>" --tests <files...> [--lines a-b,…] [--base <rev>] [--limit 20] [--timeout 120] [--json]')
     process.exit(2)
   }
@@ -377,7 +389,7 @@ const main = async () => {
   process.on('exit', restore)
   process.on('SIGINT', abort)
   process.on('SIGTERM', abort)
-  const results = []
+  const results: MutationResult[] = []
   try {
     for (const mutant of mutants) {
       dirty = true

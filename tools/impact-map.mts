@@ -10,6 +10,10 @@ import { fileURLToPath } from 'node:url'
 
 import { changedFiles, grepWords, inRanges } from './sibling-path-map.mjs'
 
+import type { ChangedFiles, Grep, Language, LineRange } from './sibling-path-map.mjs'
+
+type TouchedSymbol = { name: string; kind: string; line: number }
+
 const JS_FILE = /\.([cm]?[jt]sx?|vue|svelte)$/i
 const PY_FILE = /\.py$/i
 
@@ -19,10 +23,10 @@ const JS_ARROW = /=\s*(?:async\s+)?(?:\(|function\b|[A-Za-z_$][\w$]*\s*=>)/
 const PY_DEF = /^(?:async\s+)?def\s+([A-Za-z_]\w*)/
 const PY_CLASS = /^class\s+([A-Za-z_]\w*)/
 
-const touches = (ranges, from, to) => ranges.some(([start, end]) => start <= to && end >= from)
+const touches = (ranges: LineRange[], from: number, to: number) => ranges.some(([start, end]) => start <= to && end >= from)
 
 // Last line (0-based) of a signature whose parameter list opens on line `from`, or `from` when there is none
-const signatureEnd = (lines, from, column) => {
+const signatureEnd = (lines: string[], from: number, column: number) => {
   let depth = 0
   let opened = false
   for (let index = from; index < lines.length; index++) {
@@ -38,7 +42,7 @@ const signatureEnd = (lines, from, column) => {
   return from
 }
 
-const exportListNames = (lines, from, ranges) => {
+const exportListNames = (lines: string[], from: number, ranges: LineRange[]) => {
   const names = []
   for (let index = from; index < lines.length; index++) {
     const line = index === from ? lines[index].slice(lines[index].indexOf('{') + 1) : lines[index]
@@ -56,10 +60,10 @@ const exportListNames = (lines, from, ranges) => {
 }
 
 // ranges: changed new-side line ranges [[start, end]] (1-based). Returns [{ name, kind, line }].
-export const findTouchedSymbols = (text, ranges, language = 'js') => {
+export const findTouchedSymbols = (text: string, ranges: LineRange[], language: Language = 'js') => {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
-  const symbols = []
-  const add = (name, kind, index) => {
+  const symbols: TouchedSymbol[] = []
+  const add = (name: string, kind: string, index: number) => {
     if (!symbols.some((symbol) => symbol.name === name)) symbols.push({ name, kind, line: index + 1 })
   }
   for (let index = 0; index < lines.length; index++) {
@@ -94,16 +98,16 @@ export const findTouchedSymbols = (text, ranges, language = 'js') => {
   return symbols
 }
 
-export const classifyHit = (text) =>
+export const classifyHit = (text: string) =>
   /^\s*import\b|\bimport\s*\(|\brequire\s*\(|^\s*from\s+[\w.]+\s+import\b|^\s*export\s.*\bfrom\s+['"]/.test(text) ? 'import' : 'use'
 
-export const impactMap = (files, readText, grep) => {
-  const symbols = []
+export const impactMap = (files: ChangedFiles, readText: (path: string) => string, grep: Grep) => {
+  const symbols: (TouchedSymbol & { file: string; language: Language })[] = []
   for (const [path, file] of files) {
     const language = PY_FILE.test(path) ? 'python' : JS_FILE.test(path) ? 'js' : null
     const text = language && readText(path)
     if (!text) continue
-    for (const symbol of findTouchedSymbols(text, file.ranges, language)) symbols.push({ ...symbol, file: path, language })
+    for (const symbol of findTouchedSymbols(text, file.ranges, language!)) symbols.push({ ...symbol, file: path, language })
   }
   const hits = grep([...new Set(symbols.map((symbol) => symbol.name))])
   return symbols.map(({ name, file, kind, language }) => ({
@@ -112,7 +116,7 @@ export const impactMap = (files, readText, grep) => {
     kind,
     consumers: (hits.get(name) ?? [])
       .filter((hit) => hit.path !== file && (language === 'python' ? PY_FILE : JS_FILE).test(hit.path))
-      .filter((hit) => !(files.has(hit.path) && inRanges(files.get(hit.path).ranges, hit.line)))
+      .filter((hit) => !(files.has(hit.path) && inRanges(files.get(hit.path)!.ranges, hit.line)))
       .map((hit) => ({ ...hit, type: classifyHit(hit.text) })),
   }))
 }
@@ -130,7 +134,7 @@ const main = () => {
   const paths = args
     .filter((arg, index) => arg !== '--json' && index !== baseIndex && index !== baseIndex + 1)
     .map((arg) => relative(root, resolve(arg)).replace(/\\/g, '/') || '.')
-  const readText = (path) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : '')
+  const readText = (path: string) => (existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : '')
   const symbols = impactMap(changedFiles(root, base, paths), readText, (names) => grepWords(root, names))
   if (json) {
     console.log(JSON.stringify({ symbols }, null, 2))

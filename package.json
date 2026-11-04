@@ -3,10 +3,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --no-warnings build/build.mjs",
-    "check": "node --no-warnings build/build.mjs --check",
+    "build": "npm run typecheck && node --no-warnings build/build.mjs",
+    "check": "npm run typecheck && node --no-warnings build/build.mjs --check",
     "test": "node --test \"test/*.test.mjs\"",
-    "scan": "node scripts/scan-public.mjs"
+    "scan": "node scripts/scan-public.mjs",
+    "typecheck": "tsc --noEmit"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
 }

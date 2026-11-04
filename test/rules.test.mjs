@@ -15,7 +15,7 @@ import {
   reminderBlock,
   render,
   spawnAppendix,
-} from '../hooks/rules.ts'
+} from '../dist/claude/hooks/rules.mjs'
 
 const sourceDir = join(import.meta.dirname, '..')
 const template = readFileSync(join(sourceDir, 'hooks', 'rules.md'), 'utf8')

@@ -4,9 +4,9 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
-import { sha256, verifyEvaluation } from '../tools/document-quality-eval.mjs'
+import { sha256, verifyEvaluation } from '../dist/claude/tools/document-quality-eval.mjs'
 
-const tool = join(import.meta.dirname, '../tools/document-quality-eval.mjs')
+const tool = join(import.meta.dirname, '../dist/claude/tools/document-quality-eval.mjs')
 const TYPES = ['fact', 'change', 'bug', 'retirement', 'performance', 'handoff']
 const write = (dir, path, data) => {
   mkdirSync(dirname(join(dir, path)), { recursive: true })

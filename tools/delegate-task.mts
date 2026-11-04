@@ -4,42 +4,54 @@ import { mkdirSync, readFileSync, realpathSync, rmdirSync, unlinkSync, writeFile
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+export interface Brief {
+  playbook: string; step: string; playbookSha256?: string; objective: string; context: Record<string, string>
+  writeScope: 'read-only' | 'scoped'; ownedPaths: string[]; artifactPaths: string[]; constraints: string[]; completion: string[]
+}
+interface Contract {
+  skills: string[]; principles: string[]; checks: string[]; writeScope: Brief['writeScope']; contextRequired: string[]; completion: string[]
+}
+interface Guidance { path: string; section?: string; sourceSha256: string; text: string }
+export interface Packet {
+  version: number; brief: Brief; contract: Contract; playbookSource: { path: string; sha256: string }; assets: Guidance[]; packetSha256: string
+}
+
 const limit = 128 * 1024
-const digest = value => createHash('sha256').update(value).digest('hex')
-const canonical = value => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
+const digest = (value: import('node:crypto').BinaryLike) => createHash('sha256').update(value).digest('hex')
+const canonical = (value: unknown) => JSON.stringify(value, (_, v) => v && typeof v === 'object' && !Array.isArray(v)
   ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v)
-const nonempty = value => typeof value === 'string' && value.trim().length > 0
+const nonempty = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
 const names = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const list = (value, key, allowEmpty = false) => {
+const list = (value: unknown, key: string, allowEmpty = false) => {
   if (!Array.isArray(value) || (!allowEmpty && !value.length) || value.some(v => !nonempty(v))) throw new Error(`${key}: expected ${allowEmpty ? 'an' : 'a nonempty'} array of nonempty strings`)
   if (new Set(value).size !== value.length) throw new Error(`${key}: duplicate entries`)
 }
-const pathInRoot = (root, path) => {
+const pathInRoot = (root: string, path: string) => {
   const real = realpathSync(resolve(root, path)), rel = relative(root, real)
   if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error(`Outside plugin root: ${path}`)
   return real
 }
-const object = (value, label) => {
+const object = (value: unknown, label: string) => {
   if (!value || Array.isArray(value) || typeof value !== 'object') throw new Error(`${label}: expected object`)
 }
-const allowedKeys = (value, keys, label) => {
+const allowedKeys = (value: unknown, keys: string[], label: string) => {
   object(value, label)
-  for (const key of Object.keys(value)) if (!keys.includes(key)) throw new Error(`${label}: unknown field ${key}`)
+  for (const key of Object.keys(value as object)) if (!keys.includes(key)) throw new Error(`${label}: unknown field ${key}`)
 }
-const bounded = text => {
+const bounded = (text: string) => {
   if (Buffer.byteLength(text) > limit) throw new Error('Packet exceeds 128 KiB; narrow the task instead of truncating instructions')
   return text
 }
 
-export function validateBrief(brief) {
+export function validateBrief(brief: Brief) {
   allowedKeys(brief, ['playbook','step','playbookSha256','objective','context','writeScope','ownedPaths','artifactPaths','constraints','completion'], 'brief')
-  for (const key of ['playbook','step']) if (!nonempty(brief[key]) || !names.test(brief[key])) throw new Error(`Invalid ${key}`)
-  if (Object.hasOwn(brief, 'playbookSha256') && !/^[a-f0-9]{64}$/.test(brief.playbookSha256)) throw new Error('Invalid playbookSha256')
+  for (const key of ['playbook','step'] as const) if (!nonempty(brief[key]) || !names.test(brief[key])) throw new Error(`Invalid ${key}`)
+  if (Object.hasOwn(brief, 'playbookSha256') && !/^[a-f0-9]{64}$/.test(brief.playbookSha256!)) throw new Error('Invalid playbookSha256')
   if (!nonempty(brief.objective)) throw new Error('objective is required')
   object(brief.context, 'context')
   if (!Object.keys(brief.context).length || Object.values(brief.context).some(v => !nonempty(v))) throw new Error('context: nonempty named evidence is required')
-  for (const key of ['constraints','completion']) list(brief[key], key)
-  for (const key of ['ownedPaths','artifactPaths']) list(brief[key], key, true)
+  for (const key of ['constraints','completion'] as const) list(brief[key], key)
+  for (const key of ['ownedPaths','artifactPaths'] as const) list(brief[key], key, true)
   if (!['read-only','scoped'].includes(brief.writeScope)) throw new Error('writeScope must be read-only or scoped')
   if ((brief.writeScope === 'read-only') !== (brief.ownedPaths.length === 0)) throw new Error('ownedPaths must be empty for read-only and nonempty for scoped work')
   for (const path of brief.ownedPaths) {
@@ -50,26 +62,26 @@ export function validateBrief(brief) {
   }
 }
 
-function loadContract(pluginRoot, playbookName, step) {
+function loadContract(pluginRoot: string, playbookName: string, step: string) {
   if (!nonempty(playbookName) || !names.test(playbookName) || !nonempty(step) || !names.test(step)) throw new Error('Invalid playbook or step')
   const root = realpathSync(pluginRoot)
   const playbookPath = `skills/${playbookName}/SKILL.md`
   const playbook = readFileSync(pathInRoot(root, playbookPath), 'utf8')
   const blocks = [...playbook.matchAll(/^```haechi-handoffs\r?\n([\s\S]*?)^```\s*$/gm)]
   if (blocks.length !== 1) throw new Error(`${playbookPath}: expected one haechi-handoffs block`)
-  const contracts = JSON.parse(blocks[0][1])
+  const contracts = JSON.parse(blocks[0][1]) as Record<string, Contract>
   object(contracts, 'contracts')
   if (!Object.hasOwn(contracts, step)) throw new Error(`Unknown playbook step: ${step}; available: ${Object.keys(contracts).join(', ')}`)
   const contract = contracts[step]
   allowedKeys(contract, ['skills','principles','checks','writeScope','contextRequired','completion'], 'contract')
-  for (const key of ['skills','principles','checks','contextRequired','completion']) list(contract[key], key, ['principles','checks'].includes(key))
+  for (const key of ['skills','principles','checks','contextRequired','completion'] as const) list(contract[key], key, ['principles','checks'].includes(key))
   if (!['read-only','scoped'].includes(contract.writeScope)) throw new Error('Invalid contract writeScope')
-  for (const key of ['skills','principles','checks']) for (const name of contract[key]) if (!names.test(name)) throw new Error(`Invalid ${key} reference: ${name}`)
+  for (const key of ['skills','principles','checks'] as const) for (const name of contract[key]) if (!names.test(name)) throw new Error(`Invalid ${key} reference: ${name}`)
   return { root, contract, playbookSource: { path: playbookPath, sha256: digest(playbook) } }
 }
 
 // Coordinator view: task input and acceptance contract, never worker procedure bodies.
-export function describeStep(pluginRoot, playbook, step) {
+export function describeStep(pluginRoot: string, playbook: string, step: string) {
   const { contract, playbookSource } = loadContract(pluginRoot, playbook, step)
   return {
     status: 'input-required', playbookSource,
@@ -81,14 +93,14 @@ export function describeStep(pluginRoot, playbook, step) {
   }
 }
 
-export function preparePacket(pluginRoot, brief) {
+export function preparePacket(pluginRoot: string, brief: Brief): Packet {
   validateBrief(brief)
   const { root, contract, playbookSource } = loadContract(pluginRoot, brief.playbook, brief.step)
   if (brief.playbookSha256 && brief.playbookSha256 !== playbookSource.sha256) throw new Error('Playbook changed since input form; describe the step again and review the changed contract')
   if (contract.writeScope !== brief.writeScope) throw new Error('writeScope contradicts the playbook step')
   for (const field of contract.contextRequired) if (!Object.hasOwn(brief.context, field) || !nonempty(brief.context[field])) throw new Error(`Missing playbook context: ${field}`)
-  const assets = [], seen = new Set()
-  const add = (path, section) => {
+  const assets: Guidance[] = [], seen = new Set<string>()
+  const add = (path: string, section?: string) => {
     const key = `${path}${section ? `#${section}` : ''}`
     if (seen.has(key)) return
     const source = readFileSync(pathInRoot(root, path), 'utf8')
@@ -102,7 +114,7 @@ export function preparePacket(pluginRoot, brief) {
     assets.push({ path, ...(section ? { section } : {}), sourceSha256: digest(source), text })
     seen.add(key)
   }
-  for (const key of ['skills','principles','checks']) for (const name of contract[key]) {
+  for (const key of ['skills','principles','checks'] as const) for (const name of contract[key]) {
     add(key === 'skills' ? `skills/${name}/SKILL.md` : `principles/${name}.md`, key === 'skills' ? undefined : key === 'principles' ? 'Do' : 'Check')
   }
   const packet = { version: 1, brief, contract, playbookSource, assets }
@@ -111,11 +123,11 @@ export function preparePacket(pluginRoot, brief) {
   return result
 }
 
-export function renderPacket(pluginRoot, packet) {
+export function renderPacket(pluginRoot: string, packet: Packet) {
   const expected = preparePacket(pluginRoot, packet.brief)
   if (canonical(expected) !== canonical(packet)) throw new Error('Packet does not match its brief and current source; rebuild and review before dispatch')
   const { brief, contract } = packet
-  const bullets = values => values.length ? values.map(v => `- ${v}`).join('\n') : '(none)'
+  const bullets = (values: string[]) => values.length ? values.map(v => `- ${v}`).join('\n') : '(none)'
   return bounded([
     `# Delegated task\n\nPacket: ${packet.packetSha256}\nPlaybook step: ${brief.playbook}/${brief.step}`,
     `## Objective\n${brief.objective}`,
@@ -132,7 +144,7 @@ export function renderPacket(pluginRoot, packet) {
 
 // The host reads message.txt directly for dispatch. stdout is only the coordinator receipt.
 // Existing prepare/render callers retain their exact packet and message formats.
-export function assembleTask(pluginRoot, brief, outputDirectory) {
+export function assembleTask(pluginRoot: string, brief: Brief, outputDirectory: string) {
   if (!nonempty(outputDirectory)) throw new Error('A new task output directory is required')
   const packet = preparePacket(pluginRoot, brief), message = renderPacket(pluginRoot, packet)
   const directory = resolve(outputDirectory)
@@ -167,10 +179,10 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
     else {
       if (!['describe','assemble','prepare','render'].includes(mode) || !root || !input || extra.length || Boolean(output) !== ['describe','assemble'].includes(mode)) throw new Error(usage)
       const value = mode === 'describe' ? input : JSON.parse(readFileSync(input, 'utf8'))
-      const result = mode === 'describe' ? describeStep(root, value, output)
-        : mode === 'assemble' ? assembleTask(root, value, output)
+      const result = mode === 'describe' ? describeStep(root, value, output!)
+        : mode === 'assemble' ? assembleTask(root, value, output!)
         : mode === 'prepare' ? preparePacket(root, value) : renderPacket(root, value)
       process.stdout.write(typeof result === 'string' ? result : JSON.stringify(result, null, 2) + '\n')
     }
-  } catch (error) { process.stderr.write(`${error.message}\n`); process.exitCode = 1 }
+  } catch (error) { process.stderr.write(`${(error as Error).message}\n`); process.exitCode = 1 }
 }
