@@ -13,7 +13,7 @@ Use the reader's language, and start with the answer or the most useful concrete
 
 ## A — Help choose
 
-Use when the reader must choose between meaningful alternatives. State the recommendation and the condition that makes it appropriate. Compare options on the same decision-relevant axes, including their costs or drawbacks. Mention the quickest approach and the more fundamental remedy when the distinction affects the decision; they can be the same option. Do not invent an extra option or assume a larger redesign is more advanced.
+Use when the reader must choose between meaningful alternatives. State the recommendation and the condition that makes it appropriate. Compare options on the same decision-relevant axes, including their costs or drawbacks. Explain differences in effort and coverage when they affect the decision. For bug fixes, use the bug playbook's **Choosing where to fix** guidance: describe the concrete change location, covered behavior, estimated effort, remaining exposure, and persisted-data or behavior changes. Distinguish fixing the cause from changing data representation or ownership instead of grouping both under "fundamental fix." Do not invent an extra option or assume a larger redesign is more advanced.
 
 Separate supplied measurements from estimates. If speed, cost or the root cause is unknown, explain what is unknown and make the recommendation conditional on the known priority. Do not manufacture numbers, a winning benchmark or a proven root fix to fill the pattern. Name a next check only when it could change the decision.
 
