@@ -128,7 +128,7 @@ Edit the root source folders. The installed plugins in `dist/` are generated fro
 | [build/](build/) | Generates both platform distributions. |
 | [dist/claude/](dist/claude/), [dist/codex/](dist/codex/) | Generated plugins that users install. |
 | [test/](test/) | Tests for the tools, hooks and build. |
-| [docs/](docs/), [examples/](examples/) | Design notes, verification guides and runnable examples. |
+| [docs/](docs/) | Design notes and verification guides. |
 
 Use the Node.js version in [CI](.github/workflows/ci.yml) when building the distributions. After editing source:
 

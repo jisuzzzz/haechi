@@ -41,13 +41,15 @@ The verifier reads test-step summaries from stdout and stderr. It recognizes sta
 
 Exit 2 identifies a gap in the tool's evidence; it is not proof that the implementation is wrong. Inspect the gap and obtain a focused check of the required behavior. An unrelated skip can be explained, but cannot count as proof; do not enable every optional test just to satisfy the parser. No-check changes explicitly report that no behavior tests ran. Even exit 0 establishes only the selected checks: the main agent must inspect assertions, acceptance coverage and validity for the final change before declaring task success.
 
-## FastAPI and MySQL
+## Test databases
 
-The [example](../examples/fastapi-mysql/README.md) contains an API, two HTTP assertions against MySQL, and a source-to-test map. It uses synthetic rows in a connection-local temporary table. No existing table is reset.
+The standalone FastAPI/MySQL example was retired on 2026-11-04. Python detection, source-to-test mapping and test-result checks remain supported. Focused regression fixtures in [`detect.test.mjs`](../test/detect.test.mjs) and [`verify-default.test.mjs`](../test/verify-default.test.mjs) cover those behaviors.
 
 The repository owns its database lifecycle. Setup identifies how to prepare services and environment variables, but the default verifier only runs checks. Keep credentials in the environment. Record migration and test database rules in the repository's existing instructions. A missing database is a failed or unverified check, not a skipped test reported as success.
 
-## Validation record
+## Historical database validation
+
+The following results predate retirement of the standalone example. They record the original live database check, not a currently runnable example.
 
 On 2026-10-29, the example ran on Python 3.12 with FastAPI 0.121.0, PyMySQL 1.1.2, pytest 8.4.2 and MySQL 8.3.0 in a new temporary data directory. The command was `node <haechi-tools>/verify-default.mjs app/main.py` with the example virtual environment active and its MySQL environment variables set.
 
@@ -60,4 +62,4 @@ On 2026-10-29, the example ran on Python 3.12 with FastAPI 0.121.0, PyMySQL 1.1.
 
 The dependency stack emitted one Starlette/AnyIO deprecation warning. It did not prevent either test from running. No existing database or external service was used. Setup command detection was also exercised against the copied example; a full team setup still needs real Git-host and forbidden-command decisions.
 
-See the [implementation spec](python-backend-spec.md) for acceptance criteria. The example is deliberately small; a real team's async sessions, migration tooling and CI service setup still need validation when an application repository becomes available.
+See the [implementation spec](python-backend-spec.md) for acceptance criteria. A real team's async sessions, migration tooling and CI service setup still need validation in an application repository.
