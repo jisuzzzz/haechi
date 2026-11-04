@@ -35,7 +35,7 @@ Read `git diff <base>...HEAD` where the log and stat are not enough to describe 
 - Do not scan merged PR/MR history to infer a body format unless the user asks to match previous requests. Missing format settings do not require setup.
 - Group changes by module or area, not by file. Example: one bullet group for `src/orders/` and one for `src/api/orders.ts`, each bullet one change.
 - Closing keyword: if the branch name, a commit or the conversation names an issue the change resolves, add `Closes #12`. Partly addresses it: `Related to #12`.
-- Run /haechi:plain on the body.
+- Apply the common writing rules to the body; consult the [clear-writing principle](../../principles/clear-writing.md) as needed.
 - Append the attribution footer the environment asks for, if any.
 
 ## 3. Before creating

@@ -1,17 +1,19 @@
 ---
 name: preview
-description: Shows UI ideas fast as a throwaway one-file HTML prototype with adaptable presentation and fake data, so the user can compare screens, animation and interaction before the real build; uses an illustrative widget or the real app only when that fits better. Use for UI design or appearance changes, feedback on generated screens, mockups, visual alternatives, and animation or interaction changes, even when the user does not name this skill.
+description: Use before implementing new or changed screens, components, layouts, visual styles, animations or user interactions, even without an explicit preview request. Also use for mockups, visual alternatives and feedback on generated screens. Creates an interactive proposal to inspect the intended appearance and behavior before implementation.
 ---
 
 # UI preview
 
-Run this skill for requests to design or change visible UI, including the preview shell or generator itself, even without an explicit preview command. Show a rendered, interactive proposal before treating an appearance change as complete; a code diff or prose description alone is insufficient. Feature and spec are not prerequisites. A preview does not require a saved spec or a new approval of settled requirements.
+Run this skill for requests to design or change visible UI or user interactions, including the preview shell or generator itself, even without an explicit preview command. Show a rendered, interactive proposal before implementing the UI change; a code diff or prose description alone is insufficient. Feature and spec are not prerequisites. A preview does not require a saved spec or a new approval of settled requirements.
 
 The goal is speed: the user sees and touches the idea before anyone writes product code. Preview code is disposable.
 
 ## Steps
 
 1. **Identify the behavior.** Read the user's request, supplied references and the relevant screen in the application. Identify the screens, states and interactions the preview must show, and what the variants differ in. Decide whether the subject is a whole screen or a component before choosing its dimensions.
+   Present connected elements together in one interactive preview. Let the user start an interaction on the requested component, follow its state transitions and inspect the immediate visible result, including dismissal or return when applicable. For example, hover a row, move into its menu, select an item and see the result on the row.
+   Parent components and surrounding screens supply only the context needed to understand and operate that behavior; do not expand into their unrelated behavior or redesign. Simulate external effects such as server writes with sample data. Separate state views may supplement the connected flow, but must not replace it.
 2. **Pick the medium.** Name the medium in one line and proceed; ask only when the user's words point both ways.
    - **Throwaway prototype (default).** One self-contained HTML file with a lightweight comparison shell, outside the repository, with fake data. It opens in a browser without a server. Use it for layout, animation and interaction choices.
    - **Illustrative widget.** A static or lightly interactive picture rendered inline. Use it when the user asks for one or a still image answers the question. Do not pick it to save effort when motion or interaction is the point.
@@ -25,7 +27,7 @@ The goal is speed: the user sees and touches the idea before anyone writes produ
    - Choose the visual direction from the user’s brief and application references. Do not carry the shell’s typography, colors or framing into the product UI by default, or reproduce an unrelated design system unless requested. When alternatives concern visual direction, vary hierarchy, composition, density or typography meaningfully; for a narrow behavior comparison, keep the surrounding design consistent.
    - Spend no time on architecture, tests, error handling or repository conventions. Plain DOM and CSS are enough; copy markup, colors or tokens from the application when that gets closer to the real look faster.
    - Use synthetic fake data, just enough to show the states. No real records.
-   - Open the file in a browser and check that every variant renders in every state and its interactions run. Give the user the file path only after that check.
+   - Open the file in a browser and check that every variant renders in every state. Exercise each relevant connected flow from trigger through transitions to its immediate result, rather than checking only isolated states. Give the user the file path only after that check.
 
    For a running-application preview, start its development server, check the requested state in a real render, and provide only URLs whose content you checked. Separate variants there may need separate worktrees: record the source branch used for each variant, run configured setup, use free ports and avoid `devServer.forbiddenPorts`.
 

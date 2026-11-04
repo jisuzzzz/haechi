@@ -7,7 +7,7 @@ description: Shapes conversational answers as A (choices), B (problem and remedy
 
 Choose the pattern from what the reader needs to decide or understand. Then include its relevant information below. These are answer obligations, not a sequence for doing the work: they require no approval, tool call, agent, investigation or extra deliverable by themselves.
 
-An explicit user format or artifact template takes precedence. A simple fact or status can be one sentence. For a cross-team document, use the document skill's existing Parts and template; A/B/C can clarify a passage but must not add a second outline. The plain skill remains the editing pass for lasting text.
+An explicit user format or artifact template takes precedence. A simple fact or status can be one sentence. For a cross-team document, use the document skill's existing Parts and template; A/B/C can clarify a passage but must not add a second outline. The common writing rules and the [clear-writing principle](../../principles/clear-writing.md) govern expression; this skill governs the content needed to answer the question.
 
 Use the reader's language, and start with the answer or the most useful concrete case. A/B/C are internal names: do not print those labels, empty sections or a format-selection explanation unless asked. Paragraphs, lists and tables are all available. Use a table when comparable options or states are easier to scan; keep prose out of code fences. A mixed question can combine patterns, without repeating the same evidence or conclusion.
 
@@ -33,4 +33,4 @@ Use supplied values when available. Otherwise label invented values or situation
 
 Before sending, check that the reader can recover the requested decision, explanation or behavior from the answer. Preserve important conditions, units and scope; distinguish observation, hypothesis, proposal, agreement and verification. Give actual source locations when available and useful, without inventing citations or implying a source was inspected. Keep responsibility and the next action clear where relevant. Make subjects, actions and terms understandable. This is a content check, not a demand to show a checklist, attach a report or run more work.
 
-Read the answer as a whole before trimming. Keep the explanation that lets the reader follow the judgment, including evidence and uncertainty. Cut or merge a repeated passage when rereading it adds effort without helping understanding or a decision; prefer a local edit to restructuring the answer. A brief recap or reminder can help the reader follow a long explanation. A minor new detail does not by itself justify restating the surrounding material. Judge the result by its flow and ease of reading, not by length or whether every fact appears only once.
+Check that the explanation still supports the reader's decision or understanding after editing, including the relevant evidence and uncertainty. Apply the common writing rules to its expression.
