@@ -1,9 +1,11 @@
 ---
 name: mutation-check
-description: Checks whether tests catch small deliberate breakages in changed lines, and lists the breakages they miss. Use when writing or hardening tests, or when a review asks whether the tests are strong enough.
+description: Use when asked to strengthen tests or check their ability to detect defects, or when a specific concern suggests an incorrect implementation could still pass. Introduces small deliberate defects in relevant code and checks which ones the tests detect. Writing a test alone does not require a mutation check.
 ---
 
 # Mutation check
+
+Choose the relevant code and tests from the suspected coverage gap, such as a boundary condition, branch or failure path. Before a refactor, use it when the existing tests' ability to protect behavior is uncertain, regardless of change size. A reproduced bug that fails before the fix and passes after does not by itself require another mutation run. Follow explicit mutation requirements in assigned attack-test or test-hardening work; ordinary test writing does not require this extra step.
 
 Run `node <tools>/mutation-check.mjs --file <source> --tests <test files> --test-cmd "<single-test command with {tests}>" [--base <base>] [--limit 20]` (the tools folder is in the task's "[haechi] Repo facts" block, or two levels above this skill's folder; the single-test command is in the same block). Add `--json` for machine-readable output.
 

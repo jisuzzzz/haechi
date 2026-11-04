@@ -15,11 +15,11 @@ A spec answers **what and why**: problem, goal, scope, expected behavior, edge-c
 
 1. **Establish the requirements.** Identify the intended outcome, scope, behavior that must stay unchanged and acceptance criteria. A brief conversation summary is enough unless a saved spec is requested or useful. Fixed labels and tables are optional.
 2. **Resolve consequential decisions.** Read the code, docs and prior conversation first. Batch the questions that remain and explain meaningful alternatives. Reuse accepted decisions without asking again. Continue work that does not depend on an unanswered question.
-3. **Visual previews.** When the user explicitly asks for a UI preview or mockup, run /haechi:preview. Also use it when visual variants would resolve a consequential layout or interaction choice. Reuse the user's existing preference; a preview does not require a saved spec.
+3. **Visual previews.** For new or changed visible UI or user interactions, run /haechi:preview before implementation, even without an explicit preview request. Also use it for requested mockups or visual variants that clarify a consequential choice. Reuse the user's existing preference; a preview does not require a saved spec.
 4. **Optional saved spec.** Write Markdown directly using the repository's document convention. Include the problem, goal, scope, expected behavior and acceptance criteria; add edge cases, constraints, open questions and decisions when relevant. Keep one editable document and omit empty sections.
    - Each acceptance criterion must be checkable: a test name, a screen state or an observable response.
    - Use `Draft` for proposed decisions and `Approved` only when the conversation establishes the user's acceptance. Do not require another approval for an accurate record of already accepted requirements.
-5. **Review the wording.** For a saved draft, use /haechi:plain before showing it. Apply edits directly to the Markdown document.
+5. **Review the wording.** For a saved draft, apply the common writing rules before showing it; consult the [clear-writing principle](../../principles/clear-writing.md) as needed. Apply edits directly to the Markdown document.
 6. **Proceed on existing authorization.** Ask only about consequential unresolved decisions or actions outside the user's authorization. Do not add a formal approval round merely because a document was written. When the user explicitly requests a review before implementation, wait for that review.
 7. **Plan.** Choose the implementation order and delegation. Summarize it when useful; it needs no separate approval.
 

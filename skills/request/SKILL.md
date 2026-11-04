@@ -1,6 +1,6 @@
 ---
 name: request
-description: Drafts a request to another team for an API, field or parameter that does not exist yet, saves it in the user's notes folder, and keeps the same file up to date as answers come in. Use for /haechi:request, when a feature needs something another team owns and the user says to request it, or when an answer to an existing request arrives.
+description: Use to write or revise a change request, fact question or bug report for another team, or to incorporate answers into an existing request. Keeps replies, decisions and unresolved questions in the same document. Honors the user's format and destination; defaults to their notes folder. Writing does not authorize sending.
 ---
 
 # Request to another team
@@ -11,7 +11,7 @@ Write one document that the other team can answer without this chat. Use [the do
 
 ## Draft
 
-1. **Check what exists first.** Read the other side's API schema, docs or code when you can reach them, and confirm the field really is missing. If that side is inaccessible, state what remains unconfirmed. Put detailed evidence in endnotes, with a reference beside the supported claim.
+1. **Check what exists first.** Read the other side's API schema, docs or code when you can reach them. Establish what is missing, which fact needs confirmation or which behavior was observed, as appropriate to the request. If that side is inaccessible, state what remains unconfirmed. Put detailed evidence in endnotes, with a reference beside the supported claim.
 2. **Choose and fill the shared template** in `<notesDir>/requests/YYYY-MM-DD-<slug>.md`. A new API or field normally uses `change`; an unanswered fact uses `fact`; an observed error uses `bug`. Apply the conditional Parts that the case needs. Start with the current need; no old document is required. Use summary, linked TOC, numbered sections and the human review record from the document skill. Use tracking IDs or a table only when they help this particular request.
 3. **Make each item answerable without a meeting.** State what is needed, why it matters, its priority and current status, then give:
    - the expected contract: response shape, field meanings, nullability and an example payload;

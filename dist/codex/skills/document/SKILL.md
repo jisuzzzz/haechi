@@ -46,7 +46,7 @@ Every document needs a summary, its current identity/status, an answerable reque
 
 When a real reply arrives, update the same document's current understanding, open questions and next action. Add decisions or corrections only when they actually occur. Preserve a reply's reported implementation, deployment and verification within its stated scope; it is not this author's independent verification. Substantive edits can make earlier review stale; preserve its original scope/version and identify what needs review again.
 
-Run `/haechi:plain` on the completed prose. After editing Korean or English Markdown, regenerate navigation and validate used footnotes (see the writing guide for supported headings and other languages):
+Apply the common writing rules to the completed prose; consult the [clear-writing principle](../../principles/clear-writing.md) as needed. After editing Korean or English Markdown, regenerate navigation and validate used footnotes (see the writing guide for supported headings and other languages):
 
 ```sh
 node "${PLUGIN_ROOT}/tools/document-template.mjs" --format /chosen/path/request.md
