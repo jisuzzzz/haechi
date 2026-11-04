@@ -5,7 +5,7 @@ description: Coordinates independent units of work when separate context or para
 
 # Sweep
 
-The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
 
 The main session runs this, because agents cannot ask the user, start other agents or commit. The calling playbook decides what one unit's work is and in what order units go; this procedure handles the rest. Delegation and DONE rules are in the session rules.
 

@@ -56,7 +56,7 @@ You can also describe a task in natural language and let the agent select a play
 
 - **Repository facts in the session.** Hooks supply the configured verification commands, forbidden commands and task guidance, including after compaction.
 - **A workflow for the task.** Bugs need failing-before and passing-after evidence. Features need checks for their acceptance criteria. Reviews produce findings without editing code.
-- **Delegation when it helps.** The main session runs the playbook and delegates a bounded step to one generic worker definition. The playbook names required skills, principles, context and evidence; a checked packet carries their bodies. Independent reviews use separate executions, and the main session checks the results.
+- **Delegation when it helps.** The main session delegates a bounded playbook step to a repository-required agent or the plugin's generic worker. Either receives the same checked packet of required skills, principles, context and evidence. Independent reviews use separate executions, and the main session checks the results.
 - **Evidence for completion.** The agent checks each required outcome against actual results on the final change. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
 
 Settled requirements can stay in the conversation. A separate spec helps when a consequential decision is unresolved or you ask for one. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.

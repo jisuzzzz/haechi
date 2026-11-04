@@ -34,7 +34,7 @@ State observations, hypotheses, proposals and confirmed decisions accurately. Th
 
 ## Evidence and screenshots
 
-When a screen or interaction is needed to judge the request, follow [the shared capture and attachment procedure](references/capture.md). Reuse the repository's browser helpers (`screenCheck.helpers`) or a temporary Playwright script, as the existing screen checkers do. A generic screenshot does not require a design reference or a BEFORE server; do not invent those inputs to run a comparison agent.
+When a screen or interaction is needed to judge the request, follow [the shared capture and attachment procedure](references/capture.md), including its selection of available tools by evidence purpose. Use a connected browser's supported capture/export capabilities or the repository helpers and temporary Playwright fallback as appropriate. A generic screenshot does not require a design reference or a BEFORE server; do not invent those inputs to run a comparison agent.
 
 Keep the original capture, create a separate PNG with numbered borders using `screenshot-annotate.mjs`, then attach both with numbered explanations and capture conditions. Use the optional GIF branch only when motion or ordering matters. With no usable access, record missing evidence and the owner/conditions needed to collect it. Never replace a missing capture with a generated screen presented as real evidence.
 

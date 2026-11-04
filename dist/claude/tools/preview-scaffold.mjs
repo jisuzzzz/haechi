@@ -1,16 +1,19 @@
-// Writes a throwaway UI prototype as one self-contained HTML file in a fixed layout: a top bar with variant and
+// Writes a throwaway UI prototype as one self-contained HTML file with an adaptable comparison shell: variant and
 // state switchers and a side-by-side toggle, then an edit section with fake data per state and one render
-// function per variant. The caller fills the edit section and opens the file in a browser; no server is needed.
+// function per variant. Adapt the shell to the brief while keeping its controls functional.
+// The caller fills the edit section and opens the file in a browser; no server is needed.
 // Usage: node preview-scaffold.mjs --out <file.html> --title "<title>" [--variants "A,B"] [--states "Empty,Loaded"]
 // It refuses to overwrite a file or to write inside a git work tree, so prototypes never mix with application code.
 // Exit 0 on success (prints the file path), 2 on bad arguments.
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 
 
+
+const previewFont = readFileSync(new URL('../skills/preview/assets/PretendardVariable.woff2', import.meta.url)).toString('base64')
 
 const USAGE = 'Usage: node preview-scaffold.mjs --out <file.html> --title "<title>" [--variants "A,B"] [--states "Empty,Loaded"]'
 
@@ -55,30 +58,39 @@ export const buildHtml = ({ title, variants, states }                )         =
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Preview · ${escapeHtml(title)}</title>
 <style>
-  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: #f4f4f5; color: #18181b; }
-  .pv-bar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 8px 16px; background: #18181b; color: #fafafa; }
-  .pv-badge { padding: 2px 8px; border-radius: 999px; background: #f59e0b; color: #18181b; font-size: 12px; font-weight: 600; }
-  .pv-group { display: flex; gap: 4px; align-items: center; }
-  .pv-group > span { color: #a1a1aa; font-size: 12px; margin-right: 4px; }
-  .pv-bar button { padding: 4px 10px; border: 1px solid #52525b; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
-  .pv-bar button[aria-pressed="true"] { background: #fafafa; color: #18181b; }
-  .pv-stage { display: grid; gap: 16px; padding: 16px; }
-  .pv-stage.pv-side { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
-  .pv-frame { background: #fff; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden; }
-  .pv-frame > h2 { margin: 0; padding: 6px 12px; font-size: 12px; font-weight: 600; background: #fafafa; border-bottom: 1px solid #e4e4e7; }
-  .pv-frame > h2 small { font-weight: 400; color: #71717a; margin-left: 8px; }
+  @font-face { font-family: Pretendard; src: url(data:font/woff2;base64,${previewFont}) format('woff2'); font-weight: 100 900; font-display: swap; }
+  html { font-family: Pretendard, sans-serif; }
+  button, input, select, textarea { font-family: inherit; }
+  /* Comparison shell only. Adapt to the brief; style product content separately. */
+  body { margin: 0; }
+  .pv-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid #ddd; background: #fff; color: #222; font: 13px/1.5 Pretendard, sans-serif; }
+  .pv-badge, .pv-group > span { color: #666; font-size: 12px; }
+  .pv-group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .pv-group > span { margin-right: 4px; }
+  .pv-bar button { padding: 4px 12px; border: 0; border-radius: 999px; background: #f2f2f2; color: #333; font: inherit; cursor: pointer; }
+  .pv-bar button[aria-pressed="true"] { background: #171717; color: #fff; font-weight: 600; }
+  .pv-bar button:hover { background: #e5e5e5; }
+  .pv-bar button[aria-pressed="true"]:hover { background: #333; }
+  .pv-bar button:focus-visible { outline: 2px solid #171717; outline-offset: 3px; }
+  .pv-stage { display: grid; gap: 24px; padding: 16px; }
+  .pv-stage.pv-side { grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
+  .pv-frame { min-width: 0; }
+  .pv-frame > [data-variant] { width: fit-content; max-width: 100%; }
+  .pv-frame > h2 { margin: 0 0 8px; color: #444; font: 600 12px/1.5 Pretendard, sans-serif; }
+  .pv-frame > h2 small { font-weight: 400; margin-left: 8px; }
   .pv-error { margin: 12px; padding: 8px; color: #b91c1c; background: #fef2f2; white-space: pre-wrap; }
 </style>
 <style>
-  /* Prototype styles. Scope each variant with [data-variant="<name>"]. */
+  /* Component roots keep intrinsic width. For whole screens, set the variant root width to 100%.
+     Product UI styles: choose typography, colors and layout from the brief. Scope each variant with [data-variant="<name>"]. */
 </style>
 </head>
 <body>
 <header class="pv-bar">
   <strong>${escapeHtml(title)}</strong>
-  <span class="pv-badge">Throwaway prototype · fake data</span>
-  <div class="pv-group" id="pv-variants"><span>Variant (1-9)</span></div>
-  <div class="pv-group" id="pv-states"><span>State</span></div>
+  <span class="pv-badge">Sample data</span>
+  <div class="pv-group" id="pv-variants"></div>
+  <div class="pv-group" id="pv-states"></div>
   <button type="button" id="pv-side" aria-pressed="false">Side by side</button>
 </header>
 <main class="pv-stage" id="pv-stage"></main>
@@ -94,12 +106,12 @@ ${variantLines}
 }
 // ---- End of the edit section. The code below runs the switchers. ----
 
-const pv = { variant: Object.keys(VARIANTS)[0], state: Object.keys(STATES)[0], side: false, cleanups: [] }
+const pv = { variant: Object.keys(VARIANTS)[0], state: Object.keys(STATES)[0], side: Object.keys(VARIANTS).length > 1, cleanups: [] }
 const readHash = () => {
   const params = new URLSearchParams(location.hash.slice(1))
   if (Object.hasOwn(VARIANTS, params.get('v') ?? '')) pv.variant = params.get('v')
   if (Object.hasOwn(STATES, params.get('s') ?? '')) pv.state = params.get('s')
-  pv.side = params.get('side') === '1'
+  if (params.has('side')) pv.side = params.get('side') === '1'
 }
 const writeHash = () => history.replaceState(null, '', '#' + new URLSearchParams({ v: pv.variant, s: pv.state, side: pv.side ? '1' : '0' }))
 

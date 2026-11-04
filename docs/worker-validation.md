@@ -13,7 +13,7 @@ Required procedure bodies remain in the rendered worker packet. Optional referen
 
 ## Upgrade and host limits
 
-Custom configurations that invoke `implementer`, `verifier`, `adversarial-tester`, `screen-design-checker`, `screen-parity-checker`, `experiment-runner` or `experiment-auditor` need to select `worker` and the relevant playbook step or procedure skills instead. Preserve any required host-enforced permissions during that migration.
+Configurations that invoke retired haechi-owned roles need to select `worker` and the relevant playbook step instead. Repository-defined roles such as `implementer`, `tester` or `verifier` may remain when repository rules require them: use the same delegate packet procedure and deliver the complete selected guidance while preserving their role, scope and host-enforced permissions. A custom role is not a reason to replace the packet with a hand-written summary.
 
 The helpers do not spawn agents, register Codex agent types or authenticate provider records. The host must supply actual identity and execution records and enforce permissions. Where native registration is unavailable, use a generic host agent with the worker instructions and rendered packet. A string-only dispatch interface may still require the main to carry the full message. Read-only instructions alone are not permission isolation.
 

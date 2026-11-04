@@ -5,7 +5,7 @@ description: Test-hardening playbook — strengthen an area's existing tests uni
 
 # Test-hardening playbook
 
-The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules. Use /haechi:mutation-check for each unit and a worker with /haechi:attack-tests when separate context or independent challenge helps. Use /haechi:sweep for useful independent units. This file adds only what is specific to hardening an area. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **behavior-tests** and **sibling-paths** apply.
 

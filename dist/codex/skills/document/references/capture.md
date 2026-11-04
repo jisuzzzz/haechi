@@ -1,14 +1,29 @@
 # Capture actual evidence and attach numbered regions
 
-For an empty Failed list, capture the count and list in one viewport. Mark the count as 1 and the list as 2. In the document explain what is inconsistent, link the untouched original, and ask the owning team to confirm the suspected cause. This procedure shares the browser helpers/temporary Playwright approach used by `worker with /haechi:screen-design` and `worker with /haechi:screen-parity`; it does not require running a design or parity comparison.
+For an empty Failed list, capture the count and list in one viewport. Mark the count as 1 and the list as 2. In the document explain what is inconsistent, link the untouched original, and ask the owning team to confirm the suspected cause. This is the shared capture procedure for documents, `worker with /haechi:screen-design` and `worker with /haechi:screen-parity`; collecting an attachment does not require running a design or parity comparison.
+
+## Choose an available capture method
+
+Start with what the evidence must show, then inspect the tools actually available in this session. Check page access and control, PNG file export, GIF recording, video recording, and any measurements or logs needed for the task. A model-visible screenshot is not necessarily a saved attachment. Do not infer recording or file-export support from a product name, a browser connection, or a tool used in another session.
+
+| Evidence needed | Preferred available method | Fallback and limits |
+| --- | --- | --- |
+| A value, layout or empty state | A connected browser tool that can reach the state and save a PNG. | Reuse a project helper, or a temporary Playwright script with installed tooling. |
+| A short sequence of actions for explanation | A connected GIF recorder that can save the result. | Use an existing video recorder and convert when supported. Inspect whether frames are sampled or waits are shortened; do not claim timing evidence from an illustrative sequence. |
+| Repeatable design or before/after comparison | Existing project helpers or Playwright with controlled states and capture conditions. | A connected browser tool is suitable only if it can supply the same required conditions, measurements, snapshots and logs. Report unavailable checks rather than weakening the comparison. |
+| Flicker, waiting or event timing | A recorder with verified time preservation, plus relevant logs. | Keep usable partial evidence and name the timing claim that remains unverified. A GIF export alone does not prove continuous capture or original timing. |
+
+For example, use Claude in Chrome's GIF tool only when it is exposed and supports the required recording and export. For Codex or any other host, inspect the connected browser's actual capabilities instead of assuming an equivalent GIF tool. Tool selection does not change access permissions or the caller's evidence requirements. Avoid a new capture stack when available tools can supply the required evidence.
 
 ## Collect the actual state
 
-Use the provided app URL or the project's established run command. Read `.haechi.json` `screenCheck.helpers` and relevant browser tests before writing another script. Reuse a helper that reaches the required state; otherwise write a temporary Playwright script using the project's installed browser tooling. Remove temporary scripts after collecting results unless the user asked to keep a reusable reproduction.
+Use the provided app URL or the project's established run command and the method selected above. Before writing a script, read `.haechi.json` `screenCheck.helpers` and relevant browser tests. Reuse a helper that reaches the required state; otherwise write a temporary Playwright script using the project's installed browser tooling. Remove temporary scripts after collecting results unless the user asked to keep a reusable reproduction.
 
 Use an existing authorized login session; do not place passwords or session secrets in the document. Keep the check read-only under the existing screen-checker constraints. A reproduction that changes server data needs an appropriately authorized test environment; collecting evidence does not grant production mutation authority. The main session owns any server it starts and cleans up temporary resources.
 
 Follow the recorded steps and confirm the target state before saving the PNG. Record URL, environment, build/revision if known, timestamp, viewport, reproduction steps and the observed result. State unknown values as unknown. Preserve the unmodified PNG. Avoid capturing unrelated private content; if redaction is needed, keep the protected original in its authorized location and label the shareable copy as redacted. Do not attach restricted originals to a wider audience.
+
+Confirm that each exported file exists and opens in the intended viewer. Open saved images and inspect the recorded sequence to check the requested state or actions; report any playback or inspection limit. Tool success alone is not proof of a usable attachment or a verified bug. If a tool exposes only an image preview, use a supported export or another capture method before promising a saved file.
 
 ## Locate regions without changing the page
 
@@ -58,7 +73,7 @@ Replace the example's observations and conditions with actual evidence. Regenera
 
 ## GIF only for a temporal question
 
-Use a still PNG for a wrong value, alignment or empty state. Use a short recording only when click order, flicker, waiting or state transitions explain the issue. Reuse the project's recording helper or Playwright's video recording if available. Keep the real recording, extract the useful segment and convert to GIF only when an installed conversion tool and the receiving viewer support it. Retain a decisive still and the original video. Do not install a new recording stack just to satisfy an attachment slot.
+Use a still PNG for a wrong value, alignment or empty state. Use a short recording only when click order, flicker, waiting or state transitions explain the issue. Select the method above: direct GIF recording can avoid a separate video conversion for an explanatory sequence. Otherwise reuse the project's recording helper or Playwright's video recording if available, extract the useful segment and convert to GIF only when an installed conversion tool and the receiving viewer support it. Retain a decisive still and the untouched source recording (the original GIF for direct GIF capture, or the original video when converting). Do not require an additional video merely because the tool exports GIF; obtain time-preserving evidence when the claim needs it. Do not install a new recording stack just to satisfy an attachment slot.
 
 State trimming, skipped waits or changed playback speed. A sequence of stills is a step illustration, not continuous recording or timing evidence. GIF has no audio. Long interactions belong in video with selected stills; PDF uses static frames. If recording or GIF conversion is unavailable, attach usable video/stills or record what remains uncollected. GIF is not a default completion requirement.
 

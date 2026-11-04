@@ -5,7 +5,7 @@ description: Bug playbook — reproduce, find the first wrong decision, pin it w
 
 # Bug playbook
 
-The main session owns this workflow. For a delegated step, use /haechi:delegate to pass its objective, relevant evidence, ownership, constraints and required task skills to a fresh `worker`. Keep later stage decisions and integration in the main session; do not give a worker the whole playbook to restart.
+The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to bugs. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): read **root-cause**, **attack-the-premise** and **failing-test-first** before step 3.
 
@@ -22,15 +22,30 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
    Leave: the reproduction command and its failing output. A failed attempt calls for reassessment; ask for missing conditions when they block progress, and list what you ruled out. Do not claim a reproduction you did not obtain.
 3. **Trace the cause.** Find the first wrong decision using real values and logs, not guesses. If the state is legitimate, the cause is the code that cannot handle it. If the state is wrong, the cause is where it was produced. A bug that appears only after a restart points at persisted state. For a library, read its source; patching the library is not the default fix. Name the root cause even if a recorded decision says "don't touch" that area.
    Leave: the cause, its evidence and what remains uncertain.
-4. **Choose the fix.** Choose the smallest fix at the cause within the authorized scope. Explain meaningful trade-offs; ask only when alternatives require a consequential behavior or scope decision the user has not settled.
-5. **Search for the same pattern.** Look for the same cause elsewhere. Same cause: include it in this fix. Different cause: ask whether to record it as an issue.
+4. **Choose the fix.** Default to the smallest fix at the cause within the authorized scope. Use **Choosing where to fix** below to explain meaningful alternatives before implementation. Ask only for an unsettled consequential behavior or scope decision; changing persisted data representation requires explicit authorization, which may already be present in the conversation.
+5. **Search for the same pattern.** Look for the same cause elsewhere. For a cause fix, include affected uses within the authorized scope. For deliberately limited containment, identify the uses left exposed instead of silently expanding the chosen fix. Revisit the choice if this search changes its coverage or cost. Different cause: ask whether to record it as an issue.
 6. **Write the failing test (main session).** You write it, not an implementer. Pin the reproduction as a test and confirm it fails for the intended reason, not a typo or a missing import.
    Leave: the failing output. If a test is impossible, write why and the replacement check.
-7. **Fix at the cause.** Smallest change at the cause. Main or a worker with /haechi:implement-work through /haechi:delegate. An implementer only makes your failing test pass; give it the test path. No try/catch, clamp, retry or default value at the symptom site — only when step 3 showed the state is legitimate.
+7. **Implement the chosen fix.** Make the smallest change for the selected scope, normally at the cause. Main or a worker with /haechi:implement-work through /haechi:delegate. An implementer makes your failing test pass; give it the test path, chosen fix, coverage and known remaining exposure. A try/catch, clamp, retry or default value at the symptom site needs either evidence that the state is legitimate or the explicit containment rationale from step 4. Do not describe containment as removing the cause.
 8. **Verify and attack.** The failing test passes, then repo verify. Check sibling paths (`/haechi:sibling-path-map`); use a worker with /haechi:attack-tests when independent context would help challenge a risky or complex fix. Review with /haechi:review-diff, using a separate worker with /haechi:verify-work when independent review adds value.
    Leave: the passing output.
 9. **Finish.** Local commit. Report the cause, the changed behavior and the verification evidence.
-10. **Propose recurrence prevention.** If the cause took deep digging to find, propose an always-on signal (a log line, a lint rule, a type). Propose only; do not build it.
+10. **Propose recurrence prevention.** If the cause took deep digging to find, propose an always-on signal (a log line, a lint rule, a type). Treat additional contract tests, lint rules and runtime assertions as supplements to the chosen fix, not another fix location. Detection does not expand what the fix corrects. Propose these additions only; do not build them without authorization. The reproduction and verification tests above remain required.
+
+## Choosing where to fix
+
+Describe the concrete code or behavior being changed in the user's language. Choose a primary fix location; these are alternatives, not maturity levels or a sequence to perform. Explain any necessary supporting changes.
+
+| Where to change | What it does | Limits to explain |
+| --- | --- | --- |
+| Only the reported action | For example, clear sorting when the tab button is clicked. | Other actions with the same cause remain exposed. This may be cheapest, but estimate from the actual change. |
+| The code responsible for the cause (default) | Fix the first wrong decision: the producer of invalid state, or the consumer that mishandles legitimate state. | Check other uses of the same cause and name the covered scope. |
+| A shared processing point | For example, reject sorting unavailable on the current tab when building a request. Useful when several producers cannot reasonably be fixed together. | Coverage depends on every relevant action passing through this point. Check bypasses and effects of invalid state that remains inside the application; future actions are covered only if they also pass through it. |
+| Data representation or ownership | For example, store sorting separately for each tab so this class of state mixing cannot occur. | Explain compatibility, migration, behavior changes and expanded scope. Obtain explicit authorization before changing persisted representation; do not ask again for an already authorized change. |
+
+When fixing the reported action also fixes the cause, briefly explain and proceed within the authorized scope. When the locations have meaningfully different outcomes, present only two or three feasible options, comparing the same axes: covered behavior, estimated effort, remaining exposure, and changes to persisted data or observable behavior. Recommend one and explain why. Do not invent alternatives or treat a larger redesign as inherently better. Comparing options alone does not require pausing; ask when the choice needs an unresolved consequential behavior or scope decision.
+
+If fixing now is unsuitable, explain the option to defer and record the issue. If another team or a library owns the cause, propose an upstream request with the evidence and expected contract; sending it needs authorization. A local library patch such as `patch-package` is not the default. State what remains unresolved for either choice.
 
 ## When stuck
 
