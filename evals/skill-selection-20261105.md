@@ -1,6 +1,6 @@
 # Description-based skill selection — 2026-11-05
 
-The local candidate consolidates selection conditions in skill descriptions, keeps proactive selection and exceptions in the shared rules, and strengthens the optional spec recommendation. The comparison supports the observed initial routing, but **does not establish overall non-weakening or satisfy the frozen adoption gate**. The candidate remains a local implementation for review, not a verified workflow adoption.
+The local candidate consolidates selection conditions in skill descriptions, keeps proactive selection and exceptions in the shared rules, and strengthens the optional spec recommendation. The comparison supports the observed initial routing, but **does not establish overall non-weakening or satisfy the frozen adoption gate**. After these limits were reported, the user authorized PR submission and release after merge. That authorization permits publication; it does not establish verified workflow adoption or change any evaluation result.
 
 ## Requested behavior
 
@@ -55,6 +55,6 @@ The performance failures remain workflow-plan gaps in both variants. They do not
 
 ## Decision and remaining verification
 
-Keep the requested edits as a local candidate with the observed routing evidence. Do not describe the whole-case comparison as passing or the candidate as verified for adoption. Further automatic-selection validation needs representative tasks with adequate product fixtures and an agreed observable success condition that preserves optional spec use. Do not turn a recommendation into compulsory reading or compulsory skip reporting to satisfy this screen.
+The user subsequently authorized a PR and release after merge with the observed routing evidence and reported limits. Proceed on that authorization. Do not describe the whole-case comparison as passing or the released guidance as behaviorally verified beyond the observed scope. Further automatic-selection validation needs representative tasks with adequate product fixtures and an agreed observable success condition that preserves optional spec use. Do not turn a recommendation into compulsory reading or compulsory skip reporting to satisfy this screen.
 
 The sample shows no loss in the observed primary playbook, preview or delegate reads; it does not prove a general selection rate, all future choices, full workflow compliance, installed desktop delivery, Claude runtime behavior or statistical non-inferiority. Cross-variant reading was prohibited by instruction, not an OS read boundary. Candidate source/distribution hashes and final repository-check output are retained in the task's verification evidence.
