@@ -16,7 +16,7 @@ The easy mistake is assuming the expected behavior was ever defined. Use the con
 
 ## Steps
 
-1. **Clarify the task.** Establish the symptom, trigger conditions, expected behavior and nearby behavior that must stay unchanged. Use a summary only when useful; fixed labels and tables are optional. Plan to show the reproduction test failing before and passing after.
+1. **Clarify the task.** Establish the symptom, trigger conditions, expected behavior and nearby behavior that must stay unchanged. Consider /haechi:spec using its description while establishing these requirements; it is not a mandatory bug stage. Use a summary only when useful; fixed labels and tables are optional. Plan to show the reproduction test failing before and passing after.
    If the request deliberately changes established behavior, use /haechi:feature. Ask only when evidence and the user's instructions cannot settle a consequential expectation.
 2. **Reproduce.** Use the smallest rung that shows the bug: unit test, then component test, then the repo's screen helper, then manual steps. Add a positive control — a case on the same path that should pass — so you know the reproduction actually ran the buggy path. Try relevant available conditions while useful investigation remains.
    Leave: the reproduction command and its failing output. A failed attempt calls for reassessment; ask for missing conditions when they block progress, and list what you ruled out. Do not claim a reproduction you did not obtain.

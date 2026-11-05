@@ -1,6 +1,6 @@
 ---
 name: spec
-description: Clarifies consequential behavior or scope choices and records acceptance criteria, with an optional saved spec. Use for /haechi:spec, when the user asks for a spec, or when unresolved requirements need a decision before implementation.
+description: Establish the problem, scope, expected behavior and acceptance criteria, with an optional saved spec. Use when the user requests a spec. Strongly recommended for new or changed workflows and interacting behavior such as permissions, validation, failure handling or cross-system contracts, to bring scope, edge cases and checkable completion criteria together before implementation, even when individual requirements are known. Also recommended in other playbooks when expected behavior, preserved contracts, scope or success criteria need clarification. Requirements can be known but still need synthesis. A narrow task with sufficiently established requirements and completion criteria can proceed directly without this skill; it does not require a document, repeated questions or approval.
 ---
 
 # Write a spec
@@ -9,7 +9,7 @@ Only the main session runs this skill. Subagents cannot ask the user anything, s
 
 A spec answers **what and why**: problem, goal, scope, expected behavior, edge-case decisions, acceptance criteria, constraints. Requirements already established in the conversation or repository can serve as the spec; they need no repeated approval. A plan answers **how and in what order**: files, type sketches, units, delegation, checks, risks. Choose the implementation plan yourself.
 
-**When.** Use this skill when the user requests a spec or consequential behavior or scope choices remain unresolved after reading the available context. A new screen, changed export or multiple units does not by itself require a document or approval. Decide reversible implementation details yourself. A bug with an established expected behavior needs no separate spec.
+**Selection.** Use the conditions in this skill's description. This is a recommendation, not a mandatory stage in every feature or other playbook. Do not equate known individual requirements with a sufficiently established overall scope and acceptance criteria. Conversely, reuse a complete existing account of the requirements and proceed directly when further synthesis adds no value. File counts, code size, a new screen or a changed export alone do not decide selection. Selecting this skill does not require a saved document, repeated questions or approval. Resolve consequential open decisions before dependent work even when this skill is not selected; decide reversible implementation details yourself.
 
 ## Steps
 

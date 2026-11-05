@@ -16,7 +16,7 @@ Establish which external behavior stays unchanged and why the structure needs to
 ## Steps
 
 1. **Clarify the task.** Establish the structural problem, target structure, unchanged behavior and checks that will prove equivalence. Keep the summary proportional to the task; fixed labels and tables are optional.
-2. **End state.** Write a list that says "done" in checkable terms. Example: zero imports of `utils/legacyDate`, zero callers of `formatDateOld`. Use /haechi:spec only when the user requests a spec or consequential behavior or scope choices remain unresolved. Settled requirements need no separate document or approval.
+2. **End state.** Write a list that says "done" in checkable terms. Example: zero imports of `utils/legacyDate`, zero callers of `formatDateOld`. Consider /haechi:spec using its description while establishing this end state; it is not a mandatory refactor stage. Settled requirements need no separate document or approval.
    Leave: the end-state list.
 3. **Pin current behavior.** Check that existing tests cover the observable results of the code you will change. If they do not, add tests before refactoring. The strongest is an equivalence test: old and new give the same output for the same inputs. Where affected, include error behavior and timing, input mutation, side-effect order and partial writes on failure. Tie tests to observable results, not internals. When it is uncertain whether these tests catch a plausible behavior regression, use /haechi:mutation-check on the relevant code and tests; change size alone is not the trigger.
    Move on when the pinning tests pass.
