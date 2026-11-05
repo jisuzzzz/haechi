@@ -59,7 +59,7 @@ You can also describe a task in natural language and let the agent select a play
 - **Delegation when it helps.** The main session delegates a bounded playbook step to a repository-required agent or the plugin's generic worker. Either receives the same checked packet of required skills, principles, context and evidence. Independent reviews use separate executions, and the main session checks the results.
 - **Evidence for completion.** The agent checks each required outcome against actual results on the final change. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
 
-Settled requirements can stay in the conversation. A separate spec helps when a consequential decision is unresolved or you ask for one. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.
+Settled requirements can stay in the conversation. The spec skill helps consolidate requirements and acceptance criteria; its description guides selection. It does not require a saved document or a new approval. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.
 
 ## Commands
 
@@ -83,7 +83,7 @@ For example, a review request can stay read-only:
 Supporting skills handle individual steps:
 
 - [delegate](skills/delegate/SKILL.md) exposes a compact step input form and assembles complete worker guidance into task files, returning only a coordinator receipt. Direct delivery depends on the host; it does not enforce permissions or prove behavior.
-- [spec](skills/spec/SKILL.md) resolves consequential requirements; [preview](skills/preview/SKILL.md) makes a quick UI prototype; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
+- [spec](skills/spec/SKILL.md) helps establish requirements and acceptance criteria; [preview](skills/preview/SKILL.md) makes a quick UI prototype; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
 - [impact-map](skills/impact-map/SKILL.md), [sibling-path-map](skills/sibling-path-map/SKILL.md), [mutation-check](skills/mutation-check/SKILL.md) and [review-diff](skills/review-diff/SKILL.md) support verification and review.
 - [eval](skills/eval/SKILL.md) records workflow failures and compares proposed improvements in fresh contexts before changing active guidance. It runs when relevant to an evaluation task and adds no background memory or global rules. Seed observations are in [evals/failures.md](evals/failures.md).
 - [answer](skills/answer/SKILL.md) shapes choices, problem explanations and concrete scenarios while preserving evidence and useful explanations. [work-graph](skills/work-graph/SKILL.md) keeps minimal shared task state and native session links.

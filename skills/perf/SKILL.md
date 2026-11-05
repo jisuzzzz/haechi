@@ -28,7 +28,7 @@ Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. If ei
 
 ## Steps
 
-1. **Clarify the task.** Establish the metric and conditions, the success rule, behavior and other metrics that must not worsen, and the evidence needed for a worker with /haechi:audit-experiment to rate the result "supported" under the pre-registered rules. Fixed labels and tables are optional.
+1. **Clarify the task.** Consider /haechi:spec using its description while establishing the requirements; this does not replace the measurement pre-registration or its confirmation. Establish the metric and conditions, the success rule, behavior and other metrics that must not worsen, and the evidence needed for a worker with /haechi:audit-experiment to rate the result "supported" under the pre-registered rules. Fixed labels and tables are optional.
 2. **Purpose line.** One line on what this measurement decides: whether to adopt a change, or a before/after reference for a change already decided. If adoption is already decided, do not use the result as the reason to adopt.
 3. **Baseline and bottleneck.** Measure the baseline and find what is actually slow with a profiler, separately from the reporting run. No hypothesis about what to change until the bottleneck is known.
    Leave: the baseline number and the bottleneck, with how you found it.
