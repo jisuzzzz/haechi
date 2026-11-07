@@ -10,7 +10,7 @@ Haechi gives the agent task playbooks, repository settings and verification tool
 
 ## Quick start
 
-You need Git, Node.js, and a Claude Code or Codex installation with plugin support.
+You need Git, Node.js 24 LTS (24.22.2 or newer), and a Claude Code or Codex installation with plugin support. Keep your Node.js LTS line on its latest security patch. The repository pins its development version in `.nvmrc`; with nvm, run `nvm install` and `nvm use` from the repository root.
 
 ### 1. Install for your agent
 
