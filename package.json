@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.22.2"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
