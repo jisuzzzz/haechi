@@ -5,6 +5,8 @@ description: Establish the problem, scope, expected behavior and acceptance crit
 
 # Write a spec
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 Only the main session runs this skill. Subagents cannot ask the user anything, so they never write a spec; they report open questions to you.
 
 A spec answers **what and why**: problem, goal, scope, expected behavior, edge-case decisions, acceptance criteria, constraints. Requirements already established in the conversation or repository can serve as the spec; they need no repeated approval. A plan answers **how and in what order**: files, type sketches, units, delegation, checks, risks. Choose the implementation plan yourself.

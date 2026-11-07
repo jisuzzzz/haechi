@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -13,8 +14,63 @@ const fixture=t=>{
  write(root,'skills/review/SKILL.md','# Review\n```haechi-handoffs\n'+JSON.stringify({check:c})+'\n```\n')
  write(root,'skills/check/SKILL.md','# Check\nRead {{PLUGIN_ROOT}}/tools/check.mjs and check consumer.\n')
  write(root,'principles/proof.md','# Proof\n## Do\nObserve results.\n## Check\nFind gaps.\n')
+ write(root,'principles/work-contract.md','# Common work contract\n## Do\nPreserve the assigned scope. Apply [proof](proof.md).\n## Check\nReconcile the original requirements and evidence.\n')
  return root
 }
+const commonCompletion='Apply principles/work-contract.md#Check to the assigned scope and report the required evidence and gaps.'
+test('render groups each source once without losing sections or changing the packet',t=>{
+ const root=fixture(t),packet=preparePacket(root,brief()),before=JSON.stringify(packet),message=renderPacket(root,packet)
+ for(const name of ['work-contract','proof']){
+  const path=`principles/${name}.md`,assets=packet.assets.filter(a=>a.path===path)
+  assert.equal(message.split(`Source: ${path}`).length-1,1)
+  assert.ok(message.includes(`Source: ${path} · SHA-256: ${assets[0].sourceSha256}`))
+  for(const asset of assets){
+   assert.ok(message.includes(`## ${asset.section}\n\n${asset.text}`))
+   assert.equal(message.split(asset.text).length-1,1)
+  }
+ }
+ assert.equal(JSON.stringify(packet),before)
+ assert.ok(message.includes(packet.packetSha256))
+})
+test('every scope receives the full common contract and referenced guidance exactly once',t=>{
+ for(const writeScope of ['read-only','scoped']){
+  const root=fixture(t),path=join(root,'skills/review/SKILL.md')
+  writeFileSync(path,readFileSync(path,'utf8').replace('"writeScope":"read-only"',`"writeScope":"${writeScope}"`))
+  const input={...brief(),writeScope,ownedPaths:writeScope==='scoped'?['src/a']:[]},packet=preparePacket(root,input)
+  assert.deepEqual(describeStep(root,'review','check').requiredGuidance,{skills:['check'],principles:['work-contract','proof'],checks:['work-contract','proof']})
+  assert.deepEqual(packet.contract.completion,['Report gaps',commonCompletion])
+  const message=renderPacket(root,packet)
+  for(const name of ['work-contract','proof'])for(const section of ['Do','Check']){
+   const source=readFileSync(join(root,`principles/${name}.md`),'utf8'),assets=packet.assets.filter(a=>a.path===`principles/${name}.md`&&a.section===section)
+   assert.equal(assets.length,1)
+   assert.equal(assets[0].sourceSha256,createHash('sha256').update(source).digest('hex'))
+   assert.equal(assets[0].text,source.split(`## ${section}\n`)[1].split('\n## ')[0].trim())
+   assert.ok(message.includes(assets[0].text))
+  }
+ }
+})
+test('common guidance is required independently of legacy step references',t=>{
+ const root=fixture(t),path=join(root,'skills/review/SKILL.md')
+ writeFileSync(path,readFileSync(path,'utf8').replace('"principles":["proof"],"checks":["proof"]','"principles":[],"checks":[]'))
+ const packet=preparePacket(root,brief())
+ for(const section of ['Do','Check'])assert.ok(packet.assets.some(a=>a.path==='principles/proof.md'&&a.section===section))
+ for(const mutate of [p=>{p.assets=p.assets.filter(a=>a.path!=='principles/work-contract.md')},p=>{p.assets.find(a=>a.path==='principles/work-contract.md').text+=' Forged'},p=>{p.assets.find(a=>a.path==='principles/proof.md').sourceSha256='forged'}]){
+  const changed=structuredClone(packet);mutate(changed);assert.throws(()=>renderPacket(root,changed),/does not match/)
+ }
+ writeFileSync(join(root,'principles/work-contract.md'),readFileSync(join(root,'principles/work-contract.md'),'utf8')+'New completion evidence.\n')
+ assert.throws(()=>renderPacket(root,packet),/does not match/)
+ const updated=preparePacket(root,brief())
+ writeFileSync(join(root,'principles/proof.md'),readFileSync(join(root,'principles/proof.md'),'utf8')+'New check.\n')
+ assert.throws(()=>renderPacket(root,updated),/does not match/)
+})
+test('missing or incomplete common contract fails clearly without dispatch artifacts',t=>{
+ const root=fixture(t),path=join(root,'principles/work-contract.md'),output=join(root,'task')
+ rmSync(path)
+ assert.throws(()=>describeStep(root,'review','check'),/principles\/work-contract\.md/)
+ assert.throws(()=>assembleTask(root,brief(),output),/principles\/work-contract\.md/);assert.ok(!existsSync(output))
+ writeFileSync(path,'# Contract\n## Do\nPreserve scope.\n')
+ assert.throws(()=>assembleTask(root,brief(),output),/work-contract\.md: missing Check section/);assert.ok(!existsSync(output))
+})
 test('CLI prepares and renders complete guidance and preserves input',t=>{
  const root=fixture(t),input=join(root,'brief.json'),packet=join(root,'packet.json'),tool=new URL('../dist/claude/tools/delegate-task.mjs',import.meta.url).pathname
  writeFileSync(input,JSON.stringify(brief()))
@@ -67,12 +123,12 @@ test('large packets reject explicitly and all accepted rendered messages remain 
 test('coordinator form and assembly receipt omit procedure bodies while worker gets complete validated guidance',t=>{
  const root=fixture(t),form=describeStep(root,'review','check')
  assert.deepEqual(Object.keys(form.input.context),['repository','base'])
- assert.equal(form.input.writeScope,'read-only');assert.deepEqual(form.requiredCompletion,['Report gaps'])
+ assert.equal(form.input.writeScope,'read-only');assert.deepEqual(form.requiredCompletion,['Report gaps',commonCompletion])
  const input={...form.input,...brief(),playbookSha256:form.input.playbookSha256}
  const result=assembleTask(root,input,join(root,'task'))
  assert.equal(result.status,'prepared-not-dispatched')
- assert.deepEqual(result.task.completion,['Report gaps','Concrete evidence'])
- assert.equal(result.guidance.length,3)
+ assert.deepEqual(result.task.completion,['Report gaps',commonCompletion,'Concrete evidence'])
+ assert.equal(result.guidance.length,5)
  const packet=JSON.parse(readFileSync(result.files.packet)),message=readFileSync(result.files.message,'utf8')
  assert.equal(message,renderPacket(root,packet))
  for(const text of ['check consumer.','Observe results.','Find gaps.']){

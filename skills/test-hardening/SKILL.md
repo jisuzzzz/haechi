@@ -1,11 +1,11 @@
 ---
 name: test-hardening
-description: Test-hardening playbook — strengthen an area's existing tests unit by unit with mutation checks before and after, changing tests only, and recording any real bug found instead of fixing it. Use for /haechi:test-hardening, when the user asks to strengthen or harden the tests of a folder or feature.
+description: Strengthen tests — strengthen an area's existing tests unit by unit with mutation checks before and after, changing tests only, and recording any real bug found instead of fixing it. Use for /haechi:test-hardening, when the user asks to strengthen or harden the tests of a folder or feature.
 ---
 
-# Test-hardening playbook
+# Strengthen an area’s tests
 
-The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
+Apply the [common work contract](../../principles/work-contract.md) within the authorized scope. It owns required implementation, verification, review and completion obligations; this skill supplies methods. Use /haechi:delegate for a bounded worker task when independent execution helps. Existing step names below are compatible delegation entry points, not an exclusive workflow state.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules. Use /haechi:mutation-check for each unit and a worker with /haechi:attack-tests when separate context or independent challenge helps. Use /haechi:sweep for useful independent units. This file adds only what is specific to hardening an area. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **behavior-tests** and **sibling-paths** apply.
 
@@ -46,7 +46,7 @@ Mutation results before and after for every unit, the equivalent mutants with th
 
 ## Delegation contracts
 
-These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+These compatible entries identify delegated methods, not an exclusive workflow or a mandatory agent sequence. Packet assembly also supplies the canonical common work contract. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
 
 ```haechi-handoffs
 {

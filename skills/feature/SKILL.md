@@ -1,46 +1,25 @@
 ---
 name: feature
-description: Feature playbook for new behavior and deliberate changes to existing behavior — scope, spec when needed, design source and external dependencies first, shared parts first, then build and check every acceptance criterion by behavior. Use for /haechi:feature, when the user asks to add behavior or change how something already works.
+description: Develop requirements, dependencies and an implementation approach for new or deliberately changed behavior. Use for /haechi:feature or when those methods help an authorized product change.
 ---
 
-# Feature playbook (new and improve)
+# Develop a change
 
-The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
+Apply the [common work contract](../../principles/work-contract.md) within the authorized scope. It owns required implementation, verification, review and completion obligations; this skill supplies methods. Use /haechi:delegate for a bounded worker task when independent execution helps. Existing step names below are compatible delegation entry points, not an exclusive workflow state.
 
-The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to features. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **dry**, **yagni**, **kiss** and **boundary-validation** apply.
+## Methods
 
-## Task focus
+1. **Establish the intended behavior.** Identify who uses it, the trigger, expected result, relevant exceptions and behavior to preserve. Reuse accepted requirements. Use /haechi:spec when synthesis of interacting requirements helps; an existing sufficiently complete account needs no new document or approval.
+2. **Establish the design reference.** For visible UI or interaction changes, use an accepted and checked reference that covers the need. Use /haechi:preview for missing states or design choices before dependent implementation. Retain the selected reference and checked interactions for the real application comparison.
+3. **Check external contracts.** Verify that the backend/API/dependency supports required fields, parameters and states. Use the installed version's source or authoritative documentation. Identify missing support and resolve any consequential change of scope before relying on a workaround.
+4. **Choose units and interfaces.** Inspect entry points, existing components, tokens, consumers and tests. Prefer reuse or a compatible extension when it fits. Settle shared interfaces before dependent work; separate file ownership when delegation helps. A file count alone does not justify parallel work.
+5. **Implement the authorized change.** Work directly or assign bounded implementation through /haechi:delegate. Use another task method when a finding changes the next action; do not restart completed requirements or design work merely to enter that method.
 
-- **New:** establish who uses it, in what situation, and how far it goes. Example: "A signed-in user can export the visible invoice list as CSV; filters apply, pagination does not."
-- **Improve:** identify what should change and what should stay as it is. Reuse the user's requirements and repository decisions; ask only when an unresolved behavior or scope choice would materially change the result.
-
-## Steps
-
-1. **Clarify the task.** Use the focus above and keep any summary proportional to the task; fixed labels and tables are optional.
-2. **Acceptance criteria.** Use the requirements already established in the conversation and repository. Prefer /haechi:spec for requirements synthesis at this step according to its description; this is a strong recommendation, not a mandatory feature stage. Honor an explicit spec request. When the existing requirements and acceptance criteria are sufficient, proceed directly. Settled requirements can stay in the conversation; no separate document or approval is needed.
-   Keep expected results independent of the implementation. Revise the approach freely, but do not drop a requirement or weaken an expected result to obtain a pass. Resolve a consequential scope change with the user.
-   Resolve consequential open questions before dependent work. Choose reversible implementation details yourself and continue independent work.
-3. **Design reference.** For requests to design or change visible UI or user interactions, run /haechi:preview before implementation even when the user does not explicitly ask for a preview and the requirements are otherwise settled; this includes changes to generated HTML or the preview shell itself. Show the interactive proposal; no saved spec is required. Use a supplied design or relevant existing screen when available. When the user asks you to design a screen, draft it using repository patterns and the stated requirements. Ask only about consequential ambiguity; optional variants can help when a choice is hard to describe.
-   Keep the reference or stated design criteria available for checking the rendered screen.
-4. **External dependencies.** Check that the backend API or other service supports every field and parameter the feature needs (for example, does `GET /api/orders` accept `status`?). For version-dependent decisions, check the installed version's official documentation or source. If support is missing, establish whether the authorized scope includes adding it. Ask before a workaround or scope change that alters the promised behavior; continue independent work.
-5. **Plan.** Choose units, file ownership, shared contracts, and a check method paired with each acceptance criterion. Delegate when independent work or separate context makes it useful; keep tightly coupled work together. Build settled shared behavior before its consumers. Resolve reversible structural choices yourself; ask when unifying behavior would change an unresolved product policy.
-   Ground the plan in the relevant entry points, reusable implementation, existing tests and contracts that must stay unchanged. Carry only the findings the work needs; no separate investigation document or agent is required. Summarize the plan when it helps explain the work. No approval needed.
-6. **Shared contracts and shared parts.** Settle and verify the shared interfaces before dependent units start. Assign their files to one owner so parallel edits cannot conflict. Commit completed change units under the session rules.
-7. **Build.** Main or a worker with /haechi:implement-work through /haechi:delegate.
-8. **Attack.** Check sibling paths (`/haechi:sibling-path-map`). When a specific concern suggests the tests could pass with incorrect behavior, use /haechi:mutation-check on that code and its tests, whether working directly or delegating. Use a worker with /haechi:attack-tests when an independent challenge is valuable for the behavior's risk or complexity. Do not invent consequential behavior in a test when the requirements leave it unresolved.
-9. **Verify and review.** Repo verify, then /haechi:review-diff by the main session, or a separate worker with /haechi:verify-work through /haechi:delegate.
-10. **Check outside behavior.** Inspect changed screens in a real render against the reference or stated design criteria, opening the captured images to compare their appearance as well as checking structure and measurements. Choose states and interactions relevant to the change; report gaps in that coverage. Use a worker with /haechi:screen-design for an independent comparison only when its supported reference is available: a design-tool URL, screenshot or variant URLs. For a draft with written criteria alone, the main agent checks those criteria in the real render and reports the evidence; no design source is required. For improvements, compare behavior that should stay the same with the previous version; use a worker with /haechi:screen-parity when it adds useful independent evidence. API-only changes: look at a real response.
-11. **Match acceptance criteria.** Inspect the executed behavior check for each criterion, including its conditions, expected and observed result, and whether it applies to the final change. A test name alone is not evidence. Use the completion rules to distinguish passed, failed, unverified and needs decision. An unmet or unverified required criterion prevents success.
-12. **Show the user.** If a visible screen changed, show it before any push.
-13. **Finish.** Local commit, then report the changed behavior and its evidence. If a spec was saved, move its conclusions into the feature's canonical doc, preserving unchanged contracts and exception cases; remove a temporary dated spec after merge when cleanup is authorized.
-
-## Extra DONE evidence
-
-A passing behavior check for every required behavior: executed assertions, a real interaction or a real response that confirms the expected result on the final change. A render proves only the states and interactions actually checked. Reading a setting or a flag does not count.
+Use the common contract's Check section and relevant review/screen methods to decide completion. New behavior and preservation evidence must both cover the final relevant change.
 
 ## Delegation contracts
 
-These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+These compatible entries identify delegated methods, not an exclusive workflow or a mandatory agent sequence. Packet assembly also supplies the canonical common work contract. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
 
 ```haechi-handoffs
 {
@@ -66,8 +45,7 @@ These references are the authoritative requirements for delegated steps in this 
       "ownership"
     ],
     "completion": [
-      "Run the supplied reproduction before and after a bug fix.",
-      "Check each required outcome on the final change and report gaps."
+      "Report the assigned implement work, its observed results and any remaining scope limitations."
     ]
   },
   "attack": {
@@ -140,7 +118,7 @@ These references are the authoritative requirements for delegated steps in this 
       "loginContext"
     ],
     "completion": [
-      "For a supplied design, return MATCH or MISMATCH with actual rendered comparisons, or BLOCKED with missing evidence. For variant capture, use the preview/variants contract instead."
+      "For a supplied design, return MATCH or MISMATCH with actual rendered comparisons, or BLOCKED with missing evidence."
     ]
   },
   "parity": {

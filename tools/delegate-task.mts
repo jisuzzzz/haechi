@@ -1,4 +1,4 @@
-// Compose a playbook-selected worker task. Only assemble writes explicitly requested task artifacts.
+// Compose common and method-specific worker guidance. Only assemble writes requested task artifacts.
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, realpathSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
@@ -42,6 +42,11 @@ const bounded = (text: string) => {
   if (Buffer.byteLength(text) > limit) throw new Error('Packet exceeds 128 KiB; narrow the task instead of truncating instructions')
   return text
 }
+const sectionText = (source: string, path: string, section: string) => {
+  const match = source.match(new RegExp(`^## ${section}\\r?\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'))
+  if (!match) throw new Error(`${path}: missing ${section} section`)
+  return match[1].trim()
+}
 
 export function validateBrief(brief: Brief) {
   allowedKeys(brief, ['playbook','step','playbookSha256','objective','context','writeScope','ownedPaths','artifactPaths','constraints','completion'], 'brief')
@@ -77,7 +82,19 @@ function loadContract(pluginRoot: string, playbookName: string, step: string) {
   for (const key of ['skills','principles','checks','contextRequired','completion'] as const) list(contract[key], key, ['principles','checks'].includes(key))
   if (!['read-only','scoped'].includes(contract.writeScope)) throw new Error('Invalid contract writeScope')
   for (const key of ['skills','principles','checks'] as const) for (const name of contract[key]) if (!names.test(name)) throw new Error(`Invalid ${key} reference: ${name}`)
-  return { root, contract, playbookSource: { path: playbookPath, sha256: digest(playbook) } }
+  // The canonical contract owns common obligations; compatibility blocks only add task methods.
+  const commonPath = 'principles/work-contract.md'
+  const common = readFileSync(pathInRoot(root, commonPath), 'utf8')
+  const commonSections = ['Do', 'Check'].map(section => sectionText(common, commonPath, section))
+  const references = commonSections.flatMap(text => [...text.matchAll(/\[[^\]]+\]\(([a-z0-9]+(?:-[a-z0-9]+)*)\.md(?:#(?:Do|Check))?\)/g)].map(match => match[1]))
+  const unique = (values: string[]) => [...new Set(values)]
+  const effective = {
+    ...contract,
+    principles: unique(['work-contract', ...references, ...contract.principles]),
+    checks: unique(['work-contract', ...references, ...contract.checks]),
+    completion: unique([...contract.completion, 'Apply principles/work-contract.md#Check to the assigned scope and report the required evidence and gaps.']),
+  }
+  return { root, contract: effective, playbookSource: { path: playbookPath, sha256: digest(playbook) } }
 }
 
 // Coordinator view: task input and acceptance contract, never worker procedure bodies.
@@ -104,12 +121,7 @@ export function preparePacket(pluginRoot: string, brief: Brief): Packet {
     const key = `${path}${section ? `#${section}` : ''}`
     if (seen.has(key)) return
     const source = readFileSync(pathInRoot(root, path), 'utf8')
-    let text = source
-    if (section) {
-      const match = source.match(new RegExp(`^## ${section}\\r?\\n([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'))
-      if (!match) throw new Error(`${path}: missing ${section} section`)
-      text = match[1].trim()
-    }
+    let text = section ? sectionText(source, path, section) : source
     text = text.replaceAll('{{PLUGIN_ROOT}}', root).replaceAll('${PLUGIN_ROOT}', root).replaceAll('${CLAUDE_PLUGIN_ROOT}', root)
     assets.push({ path, ...(section ? { section } : {}), sourceSha256: digest(source), text })
     seen.add(key)
@@ -128,6 +140,17 @@ export function renderPacket(pluginRoot: string, packet: Packet) {
   if (canonical(expected) !== canonical(packet)) throw new Error('Packet does not match its brief and current source; rebuild and review before dispatch')
   const { brief, contract } = packet
   const bullets = (values: string[]) => values.length ? values.map(v => `- ${v}`).join('\n') : '(none)'
+  // Preserve every asset body and section, but print a shared source/hash once.
+  const sources = new Map<string, Guidance[]>()
+  for (const asset of packet.assets) {
+    const key = `${asset.path}\0${asset.sourceSha256}`
+    sources.set(key, [...(sources.get(key) ?? []), asset])
+  }
+  const guidance = [...sources.values()].map(assets => {
+    const first = assets[0]
+    return `---\nSource: ${first.path} · SHA-256: ${first.sourceSha256}\n\n` +
+      assets.map(a => `${a.section ? `## ${a.section}\n\n` : ''}${a.text}`).join('\n\n')
+  })
   return bounded([
     `# Delegated task\n\nPacket: ${packet.packetSha256}\nPlaybook step: ${brief.playbook}/${brief.step}`,
     `## Objective\n${brief.objective}`,
@@ -136,14 +159,14 @@ export function renderPacket(pluginRoot: string, packet: Packet) {
     `## Authorized artifact paths\n${bullets(brief.artifactPaths)}\nThese paths do not expand repository ownership or grant host permissions.`,
     `## Constraints\n${bullets(brief.constraints)}`,
     `## Completion evidence\n${bullets([...new Set([...contract.completion, ...brief.completion])])}`,
-    '## Required task guidance\nThe main session selected this playbook step. Apply its skills and principles within the task boundaries. You may read additional relevant skills. Do not restart the main workflow.',
-    ...packet.assets.map(a => `---\nSource: ${a.path}${a.section ? `#${a.section}` : ''} · SHA-256: ${a.sourceSha256}\n\n${a.text}`),
+    '## Required task guidance\nApply the common work contract and method-specific guidance within the task boundaries. The named step is a compatible entry point, not an exemption from applicable obligations. You may read additional relevant skills. Do not restart completed work.',
+    ...guidance,
     `---\nEnd of packet: ${packet.packetSha256}\nReturn this identifier with the actual outcomes and gaps.`,
   ].join('\n\n') + '\n')
 }
 
 // The host reads message.txt directly for dispatch. stdout is only the coordinator receipt.
-// Existing prepare/render callers retain their exact packet and message formats.
+// Existing prepare/render callers retain their packet shape and message structure.
 export function assembleTask(pluginRoot: string, brief: Brief, outputDirectory: string) {
   if (!nonempty(outputDirectory)) throw new Error('A new task output directory is required')
   const packet = preparePacket(pluginRoot, brief), message = renderPacket(pluginRoot, packet)

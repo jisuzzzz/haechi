@@ -16,6 +16,7 @@ const fixture = t => {
   write(root,'skills/check/SKILL.md','Check actual assertions, not just the exit status.\n')
   write(root,'skills/delegate/SKILL.md','Keep evidence and reuse only matching current task guidance.\n')
   write(root,'repo/src/a','final content\n')
+  write(root, 'principles/work-contract.md', '## Do\nRespect the assigned scope.\n\n## Check\nCheck required outcomes against actual evidence.\n')
   const packet=preparePacket(root,{playbook:'review',step:'check',objective:'Review current behavior',context:{repository:'Read only'},writeScope:'read-only',ownedPaths:[],artifactPaths:[],constraints:['No edits'],completion:['Check results']})
   const main={complete:true,records:[{id:'read1',type:'command_execution',command:'cat skills/delegate/SKILL.md',output:readFileSync(join(root,'skills/delegate/SKILL.md'),'utf8'),exitCode:0}]}
   const worker={complete:true,records:[{id:'check1',type:'command_execution',command:'node --test test/a.test.mjs',output:'tests 2\npass 1\nfail 1\n',exitCode:1}]}

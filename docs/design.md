@@ -11,32 +11,27 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 
 ## Layers
 
-```
-[0] setup     user setup (notes folder, report preference, install check)
-              repo setup (detect, ask what cannot be detected, prove commands run, write .haechi.json)
-[1] hooks     first prompt and after compaction: guidance + repo facts; reminders otherwise
-              Claude Code: a mod (function hooks). Codex: command hooks. Both call one core.
-[2] main      the main session chooses the approach, delegates when useful, checks evidence and reports
-[3] playbooks bug · feature · refactor · perf · review · test hardening, plus spec and sweep procedures
-[4] handoff   main selects a playbook step and supplies its context, scope and acceptance criteria
-[5] worker    one generic definition, separate executions, host/session model and effort defaults
-```
+1. Repository setup supplies verified commands, forbidden commands and ownership facts.
+2. The [common work contract](../principles/work-contract.md) owns pre-action evidence, implementation principles, conditional verification/review obligations and completion.
+3. Task skills supply useful methods. The model chooses them for the next action as requests and findings develop; no exclusive primary playbook controls the task.
+4. Hooks deliver the shared summary initially and after supported recovery, with actionable reminders on later task submissions. The main owns requirements, integration and the completion decision.
+5. Delegation composes method guidance and the common contract into complete scoped packets for the generic worker. Existing playbook/step identifiers remain compatible operation names.
 
-Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md` (human judgment rules), `~/.haechi/user.json` (per-person settings and paths outside the repo).
+Beside these layers: `.haechi.json` holds repository facts, `AGENTS.md` holds repository rules, and `~/.haechi/user.json` holds personal paths and preferences. None of these records proves that work passed verification.
 
-## Request flow
+## Request flow and delivery
 
-1. The hook supplies repository commands, authorization boundaries and task guidance. Full rules appear at session start and after compaction; other prompts get a short reminder.
-2. For substantial work, the agent briefly explains the outcome, scope and check method. It reuses decisions already made in the conversation. No fixed table, labels or verdict line are required.
-3. The agent loads the playbook that helps the task and adapts its steps while preserving the required evidence.
-4. It delegates independent work when parallelism, separate context or an independent review is useful. Parallel edits have separate file ownership, and shared contracts are settled before dependent work starts.
-5. Completed changes need verification, diff review and a local commit. Read-only work produces findings and evidence without a commit. External actions require authorization; an explicit request can already provide it.
+For substantial work, briefly explain the intended outcome, scope and check method. Reuse settled requirements and decisions without a fixed reply format or another approval. Before product-source edits, receive/read applicable common guidance. Already-current guidance may be reused. Choose task methods as useful; a changed finding within one turn can change the next action without another user prompt or label switch.
 
-## Classification
+Full rules are emitted on the first eligible injection and after marked compaction; later requests receive the same actionable reminder about applicable guidance, pre-action evidence and completion. Its stable recovery path points to `hooks/rules.md`, which directs product work to the canonical contract. Codex registers SessionStart/UserPromptSubmit command hooks; PostCompact marks state for the next injection. Injection state is isolated by exact session identity and resolved repository root; missing identity uses stateless full delivery and malformed stored state recovers full. Claude uses prompt.submit and registration/repository-local state, with compaction/clear reset; host control/command passthrough remains intact. Task skill bodies also reference the common contract for command-driven entry.
 
-- Local copy, style, constant and comment corrections with no behavior or contract change need only the repo verify command.
-- Bug: behavior differs from a defined one. Feature: new or deliberately changed behavior. Refactor: same outside behavior, new structure. Perf: only when measurement or speed-up is asked for. Review: findings without edits. Test hardening: strengthen existing tests.
-- Classification helps choose guidance. The agent can revise its approach as it learns, without asking merely to change a label. Changes to requested scope or verification still follow the authorization boundary.
+Unit adapter execution and packet validation are not proof of native host delivery. Claude registration lifetime across sessions and actual command paths require host evidence. UserPromptSubmit does not fire for a tool result. No blanket PostToolUse reinjection, natural-language hook router or Stop-hook completion lock is added.
+
+## Applying methods and obligations
+
+New behavior, defined mismatch, behavior-preserving transformation and changed UI can overlap. Their applicable obligations accumulate under the common contract instead of selecting one exclusive category. `bug`, `feature` and `refactor` retain useful investigation, requirements/dependency and transformation techniques. `preview` creates/checks a proposal and preserves the selected reference. A proposal-only request does not authorize product implementation.
+
+Narrow copy/comment/constant corrections without behavior or contract changes need repository verification and diff inspection, not a new proposal or full implementation ceremony. Read-only review and tests-only hardening preserve their boundaries. Performance work still requires an explicit measurement/speed-up request. An explicit command remains a user preference; stale stored context cannot override a newer request.
 
 ## Delegation
 
@@ -45,9 +40,9 @@ Beside them: `.haechi.json` (machine-read repo settings, committed), `AGENTS.md`
 - Use a verifier or adversarial tester when risk, uncertainty or shared contracts justify an independent check. Roles are capabilities, not mandatory stages.
 - Check changed UI in a real render. A separate screen checker helps when there is a useful design or behavior comparison. Screen checkers open the original images to compare appearance, using structure and measurements as supporting evidence. Unviewable states remain blocked, and aesthetic preferences stay separate from observable defects.
 
-## Playbooks and documents
+## Task skills and documents
 
-- Task playbooks are `bug`, `feature`, `refactor`, `perf`, `review` and `test-hardening`. Their procedures are guidance; repository permissions and required evidence remain constraints.
+- Existing commands `bug`, `feature`, `refactor`, `perf`, `review` and `test-hardening` remain available as methods. Their local scope restrictions remain binding; common obligations are owned by the canonical work contract.
 - Detailed investigation techniques live in optional skill references. They ship with both plugins but are not injected into the session rules or inlined into agent prompts. The main agent chooses jobs and context; workers choose their methods within the assigned scope.
 - `eval` collects observed workflow failures separately from suspected causes, freezes a baseline/candidate comparison, and requires repeated target improvement without candidate failures before adoption. Independent behavioral judgment and final-file verification remain necessary; `eval-report.mjs` only checks supplied judgments and evidence completeness. Records are read when relevant, never injected as permanent lessons. See the [evaluation protocol](../skills/eval/references/protocol.md) and [seed observations](../evals/failures.md).
 - `spec` helps resolve consequential behavior or scope decisions, or produce an explicitly requested spec. Accepted requirements and checkable outcomes can stay in chat. File counts, a new screen or an export change alone do not require a formal document or another approval.
@@ -61,13 +56,15 @@ The `spec` step came from the user's wish to discuss a task with the main sessio
 
 Preview started from the pstack idea of showing layout and design choices quickly with disposable code, so the user can choose a direction before product implementation. Describing it only as worktrees, development servers and comparison reports lost that purpose and made the actual application seem like the default.
 
-Version 0.0.11 chose a single HTML file with fake data as the default. [`preview-scaffold.mts`](../tools/preview-scaffold.mts) provides a fixed top bar with variant and state switchers, number-key shortcuts, side-by-side comparison and a "Throwaway prototype · fake data" badge. The file opens without a server, keeps the selection in the URL hash and shows a rendering error in the affected variant. It refuses existing output files and paths inside a git work tree.
+Preview is a task skill for creating and checking a proposal. It can run independently or within other authorized work without replacing an explicit user preference. The main session creates the disposable prototype and checks, captures and compares previews directly. A standalone prototype request ends with the checked proposal; product implementation proceeds on the user's authorization under the common product-change obligations, using relevant task methods.
 
-The agent fills the prototype CSS, `STATES` data and each variant's `render(data, root)` function. It keeps the generated controls intact so previews share the same navigation. An illustrative widget fits when a still image answers the question. The running application fits when the user requests it or the choice depends on real data, state or integration that fake data cannot replace. The [preview skill](../skills/preview/SKILL.md) defines the procedure and browser checks.
+Version 0.0.11 chose a single HTML file with fake data as the default. [`preview-scaffold.mts`](../tools/preview-scaffold.mts) provides a fixed top bar with variant and state switchers, number-key shortcuts, side-by-side comparison and a "Throwaway prototype · fake data" badge. The self-contained file keeps the selection in the URL hash and shows a rendering error in the affected variant. It refuses existing output files and paths inside a git work tree. Serve the file's directory with a local static server, check the localhost URL in a browser before sharing it, keep the server running during review, and stop it afterward.
+
+The agent fills the prototype CSS, `STATES` data and each variant's `render(data, root)` function, applying the shared [UI design principle](../principles/ui-design.md) when building and checking the preview. It keeps the generated controls intact so previews share the same navigation. An illustrative widget fits when a still image answers the question. The running application fits when the user requests it or the choice depends on real data, state or integration that fake data cannot replace. The [preview skill](../skills/preview/SKILL.md) defines the procedure and browser checks.
 
 Setup-generated preview CSS for each repository was considered and rejected because it would add maintenance work. There is no automatic design-token integration. The agent can still copy product colors, fonts or spacing when that helps build the preview quickly; the running application remains available when its real environment matters.
 
-Implementation carries over the chosen layout, timing and interaction. Reusing prototype code is a separate decision.
+Implementation reuses the chosen layout, timing, interactions and checked reference; retain selected-screen captures and interaction criteria before prototype cleanup. Feature planning and implementation inspect existing components for reuse or a compatible extension. Review checks new components against the actual alternatives and their consumers. Product-source changes, including those made during a preview request, inherit the common contract's tests, rendered reference comparison and code review. Passing tests and visual agreement are separate results. Reusing prototype code is a separate decision.
 
 ## Git
 
@@ -81,24 +78,15 @@ Use authorization already given. Ask before an unauthorized external action or d
 
 ## Done means
 
-For example, a CSV download button rendering proves that the button exists. A downloaded file proves that the download ran. Checking its rows against the requested filter proves that part of the export behavior. These are different claims and need different evidence.
+The [common work contract](../principles/work-contract.md#check) is authoritative for completion. Compare original requested outcomes and accepted amendments with the actual work; a diff can omit an entire requested feature. Inspect applicable behavior evidence and review findings rather than treating a skill read, a worker verdict, a successful command or a completed review as a behavior pass.
 
-The main session keeps the required outcomes and unchanged contracts available from the request and repository. They can stay in the conversation. It chooses and revises methods, tools and delegation without a fixed agent sequence or extra approval, but cannot lower acceptance criteria to fit the implementation.
+The contract distinguishes passed, failed, unverified and needs decision, and defines evidence applicability across relevant implementation versions, inputs, environments and scope. Keep before/after reproduction for a repair, preservation evidence for restructuring and actual rendered evidence for affected UI. Valid prior results may be reused; uncertain applicability must be resolved or reported. A reconstructed baseline cannot establish that an earlier pre-action procedure was followed.
 
-Completion requires repo verification and relevant tests after the last change, a reviewed diff, passing behavior evidence for every required outcome, cleanup of task-created temporary resources, and one local commit per completed change unit. The main agent inspects the assertions or interaction results, not just a command exit code or worker verdict. Evidence must identify the command or interaction, relevant conditions, expected and observed result, and the checked final change. No separate evidence ledger or fixed report format is required.
+A handoff wording change normally does not invalidate code-behavior results. Check whether the changed documentation is executable input, apply the repository's checks for the actual change and inspect the diff, then reuse still-applicable results. Changed dependencies, inputs, environments, requirements, missing coverage or an explicitly required fresh check still require current evidence. Do not rerun unrelated suites or create a recorder merely to copy already available output into a report; identify reused evidence honestly.
 
-| Check result | Meaning |
-|---|---|
-| Passed | The executed check confirmed the required behavior under the stated conditions. |
-| Failed | The observed result contradicts the expected result. |
-| Unverified | Evidence is missing, skipped, stale or insufficient. Zero tests and all-skipped tests do not establish a behavior pass. |
-| Needs decision | The required expected behavior is unresolved. |
+Missing proof sends work back to the affected unfinished action, not to the beginning of a playbook. The main inspects the final diff and evidence, respects authority and scope, cleans owned resources and follows repository commit/handoff rules. Read-only work returns bounded findings without a commit. These are instruction obligations, not a host-enforced completion lock or a graph executor.
 
-Successful termination requires all required outcomes to pass, applicable repo checks to pass, and no known defect or unresolved decision preventing the requested result. A defect can prevent success even if its fix lies outside owned files; report the boundary without treating it as edit authorization. Skips unrelated to required behavior may be explained, but do not supply evidence for it. Bugs need the same reproduction failing before and passing after for the intended reason. Read-only work reports the inspected scope and limits; "no defects found" is not proof that the product works, and read-only work needs no commit.
-
-Stopping because access, information, authorization or a consequential decision is missing does not mean success. Report partial results, the remaining outcomes and what would unblock them. Implemented work without required proof is "implemented · unverified". A replacement check must establish the required behavior; a reason for omitting a check is not a waiver.
-
-These are evidence obligations, not a graph executor or a host-level completion lock. Hooks provide instructions and tools check observable command results; the main agent still judges acceptance coverage. Changes to these instructions do not by themselves prove improved host-agent behavior. The [completion forward check](core-validation.md) records six constructed cases and their limits. The [workflow observations](../evals/failures.md) and [pilot decision](../evals/pilot/decision.md) keep earlier evidence separate.
+Historical [completion checks](core-validation.md) and [workflow observations](../evals/failures.md) retain their original scopes and limits. See [workflow validation](workflow-validation.md) for this release's common-work, preview and native-delivery evidence and limitations.
 
 ## Writing and design judgment
 
@@ -127,9 +115,9 @@ The default verifier uses `pythonTestMap` to select explicit test files for chan
 
 - Sources live in the root `skills/`, `agents/`, `hooks/`, `tools/` and `principles/` folders, with metadata in `plugin.json`. Platform adapters live in `hooks/claude/` and `hooks/codex/`. `tools/*.mts` and `hooks/rules.mts` are checked TypeScript sources. `build/build.mjs` removes types and generates JavaScript tools at the existing `.mjs` paths in `dist/claude` and `dist/codex`. Tool imports use `.mjs` specifiers, which NodeNext resolves to `.mts` for type checking. Build and check run strict type checking first; CI fails on type errors or stale `dist` files. Tests run against generated JavaScript.
 - There is one generic `worker` definition, without preset model, effort or tools. Repository-required agents can receive the same complete delegate packets while retaining their role and host-enforced permissions. Implementation, review, test attack, screen comparison and experiment procedures remain in skills. Their previous ownership and output contracts remain with the corresponding procedures.
-- Each playbook's `haechi-handoffs` block is the source of its delegated steps' required skills, principle Do/Check sections, context fields, repository write scope and completion criteria. References may appear in several playbooks; procedure and principle bodies have one source. Skills do not contain a hidden role-to-principle dependency map.
-- The main selects a step and uses `delegate-task.mjs describe ROOT PLAYBOOK STEP` for the contract's input form, required acceptance and guidance inventory, without loading worker bodies or helper source. It fills task-specific values and preserves the form's exact write mode and playbook hash; changed playbooks require reviewing a fresh form. Fixed completion criteria are merged automatically.
-- `assemble ROOT BRIEF_JSON NEW_OUTPUT_DIR` validates the brief, saves a complete packet and rendered message in a new directory, and returns only task/acceptance, source hashes, guidance inventory and paths. It refuses to replace existing task artifacts. Legacy `prepare` and `render` retain their formats. `render` rejects changed or tampered packets and oversized output. A host adapter should call it immediately before passing the full task directly to a fresh worker; the main need not receive those bodies. A string-only dispatch tool still requires full text in the main context, so this CLI alone does not remove delivery cost or establish token savings. No native dispatcher is added. Workers may load extra relevant skills.
+- Compatible `haechi-handoffs` blocks provide method-specific skills, context, scope and completion additions. The canonical common work contract supplies mandatory shared guidance to every packet, with linked principle Do/Check sections and deduplicated hashes. References may appear in several playbooks; procedure and principle bodies have one source. Skills do not contain a hidden role-to-principle dependency map.
+- The main selects a bounded operation and uses `delegate-task.mjs describe ROOT PLAYBOOK STEP` for the contract's input form, required acceptance and guidance inventory, without loading worker bodies or helper source. It fills task-specific values and preserves the form's exact write mode and playbook hash; changed playbooks require reviewing a fresh form. Fixed completion criteria are merged automatically.
+- `assemble ROOT BRIEF_JSON NEW_OUTPUT_DIR` validates the brief, saves a complete packet and rendered message in a new directory, and returns only task/acceptance, source hashes, guidance inventory and paths. It refuses to replace existing task artifacts. Legacy `prepare`/`render` commands and packet shapes remain compatible. Rendered text groups each source path/hash once, retaining its complete Do and Check bodies under explicit headings; it does not remove assets or weaken packet validation. `render` rejects changed or tampered packets and oversized output. A host adapter should call it immediately before passing the full task directly to a fresh worker; the main need not receive those bodies. A string-only dispatch tool still requires full text in the main context, so this CLI alone does not remove delivery cost or establish token savings. No native dispatcher is added. Workers may load extra relevant skills.
 - Repository ownership and explicitly authorized external artifact paths are distinct. No packet grants a sandbox permission; use host controls where enforcement is required. A packet hash proves consistency, not receipt, compliance or quality. Hooks supply repository facts but do not enforce dispatch. The main must check selection, delivery and behavior evidence.
 - For an existing shared graph task, `delegate-return.mjs publish` performs raw-record integrity checks, proof storage, criterion-reference validation and graph update in one host call. It returns compact decision inputs, including relevant command outcomes and all nonzero exits, instead of intermediate full bundles. The graph schema and hooks are unchanged. Records remain pending main review; unknown/stale evidence is rejected, conflicts are not retried automatically, and short standalone work skips this path. The host supplies real identity, observed records and criterion claims; the tool does not infer semantic success or authenticate the host. Runtime savings remain an evaluation question.
 - Both tools install from this repository: `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.

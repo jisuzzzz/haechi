@@ -1,43 +1,26 @@
 ---
 name: refactor
-description: Refactor playbook — pin current behavior with tests, delete first, move mechanically, remove the old path in the same task, and prove external behavior is unchanged. Use for /haechi:refactor, when the structure changes but external behavior must stay the same, or as the first step inside a behavior playbook.
+description: Change structure while preserving external behavior — characterize the contract, delete unnecessary code, transform mechanically and migrate consumers. Use for /haechi:refactor or an authorized behavior-preserving change within other work.
 ---
 
-# Refactor playbook
+# Restructure without changing behavior
 
-The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
+Apply the [common work contract](../../principles/work-contract.md) within the authorized scope. It owns required implementation, verification, review and completion obligations; this skill supplies methods. Use /haechi:delegate for a bounded worker task when independent execution helps. Existing step names below are compatible delegation entry points, not an exclusive workflow state.
 
-The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to refactors. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): **dry**, **yagni**, **kiss** and **behavior-tests** apply.
+## Methods
 
-## Task focus
+1. **Name the structural problem and preserved contract.** Define the intended end state in checkable terms, such as no remaining imports of a retired internal module. Use /haechi:spec when the boundaries need synthesis; settled requirements need no new approval.
+2. **Characterize current behavior.** Reuse tests covering observable results or add missing characterization before changing structure. Where affected, cover errors and timing, input mutation, side-effect order and partial writes. An old/new equivalence check on the same inputs can be useful. Use /haechi:mutation-check when a concrete concern suggests the characterization could miss a regression.
+3. **Delete before adding structure.** Remove dead code, unused exports and unnecessary checks when in scope. Keep independently verifiable cleanup and mechanical transformations in coherent units under the repo's commit rules.
+4. **Transform mechanically.** Use a type-aware rename or codemod for symbol moves, rather than an indiscriminate text replacement. Move files with the repository's appropriate tools. Do not combine an intentional behavior change with a claimed behavior-preserving transformation.
+5. **Migrate consumers and retire obsolete paths.** Remove old internal paths once their in-scope consumers are migrated. Do not invent a compatibility layer merely to avoid completing the migration; retain public compatibility explicitly required by the task. Resolve consumers outside the authorized scope before deleting their dependency.
+6. **Investigate a broken check.** If it asserts internals, replace it with a behavior assertion and explain why. If observable behavior changed unintentionally, restore it rather than changing the expected result. A necessary intentional behavior change follows the user's authorization and common obligations; choosing another method is not a new approval by itself.
 
-Establish which external behavior stays unchanged and why the structure needs to change. Example: "Date formatting lives in 6 copies, and a fix to one missed the others."
-
-## Steps
-
-1. **Clarify the task.** Establish the structural problem, target structure, unchanged behavior and checks that will prove equivalence. Keep the summary proportional to the task; fixed labels and tables are optional.
-2. **End state.** Write a list that says "done" in checkable terms. Example: zero imports of `utils/legacyDate`, zero callers of `formatDateOld`. Consider /haechi:spec using its description while establishing this end state; it is not a mandatory refactor stage. Settled requirements need no separate document or approval.
-   Leave: the end-state list.
-3. **Pin current behavior.** Check that existing tests cover the observable results of the code you will change. If they do not, add tests before refactoring. The strongest is an equivalence test: old and new give the same output for the same inputs. Where affected, include error behavior and timing, input mutation, side-effect order and partial writes on failure. Tie tests to observable results, not internals. When it is uncertain whether these tests catch a plausible behavior regression, use /haechi:mutation-check on the relevant code and tests; change size alone is not the trigger.
-   Move on when the pinning tests pass.
-4. **Delete first.** Remove dead code, unused exports and pointless checks. Commit that on its own.
-5. **Move mechanically.** Move files with `git mv`. Rename with a type-aware rename or a codemod — never a global text replace. Move commits and fix commits are separate.
-6. **Order the units.** Each unit ends in a verifiable state; tests pass, then commit. Many units: run /haechi:sweep.
-7. **Delete the old path.** Once every in-scope caller is moved, delete the old code in the same task. Leave no compatibility layer or re-export. Callers outside the scope: ask.
-8. **When a test breaks.**
-   - The test was tied to internals: rewrite it against observable results and record why.
-   - The observable result changed unintentionally: restore the expected behavior; do not adjust the test to accept a regression. If a behavior change is necessary, re-classify and ask only when it is outside the existing authorization.
-9. **Review.** Use /haechi:review-diff, with a separate worker using /haechi:verify-work when risk or separate context makes independent review useful. Look for leftovers: unused exports, docs or comments pointing at the old path. Step 3 supplies the behavior tests; delegate additional test work only when it adds distinct evidence.
-10. **Prove same behavior.** Existing tests and pinning tests pass. If screens are affected, compare the real rendered behavior with the previous version, excluding intended differences. Use a worker with /haechi:screen-parity when an independent comparison helps.
-11. **Finish.** End-state list met, commits split as above. Report the developer-facing change and the evidence that user behavior is unchanged.
-
-## Extra DONE evidence
-
-Evidence that the required external behavior is unchanged on the final change: executed existing and pinning assertions, and parity results if external behavior could be affected. List any test you edited and why; changing expected behavior to match a regression cannot establish equivalence. Apply the common completion rules to missing or contradictory results.
+Inspect remaining consumers, unused exports and stale documentation. The common contract governs preservation evidence and any affected rendered behavior, including use of /haechi:screen-parity when an independent comparison adds evidence.
 
 ## Delegation contracts
 
-These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+These compatible entries identify delegated methods, not an exclusive workflow or a mandatory agent sequence. Packet assembly also supplies the canonical common work contract. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
 
 ```haechi-handoffs
 {
@@ -63,8 +46,7 @@ These references are the authoritative requirements for delegated steps in this 
       "ownership"
     ],
     "completion": [
-      "Run the supplied reproduction before and after a bug fix.",
-      "Check each required outcome on the final change and report gaps."
+      "Report the assigned implement work, its observed results and any remaining scope limitations."
     ]
   },
   "attack": {

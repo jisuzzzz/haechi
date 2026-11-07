@@ -5,6 +5,8 @@ description: Evaluates proposed skill, agent or workflow changes against recorde
 
 # Evaluate workflow improvements
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 The main agent chooses the cases, jobs and candidate changes. Workers choose their methods within those jobs. This skill runs when relevant to the requested task; it adds no background observer, automatic memory injection or required stage to other playbooks.
 
 The tools folder is two levels above this skill's folder (`<this skill's folder>/../../tools/`). Read [the protocol](references/protocol.md) for the plan and result formats. [Case examples](references/cases.md) supply starting points, not a mandatory suite.

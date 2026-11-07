@@ -50,20 +50,20 @@ Run setup once per repository, then again when its execution settings change. Gi
 
 For this bug, the agent collects a reproduction, finds the cause, adds a failing test, fixes the code and checks that the test passes. Its report shows what changed and what was verified.
 
-You can also describe a task in natural language and let the agent select a playbook. Prefixing the prompt with a command explicitly selects one.
+You can also describe a task in natural language and let the agent choose useful skills. Prefixing the prompt with a command explicitly requests that method; it does not make the method an exclusive workflow.
 
 ## What haechi adds
 
-- **Repository facts in the session.** Hooks supply the configured verification commands, forbidden commands and task guidance, including after compaction.
-- **A workflow for the task.** Bugs need failing-before and passing-after evidence. Features need checks for their acceptance criteria. Reviews produce findings without editing code.
-- **Delegation when it helps.** The main session delegates a bounded playbook step to a repository-required agent or the plugin's generic worker. Either receives the same checked packet of required skills, principles, context and evidence. Independent reviews use separate executions, and the main session checks the results.
+- **Repository facts in the session.** Hooks supply the configured verification commands, forbidden commands and task guidance, including recovery after compaction. Later requests receive an actionable reminder to assess applicable guidance and required completion evidence.
+- **Common obligations and task methods.** The [common work contract](principles/work-contract.md) defines required pre-action evidence, implementation principles and completion. Task skills supply methods; repairs, restructuring, UI changes and read-only reviews retain their applicable evidence and scope requirements.
+- **Delegation when it helps.** The main session delegates a bounded operation to a repository-required agent or the plugin's generic worker. Either receives the same checked packet of required skills, the common contract, principles, context and evidence. Independent reviews use separate executions, and the main session checks the results.
 - **Evidence for completion.** The agent checks each required outcome against actual results on the final change. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
 
 Settled requirements can stay in the conversation. The spec skill helps consolidate requirements and acceptance criteria; its description guides selection. It does not require a saved document or a new approval. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.
 
 ## Commands
 
-Start with the playbook that matches your task. Each command links to its full instructions.
+Choose a useful method or describe the task naturally. Existing commands remain compatible; none exempts product changes from the common work contract. Each command links to its instructions.
 
 | Task | Command | What it does |
 |---|---|---|
@@ -80,10 +80,10 @@ For example, a review request can stay read-only:
 /haechi:review Review this branch against main. Report defects with evidence; do not edit files.
 ```
 
-Supporting skills handle individual steps:
+Focused skills handle particular work:
 
 - [delegate](skills/delegate/SKILL.md) exposes a compact step input form and assembles complete worker guidance into task files, returning only a coordinator receipt. Direct delivery depends on the host; it does not enforce permissions or prove behavior.
-- [spec](skills/spec/SKILL.md) helps establish requirements and acceptance criteria; [preview](skills/preview/SKILL.md) makes a quick UI prototype; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
+- [spec](skills/spec/SKILL.md) helps establish requirements and acceptance criteria; [preview](skills/preview/SKILL.md) builds and checks UI proposals; [sweep](skills/sweep/SKILL.md) coordinates independent units of work.
 - [impact-map](skills/impact-map/SKILL.md), [sibling-path-map](skills/sibling-path-map/SKILL.md), [mutation-check](skills/mutation-check/SKILL.md) and [review-diff](skills/review-diff/SKILL.md) support verification and review.
 - [eval](skills/eval/SKILL.md) records workflow failures and compares proposed improvements in fresh contexts before changing active guidance. It runs when relevant to an evaluation task and adds no background memory or global rules. Seed observations are in [evals/failures.md](evals/failures.md).
 - [answer](skills/answer/SKILL.md) shapes choices, problem explanations and concrete scenarios while preserving evidence and useful explanations. [work-graph](skills/work-graph/SKILL.md) keeps minimal shared task state and native session links.
@@ -149,7 +149,7 @@ Open a pull request for your changes. The [design notes](docs/design.md) explain
 <details>
 <summary>How an explicitly selected playbook is remembered</summary>
 
-Starting a prompt with `/haechi:feature <task>` (or `bug`, `refactor`, `perf`, `review`, `test-hardening`) remembers that selection within the session and working directory. Follow-up prompts and resumed or compacted sessions receive a reminder. Supporting skills such as `/haechi:preview` leave the selection intact.
+Starting a prompt with `/haechi:feature <task>` (or `bug`, `refactor`, `perf`, `review`, `test-hardening`) remembers that selection within the session and working directory. Follow-up prompts and resumed or compacted sessions receive a reminder. Supporting skills such as `/haechi:preview` and `/haechi:spec` leave the selection intact and can also be used on their own. Product UI implementation uses the selected design reference and inherits the common work contract's tests, rendered comparison and component reuse review. The stored command is a user preference, not an exclusive workflow or proof of completed work.
 
 A new primary command replaces the selection. Use `/haechi:context clear` when a task is finished, cancelled or replaced; natural-language task changes are not classified automatically. A new session has no selection.
 

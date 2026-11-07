@@ -5,9 +5,15 @@ description: Use before implementing new or changed screens, components, layouts
 
 # UI preview
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 Run this skill for requests to design or change visible UI or user interactions, including the preview shell or generator itself, even without an explicit preview command. Show a rendered, interactive proposal before implementing the UI change; a code diff or prose description alone is insufficient. Feature and spec are not prerequisites. A preview does not require a saved spec or a new approval of settled requirements.
 
+The main session creates the disposable prototype and checks, captures and compares previews directly. Use preview on its own or within a task playbook. A standalone prototype request ends with the checked proposal; product implementation proceeds on the user's authorization under the common product-change obligations, using appropriate implementation methods.
+
 The goal is speed: the user sees and touches the idea before anyone writes product code. Preview code is disposable.
+
+Read [ui-design](../../principles/ui-design.md) before designing the preview, and apply its Do and Check guidance when building and inspecting the rendered result.
 
 ## Steps
 
@@ -15,7 +21,7 @@ The goal is speed: the user sees and touches the idea before anyone writes produ
    Present connected elements together in one interactive preview. Let the user start an interaction on the requested component, follow its state transitions and inspect the immediate visible result, including dismissal or return when applicable. For example, hover a row, move into its menu, select an item and see the result on the row.
    Parent components and surrounding screens supply only the context needed to understand and operate that behavior; do not expand into their unrelated behavior or redesign. Simulate external effects such as server writes with sample data. Separate state views may supplement the connected flow, but must not replace it.
 2. **Pick the medium.** Name the medium in one line and proceed; ask only when the user's words point both ways.
-   - **Throwaway prototype (default).** One self-contained HTML file with a lightweight comparison shell, outside the repository, with fake data. It opens in a browser without a server. Use it for layout, animation and interaction choices.
+   - **Throwaway prototype (default).** One self-contained HTML file with a lightweight comparison shell, outside the repository, with fake data. Serve its directory with a local static server and open it at `http://localhost:<port>/<task>.html`. Use it for layout, animation and interaction choices.
    - **Illustrative widget.** A static or lightly interactive picture rendered inline. Use it when the user asks for one or a still image answers the question. Do not pick it to save effort when motion or interaction is the point.
    - **Running application.** Use it only when the user asks, or when the choice depends on real data, state or integration that fake data cannot stand in for. Say which dependency made you switch.
 3. **Build it fast.** For a throwaway prototype:
@@ -27,44 +33,17 @@ The goal is speed: the user sees and touches the idea before anyone writes produ
    - Choose the visual direction from the user’s brief and application references. Do not carry the shell’s typography, colors or framing into the product UI by default, or reproduce an unrelated design system unless requested. When alternatives concern visual direction, vary hierarchy, composition, density or typography meaningfully; for a narrow behavior comparison, keep the surrounding design consistent.
    - Spend no time on architecture, tests, error handling or repository conventions. Plain DOM and CSS are enough; copy markup, colors or tokens from the application when that gets closer to the real look faster.
    - Use synthetic fake data, just enough to show the states. No real records.
-   - Open the file in a browser and check that every variant renders in every state. Exercise each relevant connected flow from trigger through transitions to its immediate result, rather than checking only isolated states. Give the user the file path only after that check.
+   - Start a local static server for the directory containing the generated HTML, using a free port and respecting `devServer.forbiddenPorts`. Open its `http://localhost:<port>/<task>.html` URL in a browser and check that every variant renders in every state. Exercise each relevant connected flow from trigger through transitions to its immediate result, rather than checking only isolated states. Share the verified localhost URL with the user only after that check.
 
    For a running-application preview, start its development server, check the requested state in a real render, and provide only URLs whose content you checked. Separate variants there may need separate worktrees: record the source branch used for each variant, run configured setup, use free ports and avoid `devServer.forbiddenPorts`.
 
+   Changes to application source follow the common work contract's tests, rendered design comparison and code review, including component reuse checks. This applies when the request is called a preview too; the throwaway-prototype shortcuts apply to the disposable HTML file.
+
    If execution, browser access or URL exposure is unavailable, report the limitation and the alternatives; never present a prototype or widget as the real app.
-4. **Compare.** One variant is fine unless the user asked for several. For several variants, open in side-by-side comparison by default and let the user select a variant to inspect it alone. Say what each one changes against the stated criteria; the prototype's side-by-side toggle shows them together. For running-application variants, a worker using the `variants` delegation contract below can capture them with `kind: "variants"`, and `node <tools>/screen-report.mjs --out <notesDir>/screen-reports/<task>/variants.html <result.json>...` renders one report. Open reports only when `openReports` is on.
-5. **Carry over the direction, not the code.** Record which variant was chosen and what about it matters (layout, timing, interaction). The real implementation follows the normal playbook and repository conventions. Copying prototype code into the application is a separate decision; state it when you make it.
-6. **Clean up.** Keep preview servers up while the user reviews, then stop the servers you started and delete the prototype file unless the user wants to keep it. Before removing variant worktrees, run `node <tools>/cleanup-merged.mjs <variant branch> --base <source branch> --discard` to show the removal list. Resolve a missing source branch from the task context or repository settings before proceeding. Keep the same `--base` when adding `--yes`, and do so only when deletion is authorized. Never use `git worktree remove --force` by hand.
+4. **Compare.** One variant is fine unless the user asked for several. For several variants, open in side-by-side comparison by default and let the user select a variant to inspect it alone. Say what each one changes against the stated criteria; the prototype's side-by-side toggle shows them together. For running-application variants, open each variant's checked URL and inspect the same screens and states directly.
+5. **Carry over the direction, not the code.** Record which variant was chosen and what about it matters (layout, timing, interaction). Retain screenshots of the selected screens and the relevant interaction criteria so they remain usable after prototype cleanup. Reuse that reference when implementation is requested; repeat preview work only for requirements or states the existing reference does not cover. Product implementation follows the common work contract and repository conventions. Copying prototype code into the application is a separate decision; state it when you make it.
+6. **Clean up.** Keep preview servers, including the prototype's static server, up while the user reviews, then stop the servers you started and delete the prototype file unless the user wants to keep it. Before removing variant worktrees, run `node <tools>/cleanup-merged.mjs <variant branch> --base <source branch> --discard` to show the removal list. Resolve a missing source branch from the task context or repository settings before proceeding. Keep the same `--base` when adding `--yes`, and do so only when deletion is authorized. Never use `git worktree remove --force` by hand.
 
 ## Evidence
 
-Report the medium, where the preview lives, the states and interactions you checked in a browser, and checks you could not run. A running process or open port alone does not prove the preview works.
-
-## Delegation contracts
-
-For independent variant capture, use /haechi:delegate with this contract. The main session owns the preview workflow and user choice. Repository files remain read-only; name authorized output paths separately. `loginContext` may state that no login is needed.
-
-```haechi-handoffs
-{
-  "variants": {
-    "skills": [
-      "screen-design"
-    ],
-    "principles": [
-      "real-artifact"
-    ],
-    "checks": [],
-    "writeScope": "read-only",
-    "contextRequired": [
-      "repository",
-      "urls",
-      "states",
-      "artifactLocation",
-      "loginContext"
-    ],
-    "completion": [
-      "Capture the supplied variants as kind: variants, without a MATCH/MISMATCH verdict or ranking; return actual screenshots for the user to choose, or BLOCKED with missing evidence."
-    ]
-  }
-}
-```
+Report the medium, where the preview lives (including the localhost URL and file path for a throwaway prototype), the states and interactions you checked in a browser, and checks you could not run. A running process or open port alone does not prove the preview works.
