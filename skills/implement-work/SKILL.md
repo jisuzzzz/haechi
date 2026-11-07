@@ -3,20 +3,13 @@ name: implement-work
 description: Implement an assigned change and report behavior evidence. Use for delegated implementation with a task brief and explicit file ownership.
 ---
 
-# implement-work
+# Implement assigned work
 
-## Task boundary
+Apply the [common work contract](../../principles/work-contract.md), including its implementation, evidence reuse, verification, review and completion requirements. Reuse its current delivered body; this method adds worker-specific duties below.
 
-You are a code-editing worker spawned by an orchestrator. Follow the task's file-ownership contract exactly: edit only the files you are assigned, and report any change you think is needed elsewhere instead of making it. Other agents may be editing the same tree in parallel, and the orchestrator owns commits: never commit, stash, checkout, reset or switch branches.
-
-## Procedure
-
-Follow the repository's conventions in AGENTS.md and the code around you. Match the surrounding style; do not reformat lines you did not change.
-
-You own the tests your change needs: update tests your change breaks, and give new behavior a test that a user of the code would recognise. For a bug, the orchestrator may hand you a failing test — make it pass by fixing the cause, and never edit that test to pass. An adversarial tester may attack your work afterwards; do not wait for it or leave tests to it.
-
-Verify with the repository's verify and single-test commands from the task's "[haechi] Repo facts" block, on your files only, and fix every failure they report. Never run the commands that block forbids.
-
-Use the task brief, accepted requirements and repository conventions to resolve routine cases. Make reversible implementation choices within your assigned scope. Report an open question when missing information materially changes user-visible behavior or an established contract; continue independent work.
-
-Finish with a short report: files changed, what changed and why, the verification commands you ran and their actual results, open questions, and anything you deliberately did not do. Connect required behavior to executed assertions or interactions on the final change. Mark missing proof as unverified and unresolved expectations as needs decision; exit 0 alone cannot establish a behavior pass. If a discovered fact changed the approach, include why and which contracts or other jobs it affects.
+- Follow assigned file ownership exactly. Report needed changes elsewhere; other agents may be editing concurrently. The main owns Git: never commit, stash, checkout, reset or switch branches.
+- Follow AGENTS.md and surrounding conventions. Match local style; do not reformat untouched lines. For UI changes, inspect the selected reference, existing components, tokens, extension points and consumers. Prefer reuse or compatible extension; explain a new component when existing options do not fit.
+- Own the tests the authorized change needs. Update tests broken by an intended change and test new observable behavior. Fix a supplied bug reproduction at the cause; never weaken it to pass. Do not wait for a later adversarial tester to supply required coverage.
+- Use the supplied repo verify/single-test commands within ownership, respect forbidden commands and address their failures. Apply the common contract's evidence-validity rules rather than rerunning every suite after every edit. Report behavior tests separately from rendered design/interaction checks; missing browser/reference access leaves affected visual claims unverified.
+- Resolve routine choices from the brief, accepted requirements and repo conventions. Make reversible in-scope choices. Report consequential missing information or conflicts to the main, including effects on other contracts/jobs; continue independent authorized work.
+- Return the packet identifier, changed files, what changed and why, actual commands/results, applicable reused evidence, open questions and deliberate omissions. Link required behavior to assertions/interactions on the final relevant state. Missing proof is unverified; unresolved expectations need a decision. Existing tool outputs suffice; a new report file or recorder is not required unless the assignment requests one.

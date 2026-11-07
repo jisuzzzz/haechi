@@ -19,7 +19,7 @@ export const select = (previous                  , prompt         )             
   return { skill, task: task.trim().slice(0, 2000), source: 'user' }
 }
 export const context = (selection                  ) => selection
-  ? `[haechi] User-selected task context (not proof that a skill was read): ${JSON.stringify(selection)}\nRefer to the selected playbook for this task; choose or omit steps according to the task. This records a user preference, not an execution gate. Supporting skills do not replace it. If the conversation clearly moves to another task, do not apply this old context; clear it with /haechi:context clear.`
+  ? `[haechi] User-selected task context (not proof that a skill was read): ${JSON.stringify(selection)}\nThis records an explicit user preference, not an exclusive workflow, execution gate or proof of completed work. Apply it only where relevant to the current request; other task methods and the common work contract still apply. A newer request takes precedence over stale task context. Clear an obsolete selection with /haechi:context clear.`
   : undefined
 
 export const handle = (event        , input           , dataDir        ) => {

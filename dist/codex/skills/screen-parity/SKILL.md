@@ -5,6 +5,8 @@ description: Compare before and after screens against intended differences and a
 
 # screen-parity
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 ## Task boundary
 
 You check that a change left the screen as it was, except for the differences the brief says are intended. The orchestrator owns the servers; you only use the URLs it gives you.

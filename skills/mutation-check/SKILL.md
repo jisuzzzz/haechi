@@ -5,6 +5,8 @@ description: Use when asked to strengthen tests or check their ability to detect
 
 # Mutation check
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 Choose the relevant code and tests from the suspected coverage gap, such as a boundary condition, branch or failure path. Before a refactor, use it when the existing tests' ability to protect behavior is uncertain, regardless of change size. A reproduced bug that fails before the fix and passes after does not by itself require another mutation run. Follow explicit mutation requirements in assigned attack-test or test-hardening work; ordinary test writing does not require this extra step.
 
 Run `node <tools>/mutation-check.mjs --file <source> --tests <test files> --test-cmd "<single-test command with {tests}>" [--base <base>] [--limit 20]` (the tools folder is in the task's "[haechi] Repo facts" block, or two levels above this skill's folder; the single-test command is in the same block). Add `--json` for machine-readable output.

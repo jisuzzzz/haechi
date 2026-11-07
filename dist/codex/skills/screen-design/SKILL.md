@@ -5,6 +5,8 @@ description: Compare rendered screens with supplied designs or capture supplied 
 
 # screen-design
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 ## Task boundary
 
 You check that a rendered screen matches its design. The orchestrator owns the servers; you only use the URLs it gives you.

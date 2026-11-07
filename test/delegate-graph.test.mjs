@@ -20,6 +20,7 @@ const fixture = t => {
   write(root, 'skills/review/SKILL.md', '```haechi-handoffs\n' + JSON.stringify({ review: contract }) + '\n```\n')
   write(root, 'skills/check/SKILL.md', 'Inspect executed assertions.\n'); write(root, 'skills/delegate/SKILL.md', 'Return actual evidence.\n')
   write(root, 'repo/src/a', 'final\n')
+  write(root, 'principles/work-contract.md', '## Do\nRespect the assigned scope.\n\n## Check\nCheck required outcomes against actual evidence.\n')
   const packet = preparePacket(root, { playbook: 'review', step: 'review', objective: 'Check behavior', context: { repository: repo }, writeScope: 'read-only', ownedPaths: [], artifactPaths: [], constraints: ['No edits'], completion: ['Behavior is correct'] })
   const records = [
     { id: 'read', type: 'command_execution', command: 'cat large-input', output: 'UNNEEDED_FULL_OUTPUT'.repeat(1000), exitCode: 0 },

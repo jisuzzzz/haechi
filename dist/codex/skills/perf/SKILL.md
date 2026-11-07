@@ -1,15 +1,15 @@
 ---
 name: perf
-description: Performance playbook — baseline and bottleneck first, user-picked candidates, a pre-registered measurement run by worker with /haechi:run-experiment and checked by worker with /haechi:audit-experiment, then adoption through the normal playbooks or a recorded rejection. Use for /haechi:perf, only when the user explicitly asks to measure or speed up something.
+description: Measure performance — baseline and bottleneck first, user-picked candidates, a pre-registered measurement run by worker with /haechi:run-experiment and checked by worker with /haechi:audit-experiment, then an authorized product change under the common work contract or a recorded rejection. Use for /haechi:perf, only when the user explicitly asks to measure or speed up something.
 ---
 
-# Performance playbook
+# Measure and audit performance
 
-The main session owns this workflow. For a delegated step, follow /haechi:delegate for agent selection and complete packet delivery: objective, relevant evidence, ownership, constraints and required task skills. Keep later stage decisions and integration in the main session; do not give an agent the whole playbook to restart.
+Apply the [common work contract](../../principles/work-contract.md) within the authorized scope. It owns required implementation, verification, review and completion obligations; this skill supplies methods. Use /haechi:delegate for a bounded worker task when independent execution helps. Existing step names below are compatible delegation entry points, not an exclusive workflow state.
 
 The main session runs these steps. Scope, delegation, authorization and completion requirements are in the session rules; this file adds only what is specific to performance. Principle files are two levels above this skill's folder (`<this skill's folder>/../../principles/<name>.md`): read **explain-the-number** before step 3 and **benchmark-checklist** before step 5. The haechi tools folder is two levels above this skill's folder (`<this skill's folder>/../../tools/`); run tools with `node`.
 
-Start only on an explicit request to measure or speed something up. "It feels slow" alone: ask whether to run this playbook or start with bug reproduction.
+Start only on an explicit request to measure or speed something up. "It feels slow" alone: clarify whether measurement is requested or ordinary mismatch investigation is needed.
 
 ## Task focus
 
@@ -40,7 +40,7 @@ Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. If ei
 8. **Run.** Delegate to a worker using /haechi:run-experiment with the pre-registration and the raw-data folder: noise, main run, aggregation, no interpretation. One measurement at a time — if another is running, wait until it ends.
    Leave: raw data in `<notesDir>/perf-runs/<topic>`.
 9. **Audit.** Delegate to a separate worker using /haechi:audit-experiment with the pre-registration, raw data and the conclusion you want to draw. It re-aggregates and rates each claim supported, weak or invalid.
-10. **Adopt.** The experiment code is reference only. Start again at classification and run /haechi:feature or /haechi:refactor from the restatement. The implementer may read the experiment diff for direction; never cherry-pick or merge it. Include a short confirmation measurement on the real code in the evidence. A marker string left in the final diff means not done.
+10. **Adopt.** The experiment code is reference only. Apply the common work contract to the authorized product change; use feature/refactor methods where useful and retain settled requirements. The implementer may read the experiment diff for direction; never cherry-pick or merge it. Include a short confirmation measurement on the real code in the evidence. A marker string left in the final diff means not done.
 11. **Or reject.** Add an entry to `perf.rejected` in the format below.
 12. **Record and correct.** Freeze the measurement record. Put the one-line conclusion and the baseline numbers in the area's main doc. Find docs this result contradicts and fix them.
 
@@ -69,7 +69,7 @@ The auditor's "supported" verdict, plus the numbers, round count, scope (which c
 
 ## Delegation contracts
 
-These references are the authoritative requirements for delegated steps in this playbook, not a mandatory agent sequence. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
+These compatible entries identify delegated methods, not an exclusive workflow or a mandatory agent sequence. Packet assembly also supplies the canonical common work contract. The main session fills the named context fields and task-specific acceptance criteria; detailed procedures and principle bodies stay in their referenced files. `read-only` means repository files remain unchanged; authorized temporary or report outputs must be named separately in `artifactPaths`.
 
 ```haechi-handoffs
 {

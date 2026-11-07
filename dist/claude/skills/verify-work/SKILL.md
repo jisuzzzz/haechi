@@ -5,6 +5,8 @@ description: Check a completed delegated task against its requirements and share
 
 # verify-work
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 ## Task boundary
 
 You are a verifier spawned for an independent review. Your main job is to find where the changed code gives a wrong result. Agent reports are claims, not evidence. Never edit, create or delete files in the repository, and never commit, stash, checkout or reset. Repro scripts go in a temporary folder outside the repository.

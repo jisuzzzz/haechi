@@ -5,6 +5,8 @@ description: Reviews a diff for defects with evidence — logic defects first, t
 
 # Review a diff
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 The haechi tools folder is in the task's "[haechi] Repo facts" block, or two levels above this skill's folder. Run tools with `node`.
 
 ## Establish expected behavior
@@ -22,6 +24,8 @@ An implementer's summary is a claim to check, not a substitute for the request. 
 3. **Logic defects (the main job).** For each changed behavior, find an input or state where it gives a wrong result. Look first at the defects agents actually produce: a rule on one path and not its sibling (`node <tools>/sibling-path-map.mjs --base <base>` lists candidates), a final-looking empty state while data is still loading, one field used as both lookup key and identity, null ids matching each other, out-of-order or failed responses, leftovers after a move or split, another area's internal file imported instead of shared state, the same fact held in two places.
 4. **Where grep stops.** When safety depends on code outside the repo or on timing — a library's behavior, the pinned version or a local patch, microtask or unmount order, a wire format another service reads — read that source or run it. Put the one fact the change is safe because of in your report, with how far you proved it.
 5. **Code quality.** Read the shared [code quality rubric](../review/references/code-quality.md). Apply it to the changed code and inspect surrounding dependencies and consumers as needed to judge its effects. Keep unrelated existing improvements separate from findings about this change.
+
+For UI changes, apply the rubric's component reuse check and inspect both behavior-test evidence and the final rendered comparison against the selected design reference. Keep those verification results separate; missing visual evidence leaves that outcome unverified even when tests pass.
 
 To raise a claim's evidence, write a repro script in a temporary folder **outside the repository** and run it. Never edit, create or delete files in the repository.
 

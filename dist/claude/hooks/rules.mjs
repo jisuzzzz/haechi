@@ -107,7 +107,7 @@ export const fullBlock = (input
 export const reminderBlock = (input                                                )         => {
   const missing = missingRequired(input.loaded)
   const setup = missing.length ? ' REPO SETUP INCOMPLETE — no code changes before /haechi:setup.' : ''
-  return `[haechi] Continue within the agreed scope and authorization; keep verification evidence. Rules if needed: ${input.pluginRoot}/hooks/rules.md.${setup}`
+  return `[haechi] Before the next action, check which skills and shared guidance apply to the current request and findings, including evidence needed before acting. Reuse guidance already read when it still applies. Preserve scope and authorization. Before claiming completion, reconcile the original requirements and actual work with applicable implementation, verification and review evidence; report missing evidence. Rules if needed: ${input.pluginRoot}/hooks/rules.md.${setup}`
 }
 
 // Subagents never see prompt-time context, so their task message carries the repo facts they act on

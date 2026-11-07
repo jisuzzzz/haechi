@@ -9,23 +9,24 @@ import {
   spawnAppendix,
 } from './rules.ts'
 
-// A reload starts this over, which only means one extra full block
-let injection: InjectionState = { shown: false, compacted: false }
-
 const readText = ($: EngineInterface, path: string) => $.fs.read(path).then(String).catch(() => undefined)
 
 const load = async ($: EngineInterface) => {
   const root = await $.session.root()
-  return parseSettings(await readText($, `${root}/.haechi.json`))
+  return { root, loaded: parseSettings(await readText($, `${root}/.haechi.json`)) }
 }
 
 export const register: Register = (on) => {
+  // Registration owns its state; a reload only means an extra full block.
+  const injections = new Map<string, InjectionState>()
+  const current = (root: string) => injections.get(root) ?? { shown: false, compacted: false }
   // Plugins a user installs cannot change the system prompt or first-message context, so rules ride on each prompt
   on('prompt.submit', async ($, e, next) => {
+    // Preserve host command dispatch; task skills carry the common contract through their own supported entry path.
     if (e.command) return next(e)
-    const loaded = await load($)
-    const step = nextInjection(injection)
-    injection = step.state
+    const { root, loaded } = await load($)
+    const step = nextInjection(current(root))
+    injections.set(root, step.state)
     const pluginRoot = $.plugin.root
     const text =
       step.mode === 'full'
@@ -36,18 +37,19 @@ export const register: Register = (on) => {
 
   on('session.compact', async ($, e, next) => {
     const result = await next(e)
-    injection = { ...injection, compacted: true }
+    const root = await $.session.root()
+    injections.set(root, { ...current(root), compacted: true })
     return result
   })
 
   on('session.end', async ($, e, next) => {
-    if (e.reason === 'clear') injection = { shown: false, compacted: false }
+    if (e.reason === 'clear') injections.clear()
     return next(e)
   })
 
   // prompt.submit context does not reach subagents; their task message is the only way in
   on('agent.spawn', async ($, e, next) => {
-    const loaded = await load($)
+    const { loaded } = await load($)
     return next({ ...e, prompt: `${e.prompt}\n\n${spawnAppendix(loaded, $.plugin.root)}` })
   })
 }

@@ -5,6 +5,8 @@ description: Attack an implemented change with adversarial tests and mutation ch
 
 # attack-tests
 
+Apply the [common work contract](../../principles/work-contract.md) within this task’s scope. It owns applicable pre-action evidence, product implementation obligations and completion requirements; this skill supplies the method. Current common guidance already delivered or read may be reused.
+
 ## Task boundary
 
 You are spawned after the implementation is done. The happy path is what the implementer built for; your job is to find inputs and states that break it, and to make sure the tests would notice. Keep happy-path tests to one per spec point at most.
