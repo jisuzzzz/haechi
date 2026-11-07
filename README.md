@@ -4,7 +4,7 @@ Agent workflows for Claude Code and Codex: reproduce bugs, build features, revie
 
 Haechi gives the agent task playbooks, repository settings and verification tools. The agent chooses an approach that fits the task and reports the evidence before calling it done.
 
-**Early release:** installable for trial. Expect breaking changes until v0.1.
+**Early release:** workflow guidance continues to evolve. See the [0.1.0 release notes](docs/release-0.1.0.md) for compatibility and verification scope.
 
 [Quick start](#quick-start) · [Commands](#commands) · [Settings](#settings) · [Contributing](#source-and-contributing) · [Skills](skills/) · [Agents](agents/)
 
