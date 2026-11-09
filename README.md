@@ -1,12 +1,12 @@
-# haechi
+# haechi — Workflow plugin for Claude Code and Codex
 
-Agent workflows for Claude Code and Codex: reproduce bugs, build features, review changes, and verify the result with your repository's own commands.
+Haechi is a Claude Code and Codex plugin for AI coding agent workflows. Reproduce bugs, build features, review code, and verify changes with your repository's own commands.
 
-Haechi gives the agent task playbooks, repository settings and verification tools. The agent chooses an approach that fits the task and reports the evidence before calling it done.
+Install the plugin, configure your repository once, and describe a task. Haechi gives the agent task playbooks, repository settings and verification tools, with guidance to report what was checked before calling the work done.
 
 **Early release:** workflow guidance continues to evolve. See the [0.1.0 release notes](docs/release-0.1.0.md) for compatibility and verification scope.
 
-[Quick start](#quick-start) · [Commands](#commands) · [Settings](#settings) · [Contributing](#source-and-contributing) · [Skills](skills/) · [Agents](agents/)
+[Quick start](#quick-start) · [Usage examples](#usage-examples) · [Commands](#commands) · [Settings](#settings) · [Contributing](#source-and-contributing) · [Skills](skills/) · [Agents](agents/)
 
 ## Quick start
 
@@ -42,7 +42,7 @@ Setup detects the verification commands and test locations, confirms the forbidd
 
 Run setup once per repository, then again when its execution settings change. Git settings are resolved when a Git operation needs them.
 
-### 3. Try a task
+### 3. Reproduce and fix a bug
 
 ```text
 /haechi:bug The due date shows the next day for users in UTC-5. Reproduce it and fix the conversion.
@@ -54,12 +54,44 @@ You can also describe a task in natural language and let the agent choose useful
 
 ## What haechi adds
 
-- **Repository facts in the session.** Hooks supply the configured verification commands, forbidden commands and task guidance, including recovery after compaction. Later requests receive an actionable reminder to assess applicable guidance and required completion evidence.
-- **Common obligations and task methods.** The [common work contract](principles/work-contract.md) defines required pre-action evidence, implementation principles and completion. Task skills supply methods; repairs, restructuring, UI changes and read-only reviews retain their applicable evidence and scope requirements.
-- **Delegation when it helps.** The main session delegates a bounded operation to a repository-required agent or the plugin's generic worker. Either receives the same checked packet of required skills, the common contract, principles, context and evidence. Independent reviews use separate executions, and the main session checks the results.
-- **Evidence for completion.** The agent checks each required outcome against actual results on the final change. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
+- **Checks that fit your repository.** Hooks supply your configured verification commands, forbidden commands and task guidance, including recovery after compaction. Later requests remind the agent to assess the relevant guidance and required evidence.
+- **Reproduce, repair and verify.** Bug fixes need evidence of the failure before the repair and the result afterward. Features need checks against their acceptance criteria; code reviews report findings without editing code. The [common work contract](principles/work-contract.md) defines these obligations across task methods.
+- **UI previews before implementation.** The [preview skill](skills/preview/SKILL.md) guides the agent to build and check an interactive proposal, then carry the selected design and interaction criteria into implementation.
+- **Work you can resume.** For work that spans sessions, depends on another task or produces a shared result, [work-graph](skills/work-graph/SKILL.md) guides the agent to record the goal, progress, decisions, verification results and next action, with links to native sessions.
+- **Delegation when it helps.** The main session gives a bounded task to a repository-required agent or the plugin's generic worker, with the required guidance, context, file ownership and expected evidence. Independent reviews use separate executions, and the main session checks the results. See [delegate](skills/delegate/SKILL.md) for the packet procedure and host limits.
+- **Results with verification evidence.** The agent checks each requested outcome against actual results on the final change and reports gaps. Exit 0 alone is insufficient; missing proof is `implemented · unverified`.
 
 Settled requirements can stay in the conversation. The spec skill helps consolidate requirements and acceptance criteria; its description guides selection. It does not require a saved document or a new approval. Completed changes get local commits; push, PR/MR creation and merge require authorization, which your request can already provide.
+
+## Usage examples
+
+### Review code with Claude Code or Codex
+
+```text
+/haechi:review Review this branch against main. Report defects with evidence; do not edit files.
+```
+
+The review reports concrete defects, open questions and verification gaps within the requested scope. The request above keeps the repository files unchanged.
+
+### Preview a UI before implementation
+
+```text
+/haechi:preview Show two options for the table row actions menu. Let me open the menu, select an action and see the result using sample data. Keep this to a prototype.
+```
+
+For a disposable prototype, the agent builds an interactive HTML preview outside the repository, serves it on localhost, and checks the relevant states and interactions in a browser before sharing the URL. It reports any unavailable checks. When implementation is requested, the selected design and interaction criteria become the reference for the product change.
+
+### Resume work across sessions
+
+For a task already recorded by work-graph, start a later session in the same repository and describe the work to continue:
+
+```text
+Continue the recorded table row actions menu task. Check its goal, decisions, verification results and next action before making changes.
+```
+
+For eligible work, work-graph guidance calls for recording the task before substantial work and updating it when the remaining plan or completion judgment changes. It retains applicable user constraints and durable results so a later session can find what remains. Short standalone questions need no new task.
+
+Records live in the repository's Git common directory. Linked worktrees share them; separate clones and remote machines do not synchronize them automatically. Hooks remind the agent to maintain these records; recording still depends on the agent following the guidance. See [work-graph](skills/work-graph/SKILL.md) for storage, session access and handoff details.
 
 ## Commands
 
@@ -73,12 +105,6 @@ Choose a useful method or describe the task naturally. Existing commands remain 
 | Review code | [/haechi:review](skills/review/SKILL.md) | Report defects and open questions with evidence. |
 | Measure or improve performance | [/haechi:perf](skills/perf/SKILL.md) | Establish a baseline, measure candidates, and audit the result. |
 | Strengthen existing tests | [/haechi:test-hardening](skills/test-hardening/SKILL.md) | Challenge the tests with mutations and improve what they catch. |
-
-For example, a review request can stay read-only:
-
-```text
-/haechi:review Review this branch against main. Report defects with evidence; do not edit files.
-```
 
 Focused skills handle particular work:
 
