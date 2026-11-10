@@ -135,7 +135,7 @@ const builtFixture = async (t) => {
   const out = join(scratch, 'dist')
   const read = (path) => readFileSync(join(sourceDir, path), 'utf8')
   const source = {
-    plugin: JSON.parse(read('plugin.json')), principles: new Map(), skills: new Map(), agents: [],
+    plugin: JSON.parse(read('plugin.json')), tools: loadSource(sourceDir).tools, principles: new Map(), skills: new Map(), agents: [],
     hooks: {
       rulesTemplate: template, rulesSource: read('hooks/rules.mts'),
       codex: { 'inject.mjs': read('hooks/codex/inject.mjs') },
@@ -153,28 +153,27 @@ const builtFixture = async (t) => {
   const pluginRoot = join(out, 'codex')
   const { handle } = await import(pathToFileURL(join(pluginRoot, 'hooks/inject.mjs')).href)
   const full = fullBlock({ template, loaded: { settings: complete }, pluginRoot })
-  const reminder = reminderBlock({ loaded: { settings: complete }, pluginRoot })
-  return { scratch, out, repo, env, handle, full, reminder }
+  return { scratch, out, repo, env, handle, full }
 }
 
 test('Codex state is isolated by exact session identity and resolved repository', async (t) => {
-  const { scratch, repo, env, handle, full, reminder } = await builtFixture(t)
+  const { scratch, repo, env, handle, full } = await builtFixture(t)
   const other = join(scratch, 'other')
   mkdirSync(other)
   writeFileSync(join(other, '.haechi.json'), JSON.stringify(complete))
   for (const session_id of ['session/a', 'session_a', 'second']) {
     const input = { cwd: repo, session_id }
     assert.equal(handle('SessionStart', input, env), full)
-    assert.equal(handle('UserPromptSubmit', input, env), reminder)
+    assert.equal(handle('UserPromptSubmit', input, env), undefined)
     assert.equal(handle('UserPromptSubmit', { ...input, cwd: other }, env), full)
-    assert.equal(handle('UserPromptSubmit', { ...input, cwd: join(repo, 'src') }, env), reminder)
+    assert.equal(handle('UserPromptSubmit', { ...input, cwd: join(repo, 'src') }, env), full)
   }
   const alias = join(scratch, 'alias')
   symlinkSync(repo, alias, 'dir')
-  assert.equal(handle('UserPromptSubmit', { cwd: alias, session_id: 'second' }, env), reminder)
+  assert.equal(handle('UserPromptSubmit', { cwd: alias, session_id: 'second' }, env), undefined)
   handle('PostCompact', { cwd: repo, session_id: 'second' }, env)
-  assert.equal(handle('UserPromptSubmit', { cwd: other, session_id: 'second' }, env), reminder)
-  assert.equal(handle('UserPromptSubmit', { cwd: repo, session_id: 'session/a' }, env), reminder)
+  assert.equal(handle('UserPromptSubmit', { cwd: other, session_id: 'second' }, env), full)
+  assert.equal(handle('UserPromptSubmit', { cwd: repo, session_id: 'session/a' }, env), undefined)
   assert.equal(handle('UserPromptSubmit', { cwd: repo, session_id: 'second' }, env), full)
 })
 
@@ -191,29 +190,29 @@ test('Codex missing or unusable session identity never shares shown state', asyn
 })
 
 test('Codex clear and compact starts restore full guidance without a PostCompact event', async (t) => {
-  const { repo, env, handle, full, reminder } = await builtFixture(t)
+  const { repo, env, handle, full } = await builtFixture(t)
   const input = { cwd: repo, session_id: 'source-recovery' }
   assert.equal(handle('SessionStart', input, env), full)
   for (const source of ['clear', 'compact']) {
-    assert.equal(handle('UserPromptSubmit', input, env), reminder)
+    assert.equal(handle('UserPromptSubmit', input, env), undefined)
     assert.equal(handle('SessionStart', { ...input, source }, env), full, source)
-    assert.equal(handle('UserPromptSubmit', input, env), reminder)
-    assert.equal(handle('SessionStart', { ...input, source: 'resume' }, env), reminder)
-    assert.equal(handle('UserPromptSubmit', { ...input, source }, env), reminder)
+    assert.equal(handle('UserPromptSubmit', input, env), undefined)
+    assert.equal(handle('SessionStart', { ...input, source: 'resume' }, env), full)
+    assert.equal(handle('UserPromptSubmit', { ...input, source }, env), undefined)
   }
 })
 
 test('Codex missing, corrupt and invalid serialized state recovers a full block', async (t) => {
-  const { repo, env, handle, full, reminder } = await builtFixture(t)
+  const { repo, env, handle, full } = await builtFixture(t)
   const input = { cwd: repo, session_id: 'state-recovery' }
   assert.equal(handle('SessionStart', input, env), full)
-  const files = readdirSync(join(env.dataDir, 'sessions'), { recursive: true }).filter((path) => path.endsWith('.json'))
+  const files = readdirSync(join(env.dataDir, 'codex-delivery'), { recursive: true }).filter((path) => path.endsWith('/rules'))
   assert.equal(files.length, 1)
-  const state = join(env.dataDir, 'sessions', files[0])
+  const state = join(env.dataDir, 'codex-delivery', files[0])
   for (const invalid of ['{broken', 'null', '[]', 'true', '1', '"shown"', '{}', '{"shown":true}', '{"shown":true,"compacted":0}', '{"shown":"true","compacted":false}']) {
     writeFileSync(state, invalid)
     assert.equal(handle('UserPromptSubmit', input, env), full, invalid)
-    assert.equal(handle('UserPromptSubmit', input, env), reminder, invalid)
+    assert.equal(handle('UserPromptSubmit', input, env), undefined, invalid)
   }
   rmSync(state)
   assert.equal(handle('UserPromptSubmit', input, env), full)
@@ -273,7 +272,7 @@ test('built hooks and setup checkers accept execution settings without Git or pr
   const loaded = { settings: { ...executionSettings, git: undefined } }
   const expected = fullBlock({ template, loaded, pluginRoot: join(out, 'codex') })
   assert.equal(first, expected)
-  assert.equal(handle('UserPromptSubmit', input, env), reminderBlock({ loaded, pluginRoot: join(out, 'codex') }))
+  assert.equal(handle('UserPromptSubmit', input, env), undefined)
   assert.equal(handle('PostCompact', input, env), undefined)
   assert.equal(handle('UserPromptSubmit', input, env), expected)
   assert.equal(handle('SubagentStart', input, env), spawnAppendix(loaded, join(out, 'codex')))
@@ -282,9 +281,9 @@ test('built hooks and setup checkers accept execution settings without Git or pr
   writeFileSync(join(home, '.haechi', 'user.json'), JSON.stringify({ answerFormats: true, budget: 'large' }))
   const legacyInput = { ...input, session_id: 'legacy-settings' }
   assert.equal(handle('SessionStart', legacyInput, env), expected)
-  const reminder = handle('UserPromptSubmit', legacyInput, env)
-  const recoveryPath = reminder.match(/Rules if needed: (.+?\/hooks\/rules\.md)\./)?.[1]
-  assert.ok(recoveryPath, 'the reminder identifies its recovery document')
+  assert.equal(handle('UserPromptSubmit', legacyInput, env), undefined)
+  const recoveryPath = join(out, 'codex', 'hooks', 'rules.md')
+  assert.ok(expected.includes(recoveryPath), 'the full block identifies its recovery document')
   for (const rulesPath of [recoveryPath, join(out, 'claude', 'hooks', 'rules.md')]) {
     const recoveryRules = readFileSync(rulesPath, 'utf8')
     assert.doesNotMatch(recoveryRules, /ANSWER FORMATS|\/formats\//)

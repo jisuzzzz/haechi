@@ -28,6 +28,7 @@ test('both packaged hosts discover shared work without claiming it or changing e
     assert.equal(node, 'node')
     const result = spawnSync(process.execPath, args, {
       cwd: repo, input: JSON.stringify({ cwd: repo, session_id: 'new-session' }), encoding: 'utf8',
+      env: { ...process.env, PLUGIN_DATA: join(root, 'hook-data') },
     })
     assert.equal(result.status, 0, result.stderr)
     return result.stdout ? JSON.parse(result.stdout).hookSpecificOutput : undefined
@@ -35,6 +36,10 @@ test('both packaged hosts discover shared work without claiming it or changing e
   for (const host of ['codex', 'claude']) {
     for (const event of ['SessionStart', 'UserPromptSubmit']) {
       const output = invoke(host, event)
+      if (host === 'codex' && event === 'UserPromptSubmit') {
+        assert.equal(output, undefined, 'unchanged Codex work snapshot is suppressed')
+        continue
+      }
       assert.ok(output?.additionalContext, 'A new Git repository needs a recording decision hint')
       const snapshot = JSON.parse(output.additionalContext.split('\n')[1])
       assert.equal(snapshot.totalTasks, 0)
@@ -60,6 +65,10 @@ test('both packaged hosts discover shared work without claiming it or changing e
   for (const host of ['codex', 'claude']) {
     for (const event of ['SessionStart', 'UserPromptSubmit']) {
       const output = invoke(host, event)
+      if (host === 'codex' && event === 'UserPromptSubmit') {
+        assert.equal(output, undefined, 'unchanged Codex work snapshot is suppressed')
+        continue
+      }
       assert.equal(output.hookEventName, event)
       assert.match(output.additionalContext, /resume-me/)
       const snapshot = JSON.parse(output.additionalContext.split('\n')[1])
@@ -75,7 +84,7 @@ test('both packaged hosts discover shared work without claiming it or changing e
     assert.deepEqual(JSON.parse(shown.stdout).task.evidence, graph.tasks.find(task => task.id === 'old-result').evidence)
   }
   for (const host of ['codex', 'claude']) {
-    const snapshot = JSON.parse(invoke(host, 'UserPromptSubmit').additionalContext.split('\n')[1])
+    const snapshot = JSON.parse(invoke(host, 'SessionStart').additionalContext.split('\n')[1])
     const input = { expectedVersion: JSON.parse(readFileSync(path)).version, id: `identity-${host}`, title: 'Identity', goal: 'Link current session', acceptance: ['Linked'], session: snapshot.currentSession }
     const result = spawnSync(process.execPath, [join(dist, host, 'tools/work-graph.mjs'), 'create'], { cwd: repo, encoding: 'utf8', env: { ...process.env, CODEX_THREAD_ID: 'inherited-wrong-session' }, input: JSON.stringify(input) })
     assert.equal(result.status, 0, result.stderr)

@@ -1,9 +1,10 @@
 // Remember only explicit user selections, never infer workflow progress.
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { deliverCodexContext } from './codex-context-delivery.mjs'
 
 
 
@@ -39,7 +40,13 @@ export const handle = (event        , input           , dataDir        ) => {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
     const event = process.argv[2]
-    const text = handle(event, JSON.parse(readFileSync(0, 'utf8')), process.env.PLUGIN_DATA ?? join(tmpdir(), 'haechi'))
+    const input = JSON.parse(readFileSync(0, 'utf8'))
+    const dataDir = process.env.PLUGIN_DATA ?? join(tmpdir(), 'haechi')
+    const render = () => handle(event, input, dataDir)
+    const root = dirname(dirname(fileURLToPath(import.meta.url)))
+    const text = existsSync(join(root, '.codex-plugin', 'plugin.json'))
+      ? deliverCodexContext('selection', event, input, dataDir, render)
+      : render()
     if (text) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: event, additionalContext: text } }))
   } catch { process.stderr.write('haechi: saved skill context unavailable\n') }
 }
