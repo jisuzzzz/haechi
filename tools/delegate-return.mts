@@ -167,6 +167,7 @@ export function recordReturn(pluginRoot: string, request: ReturnRequest, bundleP
     return compact(current.version, { state: 'connected', session: handoff.session }, false)
   }
   const result = workGraph(bundle.binding.repository, 'update', task.id, { expectedVersion: handoff.expectedVersion, session: handoff.session, ...patch })
+  if (!('version' in result)) throw new Error('Work graph update did not return a version')
   return compact(result.version, (result as { sessionConnection?: unknown }).sessionConnection, true)
 }
 
