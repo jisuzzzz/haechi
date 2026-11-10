@@ -19,6 +19,8 @@ After a successful write, briefly tell the user about a new registration or a me
 
 The existing `SessionStart` and `UserPromptSubmit` hooks remind the agent to use this skill and surface meaningful changes. Hooks only read and supply context; the agent performs the writes and tells the user. This is not a background notification service.
 
+For a recoverable `create` or `update`, supply a stable `requestId` and a verified host-scoped session. Use `requests` to find an interrupted request and `recover` to resume it with its original scope. On a version conflict, inspect the latest task before making a new decision. Capture reviewed local evidence with `snapshot` before linking it to a recoverable write. See [commands](references/commands.md) for the payloads and lock recovery procedure.
+
 ## Reports and follow-ups
 
 Read `show ID` for the task's contract and relationships and `sessions ID` for provider references. Then use [native session coordination](references/sessions.md) to inspect reports, wait for results or send a user-authorized follow-up. Prefer available app tools; do not implement a second transport, scheduler or transcript store. If the host does not expose the needed operation, report that capability as unavailable rather than inferring success from saved files.
