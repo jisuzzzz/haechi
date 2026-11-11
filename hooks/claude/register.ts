@@ -1,20 +1,12 @@
-import type { EngineInterface, Register } from 'claude-code'
+import type { Register } from 'claude-code'
 
 import {
   fullBlock,
   type InjectionState,
   nextInjection,
-  parseSettings,
   reminderBlock,
   spawnAppendix,
 } from './rules.ts'
-
-const readText = ($: EngineInterface, path: string) => $.fs.read(path).then(String).catch(() => undefined)
-
-const load = async ($: EngineInterface) => {
-  const root = await $.session.root()
-  return { root, loaded: parseSettings(await readText($, `${root}/.haechi.json`)) }
-}
 
 export const register: Register = (on) => {
   // Registration owns its state; a reload only means an extra full block.
@@ -24,14 +16,14 @@ export const register: Register = (on) => {
   on('prompt.submit', async ($, e, next) => {
     // Preserve host command dispatch; task skills carry the common contract through their own supported entry path.
     if (e.command) return next(e)
-    const { root, loaded } = await load($)
+    const root = await $.session.root()
     const step = nextInjection(current(root))
     injections.set(root, step.state)
     const pluginRoot = $.plugin.root
     const text =
       step.mode === 'full'
-        ? fullBlock({ template: String(await $.fs.read(`${pluginRoot}/hooks/rules.md`)), loaded, pluginRoot })
-        : reminderBlock({ loaded, pluginRoot })
+        ? fullBlock({ template: String(await $.fs.read(`${pluginRoot}/hooks/rules.md`)), pluginRoot })
+        : reminderBlock(pluginRoot)
     return next({ ...e, context: [...(e.context ?? []), text] })
   })
 
@@ -49,7 +41,6 @@ export const register: Register = (on) => {
 
   // prompt.submit context does not reach subagents; their task message is the only way in
   on('agent.spawn', async ($, e, next) => {
-    const { loaded } = await load($)
-    return next({ ...e, prompt: `${e.prompt}\n\n${spawnAppendix(loaded, $.plugin.root)}` })
+    return next({ ...e, prompt: `${e.prompt}\n\n${spawnAppendix($.plugin.root)}` })
   })
 }

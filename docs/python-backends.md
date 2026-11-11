@@ -1,21 +1,14 @@
 # Python backends
 
-For example, changing `app/orders.py` can run `tests/test_orders.py` even when the test file has not changed. Declare that relationship in the repository's `.haechi.json`:
+Pass source-to-test mappings and a custom single-test command as arguments to the default verifier. A repository can keep the invocation in its existing verification script.
 
-```json
-{
-  "commands": {
-    "verify": "node <haechi-tools>/verify-default.mjs {files}",
-    "testOne": "uv run pytest {file}"
-  },
-  "pythonTestMap": [
-    { "source": "app/orders.py", "tests": ["tests/test_orders.py"] },
-    { "source": "app/shared/", "tests": ["tests/test_orders.py", "tests/test_users.py"] }
-  ]
-}
+```sh
+node "/path/to/haechi/tools/verify-default.mjs" \
+  --python-test-map '[{"source":"app/orders.py","tests":["tests/test_orders.py"]},{"source":"app/shared/","tests":["tests/test_orders.py","tests/test_users.py"]}]' \
+  --test-one 'uv run pytest {file}' -- app/orders.py
 ```
 
-Replace `<haechi-tools>` with the installed plugin's tools directory. This is an excerpt, not a complete setup configuration. Keep the repository's other settings. Existing custom verifiers remain valid; the map is used only by the default verifier.
+Run from the repository root. The example uses POSIX shell quoting. A wrapper that launches Node directly can pass the JSON array and the command string as individual arguments. With no file arguments, the verifier inspects changed and untracked files. A repository can also use its own verifier.
 
 ## Test selection
 
@@ -23,7 +16,7 @@ Replace `<haechi-tools>` with the installed plugin's tools directory. This is an
 - Every matching entry contributes tests. Changed `test_*.py` and `*_test.py` files also run. Duplicate targets run once.
 - Tests must be explicit `.py` files. Directories, globs and pytest node IDs are not accepted. Add an entry for shared sources or `conftest.py` when changes there need a broader test set.
 - Paths are relative to the repository and use `/`. Letters, numbers, spaces, `.`, `_`, `-`, `@` and `+` are supported. Shell-special characters and paths outside the repository are rejected. Selected test symlinks must resolve inside the repository.
-- The configured `commands.testOne` runs once for each selected test. Include `{file}` once where the filename belongs. It may retain repository-specific flags, environment variables or a Docker wrapper. These commands are trusted repository configuration. If it is absent, haechi uses the detected pytest runner.
+- The command supplied via `--test-one` runs once for each selected test. Include `{file}` once where the filename belongs. It may retain repository-specific flags, environment variables or a Docker wrapper. Pass only a command from trusted repository instructions or the caller. If it is absent, haechi uses the detected pytest runner.
 - Inside a quoted shell snippet, quote the placeholder separately: `sh -c "pytest '{file}'"`. Ambiguous forms such as `sh -c "pytest {file}"` fail before running checks. A normal command such as `pytest {file}` needs no extra quoting.
 - `requirements-dev.txt` participates in setup detection alongside `requirements.txt` and `pyproject.toml`. It is also included in pip's install candidate. Nested requirement includes and arbitrary Makefile targets are not automatically parsed.
 
@@ -45,7 +38,7 @@ Exit 2 identifies a gap in the tool's evidence; it is not proof that the impleme
 
 The standalone FastAPI/MySQL example was retired on 2026-11-04. Python detection, source-to-test mapping and test-result checks remain supported. Focused regression fixtures in [`detect.test.mjs`](../test/detect.test.mjs) and [`verify-default.test.mjs`](../test/verify-default.test.mjs) cover those behaviors.
 
-The repository owns its database lifecycle. Setup identifies how to prepare services and environment variables, but the default verifier only runs checks. Keep credentials in the environment. Record migration and test database rules in the repository's existing instructions. A missing database is a failed or unverified check, not a skipped test reported as success.
+The repository owns its database lifecycle. Use its instructions for services and environment variables. The default verifier runs checks against the prepared environment. Keep credentials in the environment. Record migration and test database rules in the repository's existing instructions. A missing database is a failed or unverified check, not a skipped test reported as success.
 
 ## Historical database validation
 

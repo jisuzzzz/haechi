@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -141,14 +142,9 @@ test('pip worktree setup with only dev requirements does not invent a runtime fi
   assert.equal(runtimeOnly.worktreeSetup.value, 'python -m venv .venv && .venv/bin/pip install -r requirements.txt')
 })
 
-test('Python dev dependencies keep existing JS command priority and custom settings', () => {
-  const settings = {
-    commands: { verify: 'custom-check {files}', testOne: 'docker compose run api pytest {file}' },
-    pythonTestMap: [{ source: 'app/', tests: ['tests/test_api.py'] }],
-  }
-  const draft = detect({ ...reactRepo, requirementsDev: 'pytest==8.3.0\n', settingsJson: JSON.stringify(settings) })
+test('Python dev dependencies keep existing JS command priority', () => {
+  const draft = detect({ ...reactRepo, requirementsDev: 'pytest==8.3.0\n' })
   assert.equal(draft.commands.testOne.value, 'yarn vitest run {file}')
-  assert.deepEqual(draft.existingSettings.value, settings)
 })
 
 test('an empty folder gives unknowns, not guesses', () => {
@@ -159,43 +155,6 @@ test('an empty folder gives unknowns, not guesses', () => {
   assert.equal(draft.git.commit, undefined)
 })
 
-
-test('setup preserves declared Git formats and custom settings beside fresh candidates', () => {
-  const settings = {
-    git: { base: 'release', branch: 'team/{slug}', commit: 'ko: concise subject', mrTemplate: ['## Purpose'] },
-    commands: { verify: 'custom-check {files}' },
-    team: { owner: 'synthetic-team' },
-  }
-  const draft = detect({ ...reactRepo, settingsJson: JSON.stringify(settings) })
-  assert.deepEqual(draft.existingSettings, { value: settings, source: '.haechi.json' })
-  assert.equal(draft.git.base.value, 'main')
-  assert.equal(draft.commands.verify.value, 'node scripts/verify-changed.mjs')
-  assert.deepEqual(detect(snap()).existingSettings, { value: null, source: 'no .haechi.json' })
-})
-
-test('invalid existing settings are reported for repair, not treated as absent', () => {
-  for (const settingsJson of ['', '{oops', 'null', '[]', '"text"']) {
-    const draft = detect(snap({ settingsJson }))
-    assert.equal(draft.existingSettings.value, null)
-    assert.equal(draft.existingSettings.source, '.haechi.json')
-    assert.match(draft.existingSettings.error, /valid JSON object.*repair/)
-  }
-})
-
-test('snapshot returns existing settings without reading PR templates', (t) => {
-  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-'))
-  t.after(() => rmSync(root, { recursive: true, force: true }))
-  const settings = '{"git":{"mrTemplate":["## Keep"]},"custom":true}'
-  writeFileSync(join(root, '.haechi.json'), settings)
-  // A directory at the template path would fail if setup tried to read it as a file.
-  mkdirSync(join(root, '.github', 'pull_request_template.md'), { recursive: true })
-  const facts = snapshot(root)
-  assert.equal(facts.settingsJson, settings)
-  assert.equal(facts.git.subjects, undefined)
-  assert.equal(facts.templateHeadings, undefined)
-  assert.deepEqual(detect(facts).existingSettings.value, JSON.parse(settings))
-  assert.equal(readFileSync(join(root, '.haechi.json'), 'utf8'), settings)
-})
 
 test('snapshot reads dev requirements so FastAPI setup discovers pytest from disk', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'haechi-detect-python-'))
@@ -209,4 +168,26 @@ test('snapshot reads dev requirements so FastAPI setup discovers pytest from dis
   assert.equal(facts.requirementsDev, requirementsDev)
   assert.deepEqual(detect(facts).stack.value, ['python-fastapi'])
   assert.equal(detect(facts).commands.testOne.value, 'pytest {file}')
+})
+
+test('diagnostic CLI finds repository commands without creating settings', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-read-only-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ scripts: { verify: 'node verify.mjs' } }))
+  for (const platform of ['claude', 'codex']) {
+    const tool = join(import.meta.dirname, '..', 'dist', platform, 'tools', 'detect.mjs')
+    const draft = JSON.parse(execFileSync(process.execPath, [tool, root], { encoding: 'utf8' }))
+    assert.equal(draft.commands.verify.value, 'npm run verify')
+    assert.throws(() => readFileSync(join(root, '.haechi.json')), { code: 'ENOENT' })
+  }
+})
+
+test('diagnostics ignore a retired settings file and leave it untouched', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-legacy-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const path = join(root, '.haechi.json')
+  writeFileSync(path, '{invalid')
+  const draft = detect(snapshot(root))
+  assert.equal('existingSettings' in draft, false)
+  assert.equal(readFileSync(path, 'utf8'), '{invalid')
 })

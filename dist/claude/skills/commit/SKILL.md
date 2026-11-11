@@ -5,9 +5,9 @@ description: Commits the current task's changes locally — stages only owned fi
 
 # Commit
 
-Works with git on any host. Settings come from `.haechi.json` → `git`. The ask list and the DONE rules are in the session rules; this file adds only what is specific to committing.
+Works with Git on any host. Follow repository instructions and the shared authorization and completion rules.
 
-Missing Git settings do not require setup. Resolve the current branch with `git branch --show-current`; take base/protected branches from explicit settings and repository instructions, then the local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`) for the default branch. Do not infer branch rules from history. Before committing on a base or protected branch, create a task branch using the session's naming rule. If branch safety remains unclear, ask only about that choice. A local commit needs no Git host login.
+Resolve the current branch with `git branch --show-current`. Use repository instructions for the base and protected branches. Use the local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`) to find the default branch when needed. Do not infer branch rules from history. Before committing on a base or protected branch, create a task branch using the session's naming rule. If branch safety remains unclear, ask only about that choice. A local commit needs no Git host login.
 
 ## 1. Review
 
@@ -31,7 +31,7 @@ No changes: say so and stop.
 
 ## 3. Message
 
-- Honor explicit repository instructions and the optional `git.commit` setting. Example: `en: type(scope): summary` gives `fix(orders): keep the time zone when formatting due dates`. If neither defines a format, use the recent log already collected in Review. With no history, use a concise imperative subject describing the change. Resolve this here; missing format settings do not require setup.
+- Use the format in the repository instructions. If they give no format, use the recent log already collected in Review. With no history, use a concise imperative subject describing the change.
 - The subject says what changed. The body is optional and says why.
 - One commit per unit of work. Split only when the kinds of diff differ — a file move and a behavior change go in separate commits, as the refactor playbook says (/haechi:refactor).
 - End with the attribution trailer the environment asks for, if any.

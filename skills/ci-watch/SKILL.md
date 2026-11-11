@@ -7,9 +7,9 @@ description: Watches a GitLab merge request's CI pipeline in the background, set
 
 The session that opened the MR fixes its CI, because it knows the intent. The tool waits; the session decides and fixes. The ask list and DONE rules are in the session rules.
 
-Approval: watching needs none. The first fix push needs the user's yes, unless the user themself asked to watch CI (/haechi:ci-watch, "watch CI") — continuing here after /haechi:mr on your own does not count, and `git.autoMerge` approves only auto-merge. After one yes, later fix pushes to the same MR are covered.
+Approval: watching needs none. The first fix push needs the user's yes, unless the user themself asked to watch CI (/haechi:ci-watch, "watch CI") — continuing here after /haechi:mr on your own does not count, and auto-merge authorization covers only auto-merge. After one yes, later fix pushes to the same MR are covered.
 
-GitLab only. Resolve the host from explicit `git.host`, repository instructions or the remote URL; confirm an unfamiliar host through its project CLI. Missing Git settings do not require setup. Check the selected host's authentication when starting the watcher, reusing current successful evidence. On GitHub say that CI watching is not available in v0 yet, and stop.
+GitLab only. Resolve the host from repository instructions or the remote URL; confirm an unfamiliar host through its project CLI. Check the selected host's authentication when starting the watcher, reusing current successful evidence. On GitHub say that CI watching is not available in v0 yet, and stop.
 
 The haechi tools folder is two levels above this skill's folder (`<this skill's folder>/../../tools/`). Run tools with `node`, from inside the repo.
 
@@ -22,7 +22,7 @@ The haechi tools folder is two levels above this skill's folder (`<this skill's 
    ```
    `--sha` selects the MR's source head and skips the old head pipeline the MR still shows right after a push. Check that the first output line starts with `WATCHING`.
    Merged results pipelines run on a temporary merge commit. The watcher accepts that different pipeline SHA only on `refs/merge-requests/<iid>/merge` when its commit parents contain the MR's source head, while still matching `--sha` against that source head. If the commit parents cannot be read, it gives up without accepting the pipeline.
-3. Auto-merge, only if `git.autoMerge` is `true` or the user said yes when asked once: `glab mr merge <iid> --auto-merge --sha <full sha> --yes`. Set it only after `WATCHING` — before the pipeline exists GitLab merges at once or refuses. Set it again after every fix push, because a failed pipeline can drop it. "Already set" is fine; any other error: tell the user in one line and keep watching.
+3. Auto-merge, only if the repository instructions or the user authorize it: `glab mr merge <iid> --auto-merge --sha <full sha> --yes`. Set it only after `WATCHING` — before the pipeline exists GitLab merges at once or refuses. Set it again after every fix push, because a failed pipeline can drop it. "Already set" is fine; any other error: tell the user in one line and keep watching.
 4. Tell the user in one line that watching started (and whether auto-merge is set), then wait for the exit.
 
 The watcher already retries infrastructure failures (DNS, network, image pull) up to 3 times per job and transient API errors. Do not retry those yourself.
@@ -40,7 +40,7 @@ It snapshots the MR's source head separately from the pipeline SHA and checks it
 ## 3. Fix a failed job
 
 1. Find the cause in the trace tail. If it is not enough, read the full trace: `glab api projects/:id/jobs/<job id>/trace`.
-2. Reproduce locally with the narrowest repo command: map the job to `commands.verify`, `commands.testOne <file>` (only the files the trace names) or `commands.typecheck`. If none fits, read the job's script in the CI config and run the narrowest equivalent. Never run a command listed in `forbidden`.
+2. Reproduce locally with the narrowest repo command: use the verification, single-test or typecheck command in the repository instructions. If none fits, read the CI job script for the narrowest equivalent. Respect repository prohibitions.
 3. Fix it, run the same local check until it passes, commit by the /haechi:commit rules, push, and go back to step 1 with the new sha.
 
 Forbidden ways to pass — these are bypasses, not fixes:
@@ -60,8 +60,8 @@ Stop without fixing, and report the job, the cause, what you tried and why it di
 
 ## 5. After merge
 
-1. Read the merged MR's target branch, then from the main checkout run `node <tools>/cleanup-merged.mjs <branch> --base <target>`. It only lists; Git settings may be absent.
+1. Read the merged MR's target branch, then from the main checkout run `node <tools>/cleanup-merged.mjs <branch> --base <target>`. Pass `--protected <branch>` for each additional protected branch and `--teardown <script>` if the main worktree instructions require it. The command lists the plan.
 2. Show its to-delete and skipped lines, and ask once — deleting is an ask item.
-3. On yes rerun the same command with `--base <target> --yes` and report the result in one line. Stop any dev servers this task started.
+3. On yes rerun the same command with `--yes` and report the result in one line. Stop any dev servers this task started.
 
 Never run `git worktree remove --force` by hand: links inside a worktree can lead the deletion into the main checkout. The script unlinks them first.

@@ -1,10 +1,11 @@
 // Default changed-files verifier for repos without one: lint the changed files and run the tests related to them.
-// Usage: node verify-default.mjs [file ...]   (no files → changed and untracked files against HEAD)
+// Usage: node verify-default.mjs [--python-test-map <json>] [--test-one <command>] [--] [file ...]
 // planChecks() is pure; main() finds the files and runs the plan.
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 
 type PythonTestMapping = { source: string; tests: string[] }
 type Settings = { commands?: { testOne?: string }; pythonTestMap?: PythonTestMapping[] }
@@ -34,7 +35,7 @@ const testCommand = (template: string, file: string) => template.replace(/"(?:\\
   })
 })
 
-// Commands are repository settings, but interpolated paths must stay literal on POSIX and Windows shells.
+// Callers supply trusted commands. Interpolated paths must stay literal on POSIX and Windows shells.
 const checkPath: (path: unknown, label: string, directory?: boolean) => asserts path is string = (path, label, directory = false) => {
   const parts = typeof path === 'string' ? (directory ? path.replace(/\/$/, '') : path).split('/') : []
   if (!parts.length || !/^[\p{L}\p{N}_. /@+-]+$/u.test(path as string) || /^[-@]/.test(path as string) ||
@@ -198,17 +199,22 @@ const testEvidence = (output: string): TestStatus => {
 
 const main = () => {
   const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
-  const files = process.argv.slice(2).length ? process.argv.slice(2) : changedFiles(root)
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: { 'python-test-map': { type: 'string' }, 'test-one': { type: 'string' } },
+  })
+  const files = positionals.length ? positionals : changedFiles(root)
   if (!files.length) {
     console.log('verify-default: no changed files')
     return
   }
-  const settingsPath = join(root, '.haechi.json')
-  let settings = {}
-  if (existsSync(settingsPath)) {
-    try { settings = JSON.parse(readFileSync(settingsPath, 'utf8')) }
-    catch { throw new Error('.haechi.json must contain valid JSON settings') }
+  let pythonTestMap: PythonTestMapping[] | undefined
+  try {
+    pythonTestMap = values['python-test-map'] === undefined ? undefined : JSON.parse(values['python-test-map'])
+  } catch {
+    throw new Error('--python-test-map must contain a valid JSON array')
   }
+  const settings = { pythonTestMap, commands: { testOne: values['test-one'] } }
   const { plan, skipped, pythonTests } = planChecks(files, detectTools(root), settings)
   for (const file of pythonTests) {
     const path = join(root, file)

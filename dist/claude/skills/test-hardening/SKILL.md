@@ -17,7 +17,7 @@ Establish the area's mutation results, or say "not measured" if unknown. The eas
 
 1. **Clarify the task.** Establish the area's current mutation results and the intended improvement. Consider /haechi:spec using its description while establishing the scope and success criteria; preserve the tests-only boundary. Only tests change; source code stays unchanged. Show mutation results before and after per unit and passing tests. Fixed labels and tables are optional.
 2. **Choose units.** Work directly for a tightly coupled area, or use /haechi:sweep when independent units benefit from separate context. A unit can be a source file plus its tests. Order:
-   1. files under `riskPaths` in `.haechi.json`;
+   1. files identified as high risk by repository instructions;
    2. files with many recent bug fixes (`git log --oneline --grep=fix -- <file>`, or the repo's commit convention for fixes);
    3. files without tests;
    4. the rest.

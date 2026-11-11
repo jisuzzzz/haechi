@@ -5,7 +5,7 @@ description: Opens a merge request (GitLab, glab) or pull request (GitHub, gh) f
 
 # Merge request
 
-Settings come from `.haechi.json` → `git`: `host`, `cli`, `base`, `commit`, `mrTemplate`, `reviewer`, `autoMerge`. "MR" below means a GitLab merge request or a GitHub pull request. The ask list is in the session rules; this file adds only what is specific to MRs.
+Follow the repository instructions and templates. "MR" below means a GitLab merge request or a GitHub pull request.
 
 ## 0. Approval
 
@@ -15,7 +15,7 @@ Settings come from `.haechi.json` → `git`: `host`, `cli`, `base`, `commit`, `m
 
 ## 1. Analyze
 
-Resolve the host and target before these commands. Honor explicit `git.host`, `git.cli`, `git.base` and repository instructions. For missing values, inspect the remote URL (`git remote -v`) and local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`). Use the host's CLI to confirm its project/default branch when needed. Ask only when the host or intended target remains ambiguous; missing settings do not require setup. Check authentication for the selected host now, reusing current successful evidence.
+Resolve the host and target before these commands. Honor the user’s target and the repository instructions. For missing values, inspect the remote URL (`git remote -v`) and local remote HEAD (`git symbolic-ref --short refs/remotes/origin/HEAD`). Use the host's CLI to confirm its project/default branch when needed. Ask only when the host or intended target remains ambiguous. Check authentication for the selected host now, reusing current successful evidence.
 
 Run these together (`<base>` is the resolved target):
 
@@ -29,10 +29,10 @@ Read `git diff <base>...HEAD` where the log and stat are not enough to describe 
 
 ## 2. Title and body
 
-- Title: honor explicit repository instructions and `git.commit` when set. Otherwise follow the commit subjects collected in Analyze; with no established format, use a concise description of the change. Example: `fix(orders): keep the time zone when formatting due dates`.
-- Body: honor explicit repository instructions. Use the headings in an existing `git.mrTemplate` override, in that order. Without an override, read the repository's PR/MR template when preparing this MR: GitHub templates under `.github/`, the root or `docs/`; GitLab templates under `.gitlab/merge_request_templates/`. Follow the template's instructions, not just its headings. If several templates apply and repository guidance does not choose one, ask which one to use.
-- Without an override or repository template, use `## Summary`, `## Changes` and `## Validation`. State why the change is needed, what changes and how it was checked. Drop a section only if the selected template marks it optional and it has no content.
-- Do not scan merged PR/MR history to infer a body format unless the user asks to match previous requests. Missing format settings do not require setup.
+- Title: honor the repository instructions. Otherwise follow the commit subjects collected in Analyze; with no established format, use a concise description of the change. Example: `fix(orders): keep the time zone when formatting due dates`.
+- Body: honor the repository instructions and read the applicable PR/MR template: GitHub templates under `.github/`, the root or `docs/`; GitLab templates under `.gitlab/merge_request_templates/`. Follow the template's instructions, not just its headings. If several templates apply and repository guidance does not choose one, ask which one to use.
+- If neither repository instructions nor a template specifies a format, use `## Summary`, `## Changes` and `## Validation`. State why the change is needed, what changes and how it was checked. Drop a section only if the selected template marks it optional and it has no content.
+- Do not scan merged PR/MR history to infer a body format unless the user asks to match previous requests.
 - Group changes by module or area, not by file. Example: one bullet group for `src/orders/` and one for `src/api/orders.ts`, each bullet one change.
 - Closing keyword: if the branch name, a commit or the conversation names an issue the change resolves, add `Closes #12`. Partly addresses it: `Related to #12`.
 - Apply the common writing rules to the body; consult the [clear-writing principle](../../principles/clear-writing.md) as needed.
@@ -42,9 +42,9 @@ Read `git diff <base>...HEAD` where the log and stat are not enough to describe 
 
 - Push the branch: `git push -u origin <branch>`. This is part of the user's MR request.
 - Look for an MR on this branch: `glab mr list --source-branch <branch>` or `gh pr list --head <branch>`. One exists: update it instead of opening a second one. Ask before overwriting its description unless the user's request already authorizes that update.
-- Reviewer from `git.reviewer`:
+- Resolve the reviewer from the user request or repository instructions:
   - a username: use it.
-  - `previous-mr`: take the reviewer of the most recent merged MR into the base, and say which MR you took it from. GitLab: `glab mr list --merged --target-branch <base> --order merged_at --sort desc`, then `glab mr view <iid>` on the first one. GitHub: `gh pr list --state merged --base <base> --limit 1 --json number,reviewRequests,latestReviews`.
+  - If explicitly directed to use the previous MR reviewer, take the reviewer of the most recent merged MR into the base, and say which MR you took it from. GitLab: `glab mr list --merged --target-branch <base> --order merged_at --sort desc`, then `glab mr view <iid>` on the first one. GitHub: `gh pr list --state merged --base <base> --limit 1 --json number,reviewRequests,latestReviews`.
   - absent: no reviewer.
 - Assignee: the current user. GitLab: `glab api user` gives the username. GitHub: `--assignee @me`.
 
@@ -77,5 +77,5 @@ A flag is rejected: read `glab mr create --help` or `gh pr create --help`. Do no
 ## 5. After creating
 
 - Give the MR URL.
-- GitLab: continue with /haechi:ci-watch <iid> to watch the pipeline, and to set auto-merge when `git.autoMerge` is true. Pushing fixes follows ci-watch's approval rule.
+- GitLab: continue with /haechi:ci-watch <iid> to watch the pipeline, and set auto-merge if the repository instructions or the user authorize it. Pushing fixes follows ci-watch's approval rule.
 - GitHub: CI watching is not available yet. Say so in one line.

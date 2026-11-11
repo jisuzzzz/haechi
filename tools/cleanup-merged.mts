@@ -1,37 +1,39 @@
 // Cleans up after a merged branch: its worktree, the local branch (git branch -d) and a remote branch left over.
 // Without --yes it only prints what it would delete; with --yes it deletes. Run it from the main checkout.
-// Usage: node cleanup-merged.mjs <branch> [--base <branch>] [--discard] [--yes]
-// --base defaults to .haechi.json git.base in the main worktree. --discard is for throwaway branches that are never
-// merged: no merged check, git branch -D, remote branch never deleted; every other safety rule stays.
+// Usage: node cleanup-merged.mjs <branch> [--base <branch>] [--protected <branch>]... [--teardown <script>] [--discard] [--yes]
+// --base defaults to origin/HEAD. --discard can delete an unmerged local branch and never deletes its remote branch.
 // Exit 0 list printed or all deletions done, 1 a deletion failed, 2 bad arguments / not a git repo / no base.
-import { execFileSync, execSync } from 'node:child_process'
-import { existsSync, lstatSync, readdirSync, readFileSync, unlinkSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { lstatSync, readdirSync, realpathSync, statSync, unlinkSync } from 'node:fs'
+import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type { ExecFileSyncOptions } from 'node:child_process'
 
-type CleanupOptions = { branch: string; base: string | null; yes: boolean; discard: boolean; error?: undefined }
+type CleanupOptions = {
+  branch: string; base: string | null; protectedBranches: string[]; teardown: string | null
+  yes: boolean; discard: boolean; error?: undefined
+}
 type ArgumentError = { error: string; branch?: never; base?: never; yes?: never; discard?: never }
 type Worktree = { path: string; branch: string | null; isMain: boolean }
 type PlanItem = { kind: 'worktree'; path: string; force?: never; sha?: never } | { kind: 'branch'; force: boolean; path?: never; sha?: never } | { kind: 'remote'; sha: string; path?: never; force?: never }
 type LocalBranch = { merged: boolean; hasUpstream?: boolean }
 type CleanupFacts = { branch: string; base: string; discard: boolean; currentBranch: string; local: LocalBranch | null | ''; remote: { sha: string; merged: boolean } | null | ''; worktree: (Pick<Worktree, 'path' | 'isMain'> & { isCurrent: boolean; status: string }) | null | undefined | '' }
 type GitOptions = Omit<ExecFileSyncOptions, 'encoding'> & { encoding?: BufferEncoding }
-type CleanupSettings = { git?: { base?: string; protected?: string[] }; worktreeTeardown?: unknown }
-
-const LEGACY_TEARDOWN = 'unlink-reparse-points'
-
 export const parseArgs = (argv: string[]): CleanupOptions | ArgumentError => {
-  const options: { branch: string | null; base: string | null; yes: boolean; discard: boolean } = { branch: null, base: null, yes: false, discard: false }
+  const options: Omit<CleanupOptions, 'branch'> & { branch: string | null } =
+    { branch: null, base: null, protectedBranches: [], teardown: null, yes: false, discard: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     if (arg === '--yes') options.yes = true
     else if (arg === '--discard') options.discard = true
-    else if (arg === '--base') {
-      options.base = argv[++i]
-      if (!options.base) return { error: '--base needs a branch name' }
-    } else if (arg.startsWith('--')) return { error: `unknown option ${arg}` }
+    else if (arg === '--base' || arg === '--protected' || arg === '--teardown') {
+      const value = argv[++i]
+      if (!value || value.startsWith('-')) return { error: `${arg} needs ${arg === '--teardown' ? 'a script path' : 'a branch name'}` }
+      if (arg === '--base') options.base = value
+      else if (arg === '--protected') options.protectedBranches.push(value)
+      else options.teardown = value
+    } else if (arg.startsWith('-')) return { error: `unknown option ${arg}` }
     else if (options.branch) return { error: `unexpected argument ${arg}` }
     else options.branch = arg
   }
@@ -160,9 +162,9 @@ const removeWorktree = (path: string, teardown: string | null) => {
   unlinkLinks(path)
   if (teardown) {
     try {
-      execSync(teardown, { cwd: path, stdio: 'inherit' })
+      execFileSync(process.execPath, [teardown], { cwd: path, stdio: 'inherit' })
     } catch {
-      console.log(`Failed: worktreeTeardown "${teardown}" in ${path} — the worktree is kept`)
+      console.log(`Failed: teardown script ${teardown} in ${path} — the worktree is kept`)
       return false
     }
   }
@@ -172,31 +174,40 @@ const removeWorktree = (path: string, teardown: string | null) => {
   return result.ok
 }
 
+// Resolve scripts in the main checkout before operating on the target worktree.
+const resolveTeardown = (root: string, script: string): string => {
+  try {
+    const mainPath = realpathSync(root)
+    const candidate = realpathSync(resolve(mainPath, script))
+    const fromMain = relative(mainPath, candidate)
+    if (!isAbsolute(script) && !isAbsolute(fromMain) && fromMain !== '..' && !fromMain.startsWith(`..${sep}`) &&
+        /\.[cm]?js$/.test(candidate) && statSync(candidate).isFile()) return candidate
+  } catch {
+    // Report an unavailable script the same way as an invalid path.
+  }
+  return fail('--teardown needs a Node.js script inside the main worktree')
+}
+
 const isInBase = (sha: string, base: string) => tryGit(['merge-base', '--is-ancestor', sha, `refs/remotes/origin/${base}`]).ok
 
 const main = () => {
   const options = parseArgs(process.argv.slice(2))
-  if (options.error) fail(`${options.error}\nUsage: node cleanup-merged.mjs <branch> [--base <branch>] [--discard] [--yes]`)
+  if (options.error !== undefined) fail(`${options.error}\nUsage: node cleanup-merged.mjs <branch> [--base <branch>] [--protected <branch>]... [--teardown <script>] [--discard] [--yes]`)
   const root = tryGit(['rev-parse', '--show-toplevel'])
   if (!root.ok) fail('Not inside a git repository')
   const worktrees = parseWorktreeList(git(['worktree', 'list', '--porcelain']))
 
-  // Settings come from the main worktree, so a branch's own .haechi.json cannot supply the teardown command
-  let settings: CleanupSettings = {}
-  const settingsFile = join(worktrees[0].path, '.haechi.json')
-  if (existsSync(settingsFile)) {
-    try {
-      settings = JSON.parse(readFileSync(settingsFile, 'utf8'))
-    } catch (error) {
-      fail(`Cannot read ${settingsFile}: ${(error as Error).message}`)
-    }
+  const defaultRef = tryGit(['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']).out
+  const defaultBase = defaultRef.startsWith('refs/remotes/origin/') ? defaultRef.slice('refs/remotes/origin/'.length) : ''
+  const base = options.base ?? defaultBase
+  if (!base) fail('No base branch: pass --base <branch> or set origin/HEAD')
+  const { branch, discard } = options
+  const protectedBranches = [base, defaultBase, ...options.protectedBranches]
+  if (protectedBranches.includes(branch)) fail(`${branch} is the base or a protected branch — it is never deleted`)
+  for (const name of [branch, base, ...options.protectedBranches]) {
+    if (name.startsWith('-') || !tryGit(['check-ref-format', `refs/heads/${name}`]).ok) fail(`Invalid branch name: ${name}`)
   }
-  const base = options.base ?? settings.git?.base
-  if (!base) fail('No base branch: pass --base <branch> or set git.base in .haechi.json')
-  const teardown =
-    typeof settings.worktreeTeardown === 'string' && settings.worktreeTeardown !== LEGACY_TEARDOWN ? settings.worktreeTeardown : null
-  const { branch, discard } = options as CleanupOptions
-  if (branch === base || (settings.git?.protected ?? []).includes(branch)) fail(`${branch} is the base or a protected branch — it is never deleted`)
+  const teardown = options.teardown && resolveTeardown(worktrees[0].path, options.teardown)
   const ref = `refs/heads/${branch}`
 
   const fetched = tryGit(['fetch', 'origin', base, '--prune'])

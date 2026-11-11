@@ -1,10 +1,7 @@
 [haechi] Workflow rules for this repo. Canonical copy: {{pluginRoot}}/hooks/rules.md
 
-{{repoLine}}
-{{#forbidden}}NEVER RUN: {{forbidden}} (whole-repo runs){{/forbidden}}
-{{#setupMissing}}REPO SETUP INCOMPLETE (missing: {{setupMissing}}): answer questions normally, but start no code change — run /haechi:setup first.{{/setupMissing}}
-
 WORKFLOW
+- Resolve the commands and restrictions needed for the current task from repository instructions such as `AGENTS.md` and project configuration. Respect repository prohibitions and ask only about details that remain unresolved.
 - Before substantial work, state the intended outcome, scope and check method briefly. Reuse established requirements, decisions and evidence; no fixed reply format, saved document or renewed approval is required.
 - The common work contract at {{pluginRoot}}/principles/work-contract.md owns required pre-action evidence, implementation principles, verification, review and completion. Before the first product-source edit, receive or read its applicable Do and Check guidance. Current guidance already delivered or read may be reused; a path or skill name alone is not proof of delivery.
 - Choose useful task skills for the next action based on the actual work and each skill's description, even without an explicit invocation and while following a repository skill or task plan. Do not skip this judgment because a procedure has already been selected. Reconsider when the request, investigation findings or tool results change what is needed, including within one turn. Apply newly relevant guidance before dependent work. Reuse valid existing evidence and completed work. No exclusive playbook selection or label switch is required to continue.
@@ -13,7 +10,7 @@ WORKFLOW
 
 DELEGATION
 - Work directly when the task is short, tightly coupled, or already fits the current context. Delegate when independent work, separate context or another review is likely to improve quality or save time. File and line counts are context, not triggers.
-- The main session owns the task requirements, integration and completion decision. For a delegated operation, use /haechi:delegate to prepare and deliver the complete task packet: objective, relevant context, ownership, constraints, completion evidence and required skills. Use a repository-required agent when specified, otherwise the plugin's worker; preserve its host-enforced permissions. Agent selection never replaces packet preparation or permits a hand-written brief to omit required guidance. The packet includes the common work contract and applicable method guidance. The agent chooses methods within its scope; it does not restart the main workflow.
+- The main session owns the task requirements, integration and completion decision. For a delegated operation, use /haechi:delegate to prepare and deliver the complete task packet: objective, relevant context, ownership, constraints, repository risk context, completion evidence and required skills. Use a repository-required agent when specified, otherwise the plugin's worker; preserve its host-enforced permissions. Agent selection never replaces packet preparation or permits a hand-written brief to omit required guidance. The packet includes the common work contract and applicable method guidance. The agent chooses methods within its scope; it does not restart the main workflow.
 - Parallel edits must have no shared files or unresolved dependencies. Settle shared contracts before dependent work starts. Use a worktree when isolation is needed; use /haechi:sweep for many independent units when it helps.
 - Use separate worker executions for independent review or testing when useful. Select relevant task methods; one worker definition does not mean sharing the implementation context with its reviewer. Check changed UI in a real render.
 
@@ -22,7 +19,7 @@ AUTHORIZATION
 - Ask when an unresolved choice materially changes the requested outcome, scope or an established contract, or contradicts a recorded decision. Resolve facts from the repo first. Make reversible implementation choices within scope and state consequential assumptions.
 - Continue independent authorized work while a decision is pending. Reassess failed approaches; ask when progress needs missing information or a change of scope, not merely because a fixed number of attempts failed. Subagents report open questions to the main agent; they do not ask the user. An opinion request is not permission to edit.
 
-BRANCH NAMING: honor explicit repository rules and `git.branch` in `.haechi.json`. Otherwise use the environment default (such as `codex/`), or `{type}/{slug}` if none exists. Do not infer naming conventions from branch history during setup.
+BRANCH NAMING: honor explicit repository rules. Otherwise use the environment default (such as `codex/`), or `{type}/{slug}` if none exists. Do not infer naming conventions from branch history.
 
 COMPLETION
 - Completion is governed by the common work contract's Check section, regardless of the entry skill. Reconcile the original requirements and actual work with applicable behavior evidence and review findings; retrieve missing guidance before deciding. No required outcome may be omitted merely because the diff does not implement it.
@@ -32,8 +29,6 @@ COMPLETION
 - Keep the final diff within ownership, clean up task-created resources while retaining needed evidence, and make one local commit per completed change unit. Read-only work needs bounded findings and evidence, not a commit. Instructions and work-graph records are not a host-enforced completion lock.
 
 EXECUTION SETTINGS: worker definitions do not prescribe model, effort or tool lists. Use the host/session defaults unless the user or task explicitly requires an override. Apply permission restrictions through supported host controls at dispatch; a read-only instruction alone is not a sandbox. Report unsupported or unverified enforcement rather than claiming it.
-
-{{#riskPaths}}REPOSITORY RISK PATHS: {{riskPaths}}. Include relevant risk context when delegating; model and effort remain host/session choices.{{/riskPaths}}
 
 WRITING: apply clear writing to all authored natural-language output, including chat, progress updates and documents. Use familiar terms and natural phrasing; avoid coined terms, word-for-word translation, vague abstractions and unnecessary metaphors. State actors, actions and results concretely. Preserve facts, conditions and uncertainty; separate observations from assumptions. Match the user's language, requested style and needed detail. Use /haechi:answer ({{pluginRoot}}/skills/answer/SKILL.md) according to its description. Use a table when comparison is clearer; otherwise use prose or a short list. For substantial drafting, editing or recurring wording problems, consult {{pluginRoot}}/principles/clear-writing.md as needed. Reuse guidance already in context; do not reload it for every response.
 

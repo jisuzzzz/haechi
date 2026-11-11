@@ -6,119 +6,23 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Setup is complete only when every one of these is present — they are the "required" grade of repo setup
-const REQUIRED                                  = [
-  ['commands.verify', 'verify command'],
-  ['commands.testOne', 'single-test command'],
-  ['forbidden', 'forbidden commands'],
-  ['testDirs', 'test location'],
-  ['sensitiveData', 'sensitive data rule'],
-]
-
-const valueAt = (source         , path        )          =>
-  path.split('.').reduce         ((value, key) => (value                                       )?.[key], source)
-
-const isPresent = (value         ) =>
-  value !== undefined && value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)
-
-export const parseSettings = (text                    )                 => {
-  if (text === undefined) return {}
-  try {
-    return { settings: JSON.parse(text)                 }
-  } catch {
-    return { error: '.haechi.json is not valid JSON' }
-  }
-}
-
-export const missingRequired = (loaded                )           => {
-  if (loaded.error) return [loaded.error]
-  if (!loaded.settings) return ['.haechi.json']
-  return REQUIRED.filter(([path]) =>
-    path === 'forbidden' ? !Array.isArray(valueAt(loaded.settings, path)) : !isPresent(valueAt(loaded.settings, path)),
-  ).map(([, label]) => label)
-}
-
 // Full block on the first prompt and on the first prompt after a compaction; a reminder otherwise
 export const nextInjection = (state                )                                                       =>
   !state.shown || state.compacted
     ? { mode: 'full', state: { shown: true, compacted: false } }
     : { mode: 'reminder', state }
 
-// {{name}} inserts a value; {{#name}}…{{/name}} keeps its body only when the value is set
-export const render = (template        , values                               )         =>
-  template
-    .replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, name        , body        ) => (values[name] ? body : ''))
-    .replace(/\{\{(\w+)\}\}/g, (_, name        ) => String(values[name] ?? ''))
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
+export const fullBlock = ({ template, pluginRoot }                                          )         =>
+  template.replaceAll('{{pluginRoot}}', pluginRoot).trim()
 
-const repoLine = (settings                          ) => {
-  const commands = settings?.commands
-  if (!commands?.verify && !commands?.testOne) return 'REPO: not set up'
-  const parts = [
-    commands.verify && `verify \`${commands.verify}\``,
-    commands.testOne && `test one \`${commands.testOne}\``,
-    settings?.git?.base && `base ${settings.git.base}`,
-  ]
-  return `REPO: ${parts.filter(Boolean).join(' · ')}`
-}
+export const reminderBlock = (pluginRoot        )         =>
+  `[haechi] Before the next action, check which skills and shared guidance apply to the current request and findings, including evidence needed before acting. Reuse guidance already read when it still applies. Preserve scope and authorization. Before claiming completion, reconcile the original requirements and actual work with applicable implementation, verification and review evidence; report missing evidence. Rules if needed: ${pluginRoot}/hooks/rules.md.`
 
-const joined = (items                      ) => (items?.length ? items.join(', ') : undefined)
-
-export const fullBlock = (input
-
-
-
- )         => {
-  const missing = missingRequired(input.loaded)
-  return render(input.template, {
-    pluginRoot: input.pluginRoot,
-    repoLine: repoLine(input.loaded.settings),
-    forbidden: joined(input.loaded.settings?.forbidden),
-    setupMissing: missing.length ? missing.join(', ') : undefined,
-    riskPaths: joined(input.loaded.settings?.riskPaths),
-  })
-}
-
-export const reminderBlock = (input                                                )         => {
-  const missing = missingRequired(input.loaded)
-  const setup = missing.length ? ' REPO SETUP INCOMPLETE — no code changes before /haechi:setup.' : ''
-  return `[haechi] Before the next action, check which skills and shared guidance apply to the current request and findings, including evidence needed before acting. Reuse guidance already read when it still applies. Preserve scope and authorization. Before claiming completion, reconcile the original requirements and actual work with applicable implementation, verification and review evidence; report missing evidence. Rules if needed: ${input.pluginRoot}/hooks/rules.md.${setup}`
-}
-
-// Subagents never see prompt-time context, so their task message carries the repo facts they act on
-export const spawnAppendix = (loaded                , pluginRoot        )         => {
-  const settings = loaded.settings
-  const lines = ['[haechi] Repo facts for this task:', `- haechi tools: ${pluginRoot}/tools/`]
-  if (settings?.commands?.verify) lines.push(`- verify: \`${settings.commands.verify}\``)
-  if (settings?.commands?.testOne) lines.push(`- single test: \`${settings.commands.testOne}\``)
-  if (settings?.forbidden?.length) lines.push(`- never run: ${settings.forbidden.join(', ')}`)
-  if (settings?.testDirs?.length) lines.push(`- tests live in: ${settings.testDirs.join(', ')}`)
-  if (lines.length === 2) lines.push('- repo setup is missing: ask the orchestrator for commands instead of guessing')
-  lines.push('- report open questions to the orchestrator; do not ask the user')
-  return lines.join('\n')
-}
+// Prompt-time context does not reach subagents. The task packet carries repository rules and commands.
+export const spawnAppendix = (pluginRoot        )         => [
+  '[haechi] Repo facts for this task:',
+  `- haechi tools: ${pluginRoot}/tools/`,
+  '- use the repository instructions and execution details supplied in the task packet',
+  '- resolve missing details from repository instructions and project configuration, then ask the orchestrator if needed',
+  '- report open questions to the orchestrator',
+].join('\n')

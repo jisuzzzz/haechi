@@ -9,7 +9,7 @@ import { digest, hasCode, isDigest, publishFile, readLocalFile } from './work-gr
 export const findRepoRoot = (start        ) => {
   const resolved = realpathSync(start)
   for (let dir = resolved; ; dir = dirname(dir)) {
-    if (existsSync(join(dir, '.haechi.json')) || existsSync(join(dir, '.git'))) return dir
+    if (existsSync(join(dir, '.git'))) return dir
     if (dirname(dir) === dir) return resolved
   }
 }

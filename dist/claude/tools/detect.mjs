@@ -1,5 +1,5 @@
-// Repo setup, step 1: detect execution settings and preserve existing settings for comparison.
-// Usage: node detect.mjs [repo-root]  → prints a JSON draft. Nothing is written.
+// Find candidate execution commands and report where they came from.
+// Usage: node detect.mjs [repo-root]  → prints JSON. Nothing is written.
 // detect() is pure (it takes a snapshot); snapshot() does the reading.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -137,17 +137,6 @@ const detectGit = (snap                    ) => {
   }
 }
 
-const existingSettings = (text                    ) => {
-  if (text === undefined) return unknown('no .haechi.json')
-  try {
-    const settings          = JSON.parse(text)
-    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('expected an object')
-    return guess(settings, '.haechi.json')
-  } catch {
-    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object; repair it before writing settings' })
-  }
-}
-
 export const detect = (snap                    ) => {
   const pkg = (snap.packageJson ? JSON.parse(snap.packageJson) : undefined)
   const pm = detectPackageManager(snap, pkg)
@@ -172,11 +161,10 @@ export const detect = (snap                    ) => {
       ? guess(true, 'pre-commit hook config')
       : guess(false, 'no pre-commit hook config'),
     sensitiveData: sensitiveWords.length
-      ? unknown(`AGENTS.md mentions: ${[...new Set(sensitiveWords.map((word) => word.toLowerCase()))].join(', ')} — confirm with the user`)
-      : unknown('always ask the user'),
+      ? unknown(`AGENTS.md mentions: ${[...new Set(sensitiveWords.map((word) => word.toLowerCase()))].join(', ')}`)
+      : unknown('no repository data rule detected'),
     agentsMd: guess(Boolean(snap.agentsMd), snap.agentsMd ? 'AGENTS.md' : 'no AGENTS.md'),
     git: detectGit(snap),
-    existingSettings: existingSettings(snap.settingsJson),
   }
 }
 
@@ -199,7 +187,6 @@ export const snapshot = (root        )                     => {
     requirements: readIf(join(root, 'requirements.txt')),
     requirementsDev: readIf(join(root, 'requirements-dev.txt')),
     agentsMd: readIf(join(root, 'AGENTS.md')),
-    settingsJson: readIf(join(root, '.haechi.json')),
     git: {
       remote: git(root, ['remote', 'get-url', 'origin']).replace(/\/\/[^@/]*@/, '//') || undefined,
       originHead,
