@@ -42,7 +42,7 @@ You can also describe a task in natural language and let the agent choose useful
 
 ## What haechi adds
 
-- **Checks that fit your repository.** Haechi uses your repository instructions, project configuration and any existing Haechi settings to find the right checks. Hooks supply task guidance, including recovery after compaction.
+- **Checks that fit your repository.** Haechi uses your repository instructions and project configuration to find the right checks. Hooks supply task guidance, including recovery after compaction.
 - **Reproduce, repair and verify.** Bug fixes need evidence of the failure before the repair and the result afterward. Features need checks against their acceptance criteria; code reviews report findings without editing code. The [common work contract](principles/work-contract.md) defines these obligations across task methods.
 - **UI previews before implementation.** The [preview skill](skills/preview/SKILL.md) guides the agent to build and check an interactive proposal, then carry the selected design and interaction criteria into implementation.
 - **Work you can resume.** For work that spans sessions, depends on another task or produces a shared result, [work-graph](skills/work-graph/SKILL.md) guides the agent to record the goal, progress, decisions, verification results and next action, with links to native sessions.
@@ -116,17 +116,11 @@ The document skill reuses browser helpers or temporary Playwright scripts for ca
 
 ## Settings
 
-| File | What belongs here |
-|---|---|
-| Existing `.haechi.json` | Read-only compatibility for shared repository settings such as verify and single-test commands, forbidden commands, test locations and Git settings. |
-| `AGENTS.md` | Team rules and judgment, such as sensitive-data handling and where code belongs. |
-| `~/.haechi/user.json` | Personal preferences: `notesDir` for files kept outside repositories and `openReports` for opening screen reports automatically. |
+Keep shared rules such as forbidden commands, test scope and sensitive-data handling in the repository's existing instructions, for example `AGENTS.md`. Keep runnable commands in the project's existing scripts. Use [`/haechi:setup`](skills/setup/SKILL.md) for optional diagnostics.
 
-Repository setup is optional. Use [`/haechi:setup`](skills/setup/SKILL.md) to inspect execution settings or check your installation. Haechi keeps existing `.haechi.json` files readable during the transition and leaves repository files untouched during diagnostics.
+Git commands use the repository's branch policy, remote information and PR/MR templates. Keep personal preferences such as `notesDir` and `openReports` in `~/.haechi/user.json`.
 
-Git host, base/protected branches, naming rules and PR/MR formats are optional settings. The Git skills resolve them when needed from explicit settings, repository instructions and remote information, and ask about an unresolved target at that operation.
-
-For Python repositories, see the [backend verification guide](docs/python-backends.md) for source-to-test mapping and test database prerequisites.
+To migrate an existing `.haechi.json`, move its shared rules to repository instructions. Pass Python test mappings and custom test commands to the [default verifier](docs/python-backends.md). Pass protected branches and a teardown script to the cleanup tool if the repository uses them. Pass generated and test directory exclusions as Git pathspecs to the logic-line counter. Haechi no longer reads `.haechi.json`.
 
 ## Source and contributing
 

@@ -10,7 +10,13 @@ Write plugin-owned instructions, configuration/setup text, generated guidance an
 
 Use Node.js 24 for the Cloud development environment. Run `npm run check` to verify generated files. Run relevant tests individually with `node --test test/<file>.test.mjs`; do not run `npm test` or `npm run test`.
 
+Run type checking with `npm run typecheck`. Tests are under `test/`. The build generates `dist/claude` and `dist/codex`. Exclude those directories and `test/` from logic-line counts using Git exclusion pathspecs.
+
 When continuing the Cloud migration, start with `docs/cloud-handoff-2026-10-30.md`. It summarizes decisions, current status, verification and remaining work, with links to the design and historical carryover. Current repository rules take precedence over historical notes.
+
+### Git workflow
+
+Use GitHub with `gh`. The default and protected branch is `main`. Name task branches `codex/<slug>`. Use concise imperative English commit subjects. Use Summary, Changes and Validation sections in pull requests. Assign a reviewer only when requested, and enable auto-merge only with user approval.
 
 ## Commit attribution
 

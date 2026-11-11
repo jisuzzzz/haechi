@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -62,15 +62,16 @@ const gitRepo = () => {
   return { root, git }
 }
 
-test('git-backed: rename and import-only changes count 0, a 2-line addition counts 2, excluded paths are skipped', () => {
+test('git-backed: rename and import-only changes count 0, a 2-line addition counts 2, excluded paths are skipped', (t) => {
   const { root, git } = gitRepo()
+  t.after(() => rmSync(root, { recursive: true, force: true }))
   mkdirSync(join(root, 'src'))
   mkdirSync(join(root, 'gen'))
   writeFileSync(join(root, 'src', 'moved.js'), 'export const moved = () => 1\n')
   writeFileSync(join(root, 'src', 'imports.js'), "import a from './a'\nexport const run = () => a()\n")
   writeFileSync(join(root, 'src', 'logic.js'), 'export const total = (items) => {\n  let sum = 0\n  return sum\n}\n')
   writeFileSync(join(root, 'gen', 'api.js'), 'export const api = 1\n')
-  writeFileSync(join(root, '.haechi.json'), JSON.stringify({ testDirs: ['next to source'], generated: ['gen'] }))
+  const exclusions = { testDirs: ['next to source'], generated: ['gen'] }
   git('add', '.')
   git('commit', '-q', '-m', 'init')
 
@@ -84,7 +85,15 @@ test('git-backed: rename and import-only changes count 0, a 2-line addition coun
   writeFileSync(join(root, 'src', 'logic.test.js'), 'test(1)\ntest(2)\n')
   writeFileSync(join(root, 'notes.md'), '# notes\n')
 
-  const result = countChanges({ root, paths: ['.'] })
+  const result = countChanges({ root, paths: ['.'], exclusions })
+  const allPaths = countChanges({ root, paths: ['.'] }).files.map(({ path }) => path)
+  assert.ok(allPaths.includes('gen/api.js') && allPaths.includes('src/logic.test.js'))
+  const tool = join(import.meta.dirname, '..', 'dist', 'claude', 'tools', 'count-logic-lines.mjs')
+  const json = execFileSync(process.execPath, [tool, '--json', '.', ...excludePathspecs(exclusions)], { cwd: root, encoding: 'utf8' })
+  assert.deepEqual(JSON.parse(json), {
+    files: result.files.map(({ path, lines }) => ({ path, lines })),
+    total: result.total,
+  })
   const byPath = Object.fromEntries(result.files.map((file) => [file.path, file.lines]))
   assert.deepEqual(byPath, { 'src/imports.js': 0, 'src/logic.js': 2, 'src/renamed.js': 0 })
   assert.equal(result.total, 2)

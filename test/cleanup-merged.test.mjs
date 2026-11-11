@@ -121,33 +121,57 @@ test('--discard keeps a worktree with untracked changes and its branch', () => {
   assert.ok(existsSync(worktree) && branchExists(repo.clone, 'draft/b'))
 })
 
-test('worktreeTeardown runs in the worktree; a failing one keeps it, the legacy value is ignored', () => {
+test('explicit protection and a main-worktree teardown script work without repository settings', () => {
   const repo = makeRepo()
-  const worktree = addBranch(repo, 'feat/td', { merge: true })
-  writeFileSync(join(repo.clone, '.haechi.json'), JSON.stringify({ git: { base: 'main' }, worktreeTeardown: 'node -e "process.exit(3)"' }))
-  const failed = run(repo.clone, 'feat/td', '--yes')
-  assert.equal(failed.status, 1)
-  assert.match(failed.stdout, /Failed: worktreeTeardown/)
-  assert.ok(existsSync(worktree) && branchExists(repo.clone, 'feat/td'))
+  git(repo.clone, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main')
+  const protectedTree = addBranch(repo, 'release', { merge: true })
+  const target = addBranch(repo, 'feat/teardown', { merge: true, files: { 'teardown.cjs': 'process.exit(99)' } })
+  const other = addBranch(repo, 'feat/other', { merge: false, files: { 'teardown.cjs': 'process.exit(98)' } })
+  const teardown = join(repo.clone, 'teardown.cjs')
+  writeFileSync(teardown, "console.log('main teardown:', process.cwd()); process.exit(3)")
 
-  writeFileSync(join(repo.clone, '.haechi.json'), JSON.stringify({ git: { base: 'main' }, worktreeTeardown: 'unlink-reparse-points' }))
-  const done = run(repo.clone, 'feat/td', '--yes')
+  for (const mode of [[], ['--discard']]) {
+    const result = run(other, 'release', '--protected', 'staging', '--protected', 'release', ...mode, '--yes')
+    assert.equal(result.status, 2)
+    assert.match(result.stderr, /base or a protected branch/)
+  }
+  assert.ok(existsSync(protectedTree))
+  assert.ok(remoteSha(repo.clone, 'release'))
+
+  const plan = run(other, 'feat/teardown', '--teardown', 'teardown.cjs')
+  assert.equal(plan.status, 0, plan.stderr)
+  assert.match(plan.stdout, /To delete:/)
+  assert.doesNotMatch(plan.stdout, /main teardown:/)
+
+  const failed = run(other, 'feat/teardown', '--teardown', 'teardown.cjs', '--yes')
+  assert.equal(failed.status, 1, failed.stdout + failed.stderr)
+  assert.match(failed.stdout, /main teardown: .*feat-teardown/)
+  assert.match(failed.stdout, /Failed: teardown script/)
+  assert.ok(existsSync(target) && branchExists(repo.clone, 'feat/teardown'))
+
+  writeFileSync(teardown, "console.log('main teardown:', process.cwd())")
+  const done = run(other, 'feat/teardown', '--teardown', 'teardown.cjs', '--yes')
   assert.equal(done.status, 0, done.stdout + done.stderr)
-  assert.equal(existsSync(worktree), false)
+  assert.match(done.stdout, /main teardown: .*feat-teardown/)
+  assert.equal(existsSync(target), false)
+  assert.equal(remoteSha(repo.clone, 'feat/teardown'), null)
+  assert.equal(existsSync(join(repo.clone, '.haechi.json')), false)
 })
 
-test('settings come from the main worktree, not from the checkout the command runs in', () => {
+test('teardown refuses a script outside the main worktree before changing anything', () => {
   const repo = makeRepo()
-  writeFileSync(join(repo.clone, '.haechi.json'), JSON.stringify({ git: { base: 'main' } }))
-  const worktree = addBranch(repo, 'feat/m', { merge: true })
-  const other = addBranch(repo, 'feat/other', {
-    merge: false,
-    files: { '.haechi.json': JSON.stringify({ git: { base: 'nope' }, worktreeTeardown: 'node -e "process.exit(3)"' }) },
-  })
-  const result = run(other, 'feat/m', '--yes')
-  assert.equal(result.status, 0, result.stdout + result.stderr)
-  assert.equal(existsSync(worktree), false)
-  assert.equal(branchExists(repo.clone, 'feat/m'), false)
+  const worktree = addBranch(repo, 'feat/keep', { merge: true })
+  const script = join(repo.dir, 'external.cjs')
+  writeFileSync(script, "console.log('external teardown')")
+  symlinkSync(repo.dir, join(repo.clone, 'outside'), 'junction')
+  for (const path of [script, '../external.cjs', 'outside/external.cjs']) {
+    const result = run(repo.clone, 'feat/keep', '--base', 'main', '--teardown', path, '--yes')
+    assert.equal(result.status, 2)
+    assert.match(result.stderr, /inside the main worktree/)
+    assert.doesNotMatch(result.stdout, /external teardown/)
+  }
+  assert.ok(existsSync(worktree) && branchExists(repo.clone, 'feat/keep'))
+  assert.ok(remoteSha(repo.clone, 'feat/keep'))
 })
 
 test('unmerged branch is skipped and nothing is deleted', () => {
@@ -229,42 +253,50 @@ test('currently checked-out branch is skipped', () => {
   assert.equal(git(repo.clone, 'branch', '--show-current'), 'feat/here')
 })
 
-test('--base comes from .haechi.json git.base; no base at all exits 2', () => {
+test('cleanup uses origin/HEAD by default and requires --base if it is unset', () => {
   const repo = makeRepo()
-  addBranch(repo, 'feat/cfg', { merge: true })
-  const missing = run(repo.clone, 'feat/cfg')
+  addBranch(repo, 'feat/base', { merge: true })
+  git(repo.clone, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main')
+  const inferred = run(repo.clone, 'feat/base')
+  assert.equal(inferred.status, 0, inferred.stderr)
+  assert.match(inferred.stdout, /- local branch feat\/base/)
+
+  git(repo.clone, 'symbolic-ref', '--delete', 'refs/remotes/origin/HEAD')
+  const missing = run(repo.clone, 'feat/base')
   assert.equal(missing.status, 2)
   assert.match(missing.stderr, /No base branch/)
-
-  writeFileSync(join(repo.clone, '.haechi.json'), JSON.stringify({ git: { base: 'main' } }))
-  const result = run(repo.clone, 'feat/cfg')
-  assert.equal(result.status, 0, result.stderr)
-  assert.match(result.stdout, /- local branch feat\/cfg/)
+  const explicit = run(repo.clone, 'feat/base', '--base', 'main')
+  assert.equal(explicit.status, 0, explicit.stderr)
+  assert.equal(explicit.stdout, inferred.stdout)
 })
 
-test('the base and protected branches are refused in both modes', () => {
+test('cleanup refuses the selected base and the remote default branch in both modes', () => {
   const repo = makeRepo()
   addBranch(repo, 'release', { merge: true })
-  writeFileSync(join(repo.clone, '.haechi.json'), JSON.stringify({ git: { base: 'main', protected: ['main', 'release'] } }))
-  for (const args of [['main', '--yes'], ['release', '--yes'], ['release', '--discard', '--yes']]) {
-    const result = run(repo.clone, ...args)
-    assert.equal(result.status, 2)
-    assert.match(result.stderr, /base or a protected branch/)
+  git(repo.clone, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main')
+  for (const mode of [[], ['--discard']]) {
+    for (const branch of ['release', 'main']) {
+      const result = run(repo.clone, branch, '--base', 'release', ...mode, '--yes')
+      assert.equal(result.status, 2)
+      assert.match(result.stderr, /base or a protected branch/)
+      assert.ok(branchExists(repo.clone, branch) && remoteSha(repo.clone, branch))
+    }
   }
-  assert.match(execFileSync('git', ['-C', repo.clone, 'branch', '--list', 'release'], { encoding: 'utf8' }), /release/)
 })
 
 test('bad arguments and outside a git repo exit 2', () => {
   assert.equal(run(scratch).status, 2)
   assert.equal(run(scratch, 'a', 'b').status, 2)
   assert.equal(run(scratch, 'a', '--base').status, 2)
+  assert.match(parseArgs(['a', '--protected', '--yes']).error, /needs a branch name/)
+  assert.match(parseArgs(['a', '--teardown', '--yes']).error, /needs a script path/)
   const outside = run(scratch, 'feat/x', '--base', 'main')
   assert.equal(outside.status, 2)
   assert.match(outside.stderr, /Not inside a git repository/)
 })
 
 test('parseArgs', () => {
-  assert.deepEqual(parseArgs(['feat/x', '--yes', '--base', 'main']), { branch: 'feat/x', base: 'main', yes: true, discard: false })
+  assert.deepEqual(parseArgs(['feat/x', '--yes', '--base', 'main']), { branch: 'feat/x', base: 'main', protectedBranches: [], teardown: null, yes: true, discard: false })
   assert.equal(parseArgs(['x', '--discard']).discard, true)
   assert.match(parseArgs(['--force', 'x']).error, /unknown option/)
 })

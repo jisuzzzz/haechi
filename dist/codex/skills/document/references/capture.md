@@ -17,7 +17,7 @@ For example, use Claude in Chrome's GIF tool only when it is exposed and support
 
 ## Collect the actual state
 
-Use the provided app URL or the project's established run command and the method selected above. Before writing a script, read `.haechi.json` `screenCheck.helpers` and relevant browser tests. Reuse a helper that reaches the required state; otherwise write a temporary Playwright script using the project's installed browser tooling. Remove temporary scripts after collecting results unless the user asked to keep a reusable reproduction.
+Use the provided app URL or the project's established run command and the method selected above. Before writing a script, read repository instructions and relevant browser tests. Reuse a helper that reaches the required state; otherwise write a temporary Playwright script using the project's installed browser tooling. Remove temporary scripts after collecting results unless the user asked to keep a reusable reproduction.
 
 Use an existing authorized login session; do not place passwords or session secrets in the document. Keep the check read-only under the existing screen-checker constraints. A reproduction that changes server data needs an appropriately authorized test environment; collecting evidence does not grant production mutation authority. The main session owns any server it starts and cleans up temporary resources.
 

@@ -11,19 +11,19 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 
 ## Layers
 
-1. Repository instructions, project configuration and existing settings supply the commands, restrictions and ownership facts needed for a task.
+1. Repository instructions and project configuration supply the commands, restrictions and ownership facts needed for a task.
 2. The [common work contract](../principles/work-contract.md) owns pre-action evidence, implementation principles, conditional verification/review obligations and completion.
 3. Task skills supply useful methods. The model chooses them for the next action as requests and findings develop; no exclusive primary playbook controls the task.
 4. Hooks deliver the shared summary initially and after supported recovery, with actionable reminders on later task submissions. The main owns requirements, integration and the completion decision.
 5. Delegation composes method guidance and the common contract into complete scoped packets for the generic worker. Existing playbook/step identifiers remain compatible operation names.
 
-Existing `.haechi.json` files remain readable during the transition. `AGENTS.md` holds repository instructions, and `~/.haechi/user.json` holds personal paths and preferences. Verification requires evidence from the checks the agent actually ran.
+`AGENTS.md` holds shared instructions. `~/.haechi/user.json` holds personal paths and preferences. Verification requires evidence from the checks the agent actually ran.
 
 ## Request flow and delivery
 
 For substantial work, briefly explain the intended outcome, scope and check method. Reuse settled requirements and decisions without a fixed reply format or another approval. Before product-source edits, receive/read applicable common guidance. Already-current guidance may be reused. Choose task methods as useful; a changed finding within one turn can change the next action without another user prompt or label switch.
 
-Codex delivers full rules, the saved explicit skill choice, and the shared work snapshot at session start. Ordinary prompts repeat a component only when its rendered context or repository changes. Shared work warnings remain visible. PostCompact records a new generation so the next eligible prompt restores all three components. Each component writes its own delivery record, so parallel SessionStart commands cannot invalidate one another. Missing session identity or unusable delivery state sends full context. SubagentStart still sends the repository commands and prohibitions. Claude uses its existing prompt.submit reminder and compaction/clear reset. Task skill bodies reference the common contract for command-driven entry.
+Codex delivers full rules, the saved explicit skill choice, and the shared work snapshot at session start. Ordinary prompts repeat a component only when its rendered context or repository changes. Shared work warnings remain visible. PostCompact records a new generation so the next eligible prompt restores all three components. Each component writes its own delivery record, so parallel SessionStart commands cannot invalidate one another. Missing session identity or unusable delivery state sends full context. SubagentStart points workers to the repository details supplied in the task packet. Claude uses its existing prompt.submit reminder and compaction/clear reset. Task skill bodies reference the common contract for command-driven entry.
 
 Unit adapter execution and packet validation are not proof of native host delivery. Claude registration lifetime across sessions and actual command paths require host evidence. UserPromptSubmit does not fire for a tool result. No blanket PostToolUse reinjection, natural-language hook router or Stop-hook completion lock is added.
 
@@ -69,8 +69,8 @@ Implementation reuses the chosen layout, timing, interactions and checked refere
 ## Git
 
 - `commit` works the same on every host. `mr` opens merge requests on GitLab (glab) and pull requests on GitHub (gh) from the repo's title and body conventions. `ci-watch` (GitLab only for now) waits for the pipeline in the background, fixes failures in the session that opened the merge request, stops after the same job fails twice, and never passes a gate by suppressing it.
-- Git settings are resolved when an operation needs them: explicit settings and repository instructions first, then the remote URL and local remote HEAD. An unresolved host or target requires a focused question at that operation, not another setup run. Local commits need no host login; authorized remote operations check authentication for their selected host.
-- After a merge, `cleanup-merged.mjs` lists the local branch, worktree and leftover remote branch, and deletes them only after one yes. It unlinks links inside a worktree first, so deletion cannot follow them into the main checkout.
+- Git settings are resolved when an operation needs them: repository instructions and task inputs first, then the remote URL and local remote HEAD. An unresolved host or target requires a focused question at that operation, not another setup run. Local commits need no host login; authorized remote operations check authentication for their selected host.
+- After a merge, `cleanup-merged.mjs` lists the local branch, worktree and leftover remote branch, and deletes them only with `--yes`. The selected base, the default branch from `origin/HEAD` and each `--protected <branch>` are ineligible. Pass a main-worktree-relative Node.js script with `--teardown <script>` when the repository needs extra cleanup. The tool resolves the script from the main worktree and runs it in the target worktree after unlinking links. A failed script keeps the worktree and branch.
 
 ## When to ask
 
@@ -100,16 +100,16 @@ A single caller does not make a file or abstraction wrong. Separation should cla
 
 ## Settings
 
-- Existing `.haechi.json` files provide read-only compatibility for verify and single-test commands, forbidden commands, test locations, the sensitive-data rule, `pythonTestMap`, Git settings, worktree commands and other settings.
+- Repository instructions supply execution policy and paths. Project scripts own runnable commands and can pass structured values directly to tools. `count-logic-lines.mjs` accepts Git pathspecs such as `:(exclude)dist`.
 - `~/.haechi/user.json`: `notesDir` for files that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks) and `openReports` for opening reports automatically. Updates preserve unknown existing keys.
 
 ## Optional diagnostics
 
-Tasks start without a repository setup step. Resolve the execution details a task needs from repository instructions and project configuration, using existing `.haechi.json` values where present. Ask only for details the task needs and the repository cannot provide. Git settings are resolved when the relevant Git operation needs them.
+Tasks start without a repository setup step. Resolve the execution details a task needs from repository instructions and project configuration. Ask only for details the task needs and the repository cannot provide. Git settings are resolved when the relevant Git operation needs them.
 
-The optional setup command reports execution candidates and existing settings. It leaves repository files untouched. When verification is requested, run the smallest relevant check and inspect the executed work. A verifier that runs the configured test can also prove the single-test command works for that file.
+The optional setup command reports execution candidates and their sources. It leaves repository files untouched. When verification is requested, run the smallest relevant check and inspect the executed work. A verifier that runs the configured test can also prove the single-test command works for that file.
 
-The default verifier uses `pythonTestMap` to select explicit test files for changed Python sources. A configured single-test command takes precedence over detected pytest. Skipped checks and missing or incomplete test-execution summaries produce exit 2. Reported test failures produce exit 1 even if a wrapper exits 0. The verifier checks runner-reported execution; acceptance coverage still needs the main agent's judgment. The [Python backend guide](python-backends.md) defines supported summaries, path rules, command precedence and database prerequisites.
+The default verifier uses the explicit `--python-test-map` argument to select test files for changed Python sources. A command supplied via `--test-one` takes precedence over detected pytest. Skipped checks and missing or incomplete test-execution summaries produce exit 2. Reported test failures produce exit 1 even if a wrapper exits 0. The verifier checks runner-reported execution; acceptance coverage still needs the main agent's judgment. The [Python backend guide](python-backends.md) defines supported summaries, path rules, command precedence and database prerequisites.
 
 ## Build and distribution
 

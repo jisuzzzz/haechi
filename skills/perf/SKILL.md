@@ -17,13 +17,13 @@ Define the number and the rule that decides success. Example: "p50 time from ope
 
 ## Settings and storage
 
-Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. Resolve missing paths from repository conventions or ask for the paths needed for this measurement. Save personal preferences only when requested.
+Resolve measurement paths from repository instructions and conventions. Read `notesDir` from `~/.haechi/user.json`. Ask for any paths needed for this measurement that remain unresolved. Save personal preferences only when requested.
 
 | What | Where |
 |---|---|
-| Measurement record: pre-registration, then problem, method, result, interpretation, next; environment, verdict table, excluded rows, raw-data path, variant hashes | `perf.recordsDir` — committed |
+| Measurement record: pre-registration, then problem, method, result, interpretation, next; environment, verdict table, excluded rows, raw-data path, variant hashes | Repository measurement folder, committed |
 | One-line conclusion and baseline numbers | the area's main doc — committed |
-| Rejected idea / open issue | `perf.rejected` / `perf.openIssues` — committed |
+| Rejected idea / open issue | Repository rejection or issue record, committed |
 | Raw data and harness | `<notesDir>/perf-runs/<topic>` — never the scratchpad or a worktree that will be deleted |
 
 ## Steps
@@ -32,7 +32,7 @@ Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. Resol
 2. **Purpose line.** One line on what this measurement decides: whether to adopt a change, or a before/after reference for a change already decided. If adoption is already decided, do not use the result as the reason to adopt.
 3. **Baseline and bottleneck.** Measure the baseline and find what is actually slow with a profiler, separately from the reporting run. No hypothesis about what to change until the bottleneck is known.
    Leave: the baseline number and the bottleneck, with how you found it.
-4. **Check past rejections.** Read `perf.rejected` and run `node <tools>/rejected-staleness.mjs <perf.rejected> [--json]`. An idea marked `unchanged` is not proposed again. An idea marked `changed` may come back, with what changed. If the user asks directly for a re-measurement, run it regardless.
+4. **Check past rejections.** Read the repository rejection record if one exists and run `node <tools>/rejected-staleness.mjs <rejection-record> [--json]`. An idea marked `unchanged` is not proposed again. An idea marked `changed` may come back, with what changed. If the user asks directly for a re-measurement, run it regardless.
 5. **Candidates.** Compare candidates based on the bottleneck, including their cost and expected effect. The user picks what to try.
 6. **Pre-register.** Write down: the decision metric and how sides are compared, rounds and order shuffling, how noise is measured, the decision rule, conditions for dropping a row, the marker that proves each variant ran, and the expected duration. Get the user's confirmation before running. Never change it after seeing data.
    Leave: the pre-registration, as the first section of the measurement record.

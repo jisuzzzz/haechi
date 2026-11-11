@@ -7,7 +7,6 @@ import { test } from 'node:test'
 
 const plugin = join(import.meta.dirname, '../dist/codex')
 const config = JSON.parse(readFileSync(join(plugin, 'hooks/hooks.json'), 'utf8')).hooks
-const settings = { commands: { verify: 'npm run verify', testOne: 'node --test {file}' }, forbidden: ['npm test'], testDirs: ['test'], sensitiveData: 'none' }
 const tool = join(plugin, 'tools/work-graph.mjs')
 
 function fixture(t) {
@@ -17,7 +16,6 @@ function fixture(t) {
   const makeRepo = name => {
     const cwd = join(root, name)
     execFileSync('git', ['init', '-q', cwd])
-    writeFileSync(join(cwd, '.haechi.json'), JSON.stringify(settings))
     return cwd
   }
   const repo = makeRepo('repo')
@@ -73,8 +71,7 @@ test('Codex delivers changed context and restores all components after compactio
   assert.deepEqual(work.slice(0, 2), [undefined, undefined])
   assert.match(work[2], /new-work/)
   const subagent = await invoke('SubagentStart')
-  assert.match(subagent[0], /npm run verify/)
-  assert.match(subagent[0], /npm test/)
+  assert.match(subagent[0], /repository instructions and execution details supplied in the task packet/)
   assert.deepEqual(await invoke('UserPromptSubmit'), silent)
 
   const other = makeRepo('other')
@@ -94,24 +91,20 @@ test('Codex delivers changed context and restores all components after compactio
   assert.equal((await invoke('SessionStart'))[1], undefined)
 })
 
-test('Codex allows missing and partial settings and falls back when the cache is unusable', async t => {
+test('Codex ignores retired settings and falls back when the cache is unusable', async t => {
   const { data, repo, invoke } = fixture(t)
   const path = join(repo, '.haechi.json')
-  rmSync(path)
   const [first] = await invoke('SessionStart')
-  assert.match(first, /Resolve execution details needed for the current task/)
+  assert.match(first, /repository instructions such as `AGENTS.md`/)
   assert.doesNotMatch(first, /REPO SETUP INCOMPLETE|\/haechi:setup/)
   assert.equal((await invoke('UserPromptSubmit'))[0], undefined)
   assert.throws(() => readFileSync(path), { code: 'ENOENT' })
 
-  const partial = JSON.stringify({ commands: { verify: 'npm run verify' }, forbidden: ['npm test'] })
-  writeFileSync(path, partial)
-  const [updated] = await invoke('UserPromptSubmit')
-  assert.match(updated, /REPO: verify `npm run verify`/)
-  assert.match(updated, /NEVER RUN: npm test/)
-  assert.doesNotMatch(updated, /REPO SETUP INCOMPLETE|\/haechi:setup/)
+  const retired = '{malformed legacy settings'
+  writeFileSync(path, retired)
   assert.equal((await invoke('UserPromptSubmit'))[0], undefined)
-  assert.equal(readFileSync(path, 'utf8'), partial)
+  assert.equal((await invoke('SessionStart'))[0], first)
+  assert.equal(readFileSync(path, 'utf8'), retired)
 
   const delivery = join(data, 'codex-delivery')
   rmSync(delivery, { recursive: true })

@@ -112,7 +112,6 @@ const fixture = (t, settings = mapped) => {
   writeFileSync(join(root, 'app/api.py'), '# source\n')
   writeFileSync(join(root, 'tests/test_api.py'), '# test\n')
   writeFileSync(join(root, 'requirements-dev.txt'), 'ruff\npytest\n')
-  writeFileSync(join(root, '.haechi.json'), JSON.stringify(settings))
   const runner = `require('node:fs').appendFileSync('calls.jsonl', JSON.stringify({tool:require('node:path').basename(process.argv[1]),args:process.argv.slice(2)})+'\\n'); if(process.argv[1].includes('pytest')) { if(process.env.FAIL_TEST) process.exit(1); console[process.env.TEST_STDERR ? 'error' : 'log'](process.env.TEST_OUTPUT ?? '1 passed in 0.01s'); }`
   for (const name of ['ruff', 'pytest']) {
     const path = join(root, 'bin', name)
@@ -121,14 +120,32 @@ const fixture = (t, settings = mapped) => {
     if (process.platform === 'win32') writeFileSync(`${path}.cmd`, `@"${process.execPath}" "${path}" %*\r\n`)
   }
   writeFileSync(join(root, 'calls.jsonl'), '')
+  const invoke = (args, env = {}) => spawnSync(process.execPath, [verifier, ...args], {
+    cwd: root, encoding: 'utf8', env: { ...process.env, PATH: [join(root, 'bin'), dirname(process.execPath), process.env.PATH].join(delimiter), ...env },
+  })
   return {
     root,
-    run: (files = ['app/api.py'], env = {}) => spawnSync(process.execPath, [verifier, ...files], {
-      cwd: root, encoding: 'utf8', env: { ...process.env, PATH: [join(root, 'bin'), dirname(process.execPath), process.env.PATH].join(delimiter), ...env },
-    }),
+    invoke,
+    run: (files = ['app/api.py'], env = {}, inputs = settings) => {
+      const args = []
+      if (inputs.pythonTestMap !== undefined) args.push('--python-test-map', JSON.stringify(inputs.pythonTestMap))
+      if (inputs.commands?.testOne !== undefined) args.push('--test-one', inputs.commands.testOne)
+      return invoke([...args, '--', ...files], env)
+    },
     calls: () => readFileSync(join(root, 'calls.jsonl'), 'utf8').split('\n').filter(Boolean).map(JSON.parse),
   }
 }
+
+test('explicit verifier inputs select the mapped test and preserve custom flags without a settings file', (t) => {
+  const repo = fixture(t, { ...mapped, commands: { testOne: 'pytest -q {file}' } })
+  const result = repo.run()
+  assert.equal(result.status, 0, result.stderr + result.stdout)
+  assert.deepEqual(repo.calls(), [
+    { tool: 'ruff', args: ['check', 'app/api.py'] },
+    { tool: 'pytest', args: ['-q', 'tests/test_api.py'] },
+  ])
+  assert.throws(() => readFileSync(join(repo.root, '.haechi.json')), { code: 'ENOENT' })
+})
 
 test('CLI selects source-related tests, reports failure and recovers after the test passes', (t) => {
   const repo = fixture(t)
@@ -184,14 +201,14 @@ test('CLI rejects symlinked tests escaping the repository', { skip: process.plat
   assert.deepEqual(repo.calls(), [])
 })
 
-test('CLI rejects malformed JSON and does not invoke a custom verify recursively', (t) => {
-  const repo = fixture(t, { ...mapped, commands: { verify: 'false', testOne: 'pytest -q {file}' } })
-  assert.equal(repo.run().status, 0)
-  assert.deepEqual(repo.calls().at(-1).args, ['-q', 'tests/test_api.py'])
-  writeFileSync(join(repo.root, '.haechi.json'), '{broken')
-  const result = repo.run()
-  assert.equal(result.status, 1)
-  assert.match(result.stderr, /settings|haechi.json/)
+test('CLI rejects malformed and non-array mapping inputs before any checks run', (t) => {
+  const repo = fixture(t)
+  for (const map of ['{broken', 'null', '{}']) {
+    const result = repo.invoke(['--python-test-map', map, '--', 'app/api.py'])
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /python-test-map|pythonTestMap/)
+  }
+  assert.deepEqual(repo.calls(), [])
 })
 
 test('CLI preserves paths with spaces in fallback and already-quoted custom commands', (t) => {
@@ -202,8 +219,7 @@ test('CLI preserves paths with spaces in fallback and already-quoted custom comm
   assert.deepEqual(repo.calls().at(-1).args, ['tests/test api.py'])
   const commands = process.platform === 'win32' ? ['pytest -q "{file}"'] : ['pytest -q "{file}"', "pytest -q '{file}'"]
   for (const testOne of commands) {
-    writeFileSync(join(repo.root, '.haechi.json'), JSON.stringify({ ...settings, commands: { testOne } }))
-    assert.equal(repo.run().status, 0)
+    assert.equal(repo.run(undefined, {}, { ...settings, commands: { testOne } }).status, 0)
     assert.deepEqual(repo.calls().at(-1).args, ['-q', 'tests/test api.py'])
   }
 })
@@ -222,8 +238,7 @@ test('CLI preserves explicit placeholder quoting inside shell wrappers', { skip:
   const repo = fixture(t, settings)
   writeFileSync(join(repo.root, 'tests/test api.py'), '# spaced test\n')
   for (const testOne of ['sh -c "pytest \'{file}\'"', 'sh -c \'pytest "{file}"\'']) {
-    writeFileSync(join(repo.root, '.haechi.json'), JSON.stringify({ ...settings, commands: { testOne } }))
-    const result = repo.run()
+    const result = repo.run(undefined, {}, { ...settings, commands: { testOne } })
     assert.equal(result.status, 0, result.stdout + result.stderr)
     assert.deepEqual(repo.calls().at(-1).args, ['tests/test api.py'])
   }

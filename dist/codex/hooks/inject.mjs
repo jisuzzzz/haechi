@@ -1,28 +1,24 @@
 // Codex command hook: reads the hook input on stdin and prints additionalContext from the shared rules.
 // Usage (from hooks.json): node ${PLUGIN_ROOT}/hooks/inject.mjs <SessionStart|UserPromptSubmit|PostCompact|SubagentStart>
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { fullBlock, parseSettings, spawnAppendix } from './rules.mjs'
+import { fullBlock, spawnAppendix } from './rules.mjs'
 import { deliverCodexContext, findRepoRoot, markCodexCompaction } from '../tools/codex-context-delivery.mjs'
 
 export { findRepoRoot }
 
 const pluginRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-const readText = (path) => (existsSync(path) ? readFileSync(path, 'utf8') : undefined)
-
 export const handle = (event, input, env) => {
   if (event === 'PostCompact') {
     markCodexCompaction(input, env.dataDir)
     return undefined
   }
-  const root = findRepoRoot(input.cwd ?? process.cwd())
-  const loaded = parseSettings(readText(join(root, '.haechi.json')))
-  if (event === 'SubagentStart') return spawnAppendix(loaded, pluginRoot)
-  const render = () => fullBlock({ template: readFileSync(join(pluginRoot, 'hooks', 'rules.md'), 'utf8'), loaded, pluginRoot })
+  if (event === 'SubagentStart') return spawnAppendix(pluginRoot)
+  const render = () => fullBlock({ template: readFileSync(join(pluginRoot, 'hooks', 'rules.md'), 'utf8'), pluginRoot })
   return deliverCodexContext('rules', event, input, env.dataDir, render)
 }
 

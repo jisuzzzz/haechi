@@ -9,7 +9,7 @@ type Context = string | undefined
 export const findRepoRoot = (start: string) => {
   const resolved = realpathSync(start)
   for (let dir = resolved; ; dir = dirname(dir)) {
-    if (existsSync(join(dir, '.haechi.json')) || existsSync(join(dir, '.git'))) return dir
+    if (existsSync(join(dir, '.git'))) return dir
     if (dirname(dir) === dir) return resolved
   }
 }

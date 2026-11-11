@@ -9,7 +9,7 @@ import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 type ExclusionSettings = { testDirs?: unknown[]; generated?: unknown[] }
-type ChangeOptions = { root: string; base?: string; head?: string; paths: string[] }
+type ChangeOptions = { root: string; base?: string; head?: string; paths: string[]; exclusions?: ExclusionSettings }
 
 const ALWAYS_EXCLUDED = ['*.json', '*.md', '*.lock']
 // "next to source" means tests sit beside the code, so they are recognised by file name instead of folder
@@ -94,19 +94,9 @@ const revContent = (root: string, rev: string, path: string) => {
   }
 }
 
-const readSettings = (root: string): ExclusionSettings | undefined => {
-  const file = join(root, '.haechi.json')
-  if (!existsSync(file)) return undefined
-  try {
-    return JSON.parse(readFileSync(file, 'utf8'))
-  } catch {
-    return undefined
-  }
-}
-
 // paths are repo-root relative; returns { files: [{ path, label, lines }], total }
-export const countChanges = ({ root, base = 'HEAD', head, paths }: ChangeOptions) => {
-  const pathspec = [...paths, ...excludePathspecs(readSettings(root))]
+export const countChanges = ({ root, base = 'HEAD', head, paths, exclusions }: ChangeOptions) => {
+  const pathspec = [...paths, ...excludePathspecs(exclusions)]
   const afterContent = (path: string) => {
     if (head) return revContent(root, head, path)
     return existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : ''

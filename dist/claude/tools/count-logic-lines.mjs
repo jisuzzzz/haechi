@@ -94,19 +94,9 @@ const revContent = (root        , rev        , path        ) => {
   }
 }
 
-const readSettings = (root        )                                => {
-  const file = join(root, '.haechi.json')
-  if (!existsSync(file)) return undefined
-  try {
-    return JSON.parse(readFileSync(file, 'utf8'))
-  } catch {
-    return undefined
-  }
-}
-
 // paths are repo-root relative; returns { files: [{ path, label, lines }], total }
-export const countChanges = ({ root, base = 'HEAD', head, paths }               ) => {
-  const pathspec = [...paths, ...excludePathspecs(readSettings(root))]
+export const countChanges = ({ root, base = 'HEAD', head, paths, exclusions }               ) => {
+  const pathspec = [...paths, ...excludePathspecs(exclusions)]
   const afterContent = (path        ) => {
     if (head) return revContent(root, head, path)
     return existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : ''

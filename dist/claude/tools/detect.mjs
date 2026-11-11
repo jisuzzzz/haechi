@@ -1,4 +1,4 @@
-// Detect repository execution settings and report any existing settings alongside candidates.
+// Find candidate execution commands and report where they came from.
 // Usage: node detect.mjs [repo-root]  → prints JSON. Nothing is written.
 // detect() is pure (it takes a snapshot); snapshot() does the reading.
 import { execFileSync } from 'node:child_process'
@@ -137,17 +137,6 @@ const detectGit = (snap                    ) => {
   }
 }
 
-const existingSettings = (text                    ) => {
-  if (text === undefined) return unknown('no .haechi.json')
-  try {
-    const settings          = JSON.parse(text)
-    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('expected an object')
-    return guess(settings, '.haechi.json')
-  } catch {
-    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object' })
-  }
-}
-
 export const detect = (snap                    ) => {
   const pkg = (snap.packageJson ? JSON.parse(snap.packageJson) : undefined)
   const pm = detectPackageManager(snap, pkg)
@@ -176,7 +165,6 @@ export const detect = (snap                    ) => {
       : unknown('no repository data rule detected'),
     agentsMd: guess(Boolean(snap.agentsMd), snap.agentsMd ? 'AGENTS.md' : 'no AGENTS.md'),
     git: detectGit(snap),
-    existingSettings: existingSettings(snap.settingsJson),
   }
 }
 
@@ -199,7 +187,6 @@ export const snapshot = (root        )                     => {
     requirements: readIf(join(root, 'requirements.txt')),
     requirementsDev: readIf(join(root, 'requirements-dev.txt')),
     agentsMd: readIf(join(root, 'AGENTS.md')),
-    settingsJson: readIf(join(root, '.haechi.json')),
     git: {
       remote: git(root, ['remote', 'get-url', 'origin']).replace(/\/\/[^@/]*@/, '//') || undefined,
       originHead,

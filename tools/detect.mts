@@ -1,4 +1,4 @@
-// Detect repository execution settings and report any existing settings alongside candidates.
+// Find candidate execution commands and report where they came from.
 // Usage: node detect.mjs [repo-root]  → prints JSON. Nothing is written.
 // detect() is pure (it takes a snapshot); snapshot() does the reading.
 import { execFileSync } from 'node:child_process'
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 type Guess<T> = { value: T; source: string }
 type PackageSnapshot = { dependencies?: Record<string, unknown>; devDependencies?: Record<string, unknown>; scripts?: Record<string, string>; packageManager?: string }
-export type RepositorySnapshot = { files: string[]; packageJson?: string; pyproject?: string; requirements?: string; requirementsDev?: string; agentsMd?: string; settingsJson?: string; git: { remote?: string; originHead?: string; remoteBranches: string[] } }
+export type RepositorySnapshot = { files: string[]; packageJson?: string; pyproject?: string; requirements?: string; requirementsDev?: string; agentsMd?: string; git: { remote?: string; originHead?: string; remoteBranches: string[] } }
 type JsRunner = { run: (script: string) => string; exec: (bin: string) => string; install: string }
 type PythonRunner = 'uv' | 'poetry' | 'pip'
 
@@ -137,17 +137,6 @@ const detectGit = (snap: RepositorySnapshot) => {
   }
 }
 
-const existingSettings = (text: string | undefined) => {
-  if (text === undefined) return unknown('no .haechi.json')
-  try {
-    const settings: unknown = JSON.parse(text)
-    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('expected an object')
-    return guess(settings, '.haechi.json')
-  } catch {
-    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object' })
-  }
-}
-
 export const detect = (snap: RepositorySnapshot) => {
   const pkg = (snap.packageJson ? JSON.parse(snap.packageJson) : undefined) as PackageSnapshot | undefined
   const pm = detectPackageManager(snap, pkg)
@@ -176,7 +165,6 @@ export const detect = (snap: RepositorySnapshot) => {
       : unknown('no repository data rule detected'),
     agentsMd: guess(Boolean(snap.agentsMd), snap.agentsMd ? 'AGENTS.md' : 'no AGENTS.md'),
     git: detectGit(snap),
-    existingSettings: existingSettings(snap.settingsJson),
   }
 }
 
@@ -199,7 +187,6 @@ export const snapshot = (root: string): RepositorySnapshot => {
     requirements: readIf(join(root, 'requirements.txt')),
     requirementsDev: readIf(join(root, 'requirements-dev.txt')),
     agentsMd: readIf(join(root, 'AGENTS.md')),
-    settingsJson: readIf(join(root, '.haechi.json')),
     git: {
       remote: git(root, ['remote', 'get-url', 'origin']).replace(/\/\/[^@/]*@/, '//') || undefined,
       originHead,
