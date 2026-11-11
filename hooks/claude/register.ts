@@ -31,7 +31,7 @@ export const register: Register = (on) => {
     const text =
       step.mode === 'full'
         ? fullBlock({ template: String(await $.fs.read(`${pluginRoot}/hooks/rules.md`)), loaded, pluginRoot })
-        : reminderBlock({ loaded, pluginRoot })
+        : reminderBlock(pluginRoot)
     return next({ ...e, context: [...(e.context ?? []), text] })
   })
 

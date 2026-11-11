@@ -2,7 +2,7 @@
 
 Haechi is a Claude Code and Codex plugin for AI coding agent workflows. Reproduce bugs, build features, review code, and verify changes with your repository's own commands.
 
-Install the plugin, configure your repository once, and describe a task. Haechi gives the agent task playbooks, repository settings and verification tools, with guidance to report what was checked before calling the work done.
+Install the plugin and describe a task in your repository. Haechi gives the agent task playbooks, repository settings and verification tools, with guidance to report what was checked before calling the work done.
 
 **Early release:** workflow guidance continues to evolve. See the [0.1.0 release notes](docs/release-0.1.0.md) for compatibility and verification scope.
 
@@ -30,19 +30,7 @@ codex plugin add haechi@haechi
 
 For Codex, open a new terminal, run `codex`, and trust the haechi hooks in `/hooks`.
 
-### 2. Set up your repository
-
-Open your repository in your agent and run:
-
-```text
-/haechi:setup
-```
-
-Setup detects the verification commands and test locations, confirms the forbidden commands and sensitive-data rule, and proves that the commands run. It saves shared settings in `.haechi.json` and asks for personal preferences once per machine.
-
-Run setup once per repository, then again when its execution settings change. Git settings are resolved when a Git operation needs them.
-
-### 3. Reproduce and fix a bug
+### 2. Start a task in your repository
 
 ```text
 /haechi:bug The due date shows the next day for users in UTC-5. Reproduce it and fix the conversion.
@@ -54,7 +42,7 @@ You can also describe a task in natural language and let the agent choose useful
 
 ## What haechi adds
 
-- **Checks that fit your repository.** Hooks supply your configured verification commands, forbidden commands and task guidance, including recovery after compaction. Later requests remind the agent to assess the relevant guidance and required evidence.
+- **Checks that fit your repository.** Haechi uses your repository instructions, project configuration and any existing Haechi settings to find the right checks. Hooks supply task guidance, including recovery after compaction.
 - **Reproduce, repair and verify.** Bug fixes need evidence of the failure before the repair and the result afterward. Features need checks against their acceptance criteria; code reviews report findings without editing code. The [common work contract](principles/work-contract.md) defines these obligations across task methods.
 - **UI previews before implementation.** The [preview skill](skills/preview/SKILL.md) guides the agent to build and check an interactive proposal, then carry the selected design and interaction criteria into implementation.
 - **Work you can resume.** For work that spans sessions, depends on another task or produces a shared result, [work-graph](skills/work-graph/SKILL.md) guides the agent to record the goal, progress, decisions, verification results and next action, with links to native sessions.
@@ -130,11 +118,11 @@ The document skill reuses browser helpers or temporary Playwright scripts for ca
 
 | File | What belongs here |
 |---|---|
-| `.haechi.json` | Shared repository settings: verify and single-test commands, forbidden commands (`[]` when none), test locations and the sensitive-data rule. Commit this file. |
+| Existing `.haechi.json` | Read-only compatibility for shared repository settings such as verify and single-test commands, forbidden commands, test locations and Git settings. |
 | `AGENTS.md` | Team rules and judgment, such as sensitive-data handling and where code belongs. |
 | `~/.haechi/user.json` | Personal preferences: `notesDir` for files kept outside repositories and `openReports` for opening screen reports automatically. |
 
-Setup preserves explicit settings and unknown existing keys. A saved command is not proof that it works; setup runs the smallest relevant check and reports anything left unverified.
+Repository setup is optional. Use [`/haechi:setup`](skills/setup/SKILL.md) to inspect execution settings or check your installation. Haechi keeps existing `.haechi.json` files readable during the transition and leaves repository files untouched during diagnostics.
 
 Git host, base/protected branches, naming rules and PR/MR formats are optional settings. The Git skills resolve them when needed from explicit settings, repository instructions and remote information, and ask about an unresolved target at that operation.
 

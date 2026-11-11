@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -173,12 +174,12 @@ test('setup preserves declared Git formats and custom settings beside fresh cand
   assert.deepEqual(detect(snap()).existingSettings, { value: null, source: 'no .haechi.json' })
 })
 
-test('invalid existing settings are reported for repair, not treated as absent', () => {
+test('invalid existing settings are reported without treating them as absent', () => {
   for (const settingsJson of ['', '{oops', 'null', '[]', '"text"']) {
     const draft = detect(snap({ settingsJson }))
     assert.equal(draft.existingSettings.value, null)
     assert.equal(draft.existingSettings.source, '.haechi.json')
-    assert.match(draft.existingSettings.error, /valid JSON object.*repair/)
+    assert.match(draft.existingSettings.error, /valid JSON object/)
   }
 })
 
@@ -209,4 +210,17 @@ test('snapshot reads dev requirements so FastAPI setup discovers pytest from dis
   assert.equal(facts.requirementsDev, requirementsDev)
   assert.deepEqual(detect(facts).stack.value, ['python-fastapi'])
   assert.equal(detect(facts).commands.testOne.value, 'pytest {file}')
+})
+
+test('diagnostic CLI finds repository commands without creating settings', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'haechi-detect-read-only-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ scripts: { verify: 'node verify.mjs' } }))
+  for (const platform of ['claude', 'codex']) {
+    const tool = join(import.meta.dirname, '..', 'dist', platform, 'tools', 'detect.mjs')
+    const draft = JSON.parse(execFileSync(process.execPath, [tool, root], { encoding: 'utf8' }))
+    assert.equal(draft.commands.verify.value, 'npm run verify')
+    assert.equal(draft.existingSettings.value, null)
+    assert.throws(() => readFileSync(join(root, '.haechi.json')), { code: 'ENOENT' })
+  }
 })

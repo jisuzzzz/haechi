@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { fullBlock, missingRequired, parseSettings, reminderBlock, spawnAppendix } from './rules.mjs'
+import { fullBlock, parseSettings, spawnAppendix } from './rules.mjs'
 import { deliverCodexContext, findRepoRoot, markCodexCompaction } from '../tools/codex-context-delivery.mjs'
 
 export { findRepoRoot }
@@ -23,8 +23,7 @@ export const handle = (event, input, env) => {
   const loaded = parseSettings(readText(join(root, '.haechi.json')))
   if (event === 'SubagentStart') return spawnAppendix(loaded, pluginRoot)
   const render = () => fullBlock({ template: readFileSync(join(pluginRoot, 'hooks', 'rules.md'), 'utf8'), loaded, pluginRoot })
-  return deliverCodexContext('rules', event, input, env.dataDir, render,
-    () => missingRequired(loaded).length ? reminderBlock({ loaded, pluginRoot }) : undefined)
+  return deliverCodexContext('rules', event, input, env.dataDir, render)
 }
 
 const main = () => {

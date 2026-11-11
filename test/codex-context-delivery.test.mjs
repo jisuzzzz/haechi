@@ -94,14 +94,24 @@ test('Codex delivers changed context and restores all components after compactio
   assert.equal((await invoke('SessionStart'))[1], undefined)
 })
 
-test('Codex repeats setup warnings and falls back to delivery when the cache is unusable', async t => {
+test('Codex allows missing and partial settings and falls back when the cache is unusable', async t => {
   const { data, repo, invoke } = fixture(t)
-  writeFileSync(join(repo, '.haechi.json'), '{}')
-  assert.match((await invoke('SessionStart'))[0], /REPO SETUP INCOMPLETE/)
-  assert.match((await invoke('UserPromptSubmit'))[0], /REPO SETUP INCOMPLETE/)
-  writeFileSync(join(repo, '.haechi.json'), JSON.stringify(settings))
-  assert.doesNotMatch((await invoke('UserPromptSubmit'))[0], /REPO SETUP INCOMPLETE/)
+  const path = join(repo, '.haechi.json')
+  rmSync(path)
+  const [first] = await invoke('SessionStart')
+  assert.match(first, /Resolve execution details needed for the current task/)
+  assert.doesNotMatch(first, /REPO SETUP INCOMPLETE|\/haechi:setup/)
   assert.equal((await invoke('UserPromptSubmit'))[0], undefined)
+  assert.throws(() => readFileSync(path), { code: 'ENOENT' })
+
+  const partial = JSON.stringify({ commands: { verify: 'npm run verify' }, forbidden: ['npm test'] })
+  writeFileSync(path, partial)
+  const [updated] = await invoke('UserPromptSubmit')
+  assert.match(updated, /REPO: verify `npm run verify`/)
+  assert.match(updated, /NEVER RUN: npm test/)
+  assert.doesNotMatch(updated, /REPO SETUP INCOMPLETE|\/haechi:setup/)
+  assert.equal((await invoke('UserPromptSubmit'))[0], undefined)
+  assert.equal(readFileSync(path, 'utf8'), partial)
 
   const delivery = join(data, 'codex-delivery')
   rmSync(delivery, { recursive: true })

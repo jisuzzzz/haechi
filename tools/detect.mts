@@ -1,5 +1,5 @@
-// Repo setup, step 1: detect execution settings and preserve existing settings for comparison.
-// Usage: node detect.mjs [repo-root]  → prints a JSON draft. Nothing is written.
+// Detect repository execution settings and report any existing settings alongside candidates.
+// Usage: node detect.mjs [repo-root]  → prints JSON. Nothing is written.
 // detect() is pure (it takes a snapshot); snapshot() does the reading.
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -144,7 +144,7 @@ const existingSettings = (text: string | undefined) => {
     if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('expected an object')
     return guess(settings, '.haechi.json')
   } catch {
-    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object; repair it before writing settings' })
+    return guess(null, '.haechi.json', { error: '.haechi.json must contain a valid JSON object' })
   }
 }
 
@@ -172,8 +172,8 @@ export const detect = (snap: RepositorySnapshot) => {
       ? guess(true, 'pre-commit hook config')
       : guess(false, 'no pre-commit hook config'),
     sensitiveData: sensitiveWords.length
-      ? unknown(`AGENTS.md mentions: ${[...new Set(sensitiveWords.map((word) => word.toLowerCase()))].join(', ')} — confirm with the user`)
-      : unknown('always ask the user'),
+      ? unknown(`AGENTS.md mentions: ${[...new Set(sensitiveWords.map((word) => word.toLowerCase()))].join(', ')}`)
+      : unknown('no repository data rule detected'),
     agentsMd: guess(Boolean(snap.agentsMd), snap.agentsMd ? 'AGENTS.md' : 'no AGENTS.md'),
     git: detectGit(snap),
     existingSettings: existingSettings(snap.settingsJson),

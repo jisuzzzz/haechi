@@ -11,19 +11,19 @@ Status: v0 in progress. This document describes what the plugin does and why. It
 
 ## Layers
 
-1. Repository setup supplies verified commands, forbidden commands and ownership facts.
+1. Repository instructions, project configuration and existing settings supply the commands, restrictions and ownership facts needed for a task.
 2. The [common work contract](../principles/work-contract.md) owns pre-action evidence, implementation principles, conditional verification/review obligations and completion.
 3. Task skills supply useful methods. The model chooses them for the next action as requests and findings develop; no exclusive primary playbook controls the task.
 4. Hooks deliver the shared summary initially and after supported recovery, with actionable reminders on later task submissions. The main owns requirements, integration and the completion decision.
 5. Delegation composes method guidance and the common contract into complete scoped packets for the generic worker. Existing playbook/step identifiers remain compatible operation names.
 
-Beside these layers: `.haechi.json` holds repository facts, `AGENTS.md` holds repository rules, and `~/.haechi/user.json` holds personal paths and preferences. None of these records proves that work passed verification.
+Existing `.haechi.json` files remain readable during the transition. `AGENTS.md` holds repository instructions, and `~/.haechi/user.json` holds personal paths and preferences. Verification requires evidence from the checks the agent actually ran.
 
 ## Request flow and delivery
 
 For substantial work, briefly explain the intended outcome, scope and check method. Reuse settled requirements and decisions without a fixed reply format or another approval. Before product-source edits, receive/read applicable common guidance. Already-current guidance may be reused. Choose task methods as useful; a changed finding within one turn can change the next action without another user prompt or label switch.
 
-Codex delivers full rules, the saved explicit skill choice, and the shared work snapshot at session start. Ordinary prompts repeat a component only when its rendered context or repository changes. Setup and shared work warnings remain visible. PostCompact records a new generation so the next eligible prompt restores all three components. Each component writes its own delivery record, so parallel SessionStart commands cannot invalidate one another. Missing session identity or unusable delivery state sends full context. SubagentStart still sends the repository commands and prohibitions. Claude uses its existing prompt.submit reminder and compaction/clear reset. Task skill bodies reference the common contract for command-driven entry.
+Codex delivers full rules, the saved explicit skill choice, and the shared work snapshot at session start. Ordinary prompts repeat a component only when its rendered context or repository changes. Shared work warnings remain visible. PostCompact records a new generation so the next eligible prompt restores all three components. Each component writes its own delivery record, so parallel SessionStart commands cannot invalidate one another. Missing session identity or unusable delivery state sends full context. SubagentStart still sends the repository commands and prohibitions. Claude uses its existing prompt.submit reminder and compaction/clear reset. Task skill bodies reference the common contract for command-driven entry.
 
 Unit adapter execution and packet validation are not proof of native host delivery. Claude registration lifetime across sessions and actual command paths require host evidence. UserPromptSubmit does not fire for a tool result. No blanket PostToolUse reinjection, natural-language hook router or Stop-hook completion lock is added.
 
@@ -100,14 +100,14 @@ A single caller does not make a file or abstraction wrong. Separation should cla
 
 ## Settings
 
-- `.haechi.json` in the repo: verify and single-test commands, a forbidden-command list (empty when none), test locations and the sensitive-data rule. Optional settings include typecheck, `pythonTestMap` for explicit Python source-to-test relationships, Git settings, worktree setup and teardown, and risk paths.
+- Existing `.haechi.json` files provide read-only compatibility for verify and single-test commands, forbidden commands, test locations, the sensitive-data rule, `pythonTestMap`, Git settings, worktree commands and other settings.
 - `~/.haechi/user.json`: `notesDir` for files that must stay out of the repo (requests to other teams, raw measurements, screen reports, login sessions for screen checks) and `openReports` for opening reports automatically. Updates preserve unknown existing keys.
 
-## Setup scope
+## Optional diagnostics
 
-A repository can finish setup without any Git settings. Completion requires `commands.verify`, `commands.testOne`, nonempty `testDirs`, `sensitiveData` and a `forbidden` array, which may be empty. Known Git candidates can be retained without collecting missing values or proving remote login. Explicit Git values are preserved. Branch creation follows explicit naming rules or the environment default. Commit resolves its format from explicit rules or recent commits. MR resolves its body from an override, the repository template, or Summary, Changes and Validation sections. Merged PR history is consulted for formatting only when requested.
+Tasks start without a repository setup step. Resolve the execution details a task needs from repository instructions and project configuration, using existing `.haechi.json` values where present. Ask only for details the task needs and the repository cannot provide. Git settings are resolved when the relevant Git operation needs them.
 
-Setup detects execution settings and returns existing settings alongside candidates. Independent machine and repository checks run together, and their results feed one confirmation batch. The agent reuses successful checks when their relevant inputs have not changed. A verifier that actually runs the configured test can satisfy the single-test proof too; a no-tests result cannot. On reruns, unavailable evidence stays unverified until checked. Instruction discovery stays within the repository and its ancestors.
+The optional setup command reports execution candidates and existing settings. It leaves repository files untouched. When verification is requested, run the smallest relevant check and inspect the executed work. A verifier that runs the configured test can also prove the single-test command works for that file.
 
 The default verifier uses `pythonTestMap` to select explicit test files for changed Python sources. A configured single-test command takes precedence over detected pytest. Skipped checks and missing or incomplete test-execution summaries produce exit 2. Reported test failures produce exit 1 even if a wrapper exits 0. The verifier checks runner-reported execution; acceptance coverage still needs the main agent's judgment. The [Python backend guide](python-backends.md) defines supported summaries, path rules, command precedence and database prerequisites.
 
@@ -121,7 +121,7 @@ The default verifier uses `pythonTestMap` to select explicit test files for chan
 - Repository ownership and explicitly authorized external artifact paths are distinct. No packet grants a sandbox permission; use host controls where enforcement is required. A packet hash proves consistency, not receipt, compliance or quality. Hooks supply repository facts but do not enforce dispatch. The main must check selection, delivery and behavior evidence.
 - For an existing shared graph task, `delegate-return.mjs publish` performs raw-record integrity checks, proof storage, criterion-reference validation and graph update in one host call. It returns compact decision inputs, including relevant command outcomes and all nonzero exits, instead of intermediate full bundles. The graph schema and hooks are unchanged. Records remain pending main review; unknown/stale evidence is rejected, conflicts are not retried automatically, and short standalone work skips this path. The host supplies real identity, observed records and criterion claims; the tool does not infer semantic success or authenticate the host. Runtime savings remain an evaluation question.
 - Both tools install from this repository: `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json`.
-- The build emits the Codex worker TOML but this repository does not currently register it through setup. If the host has no custom worker type, the main can use its generic agent with the worker instructions and complete rendered packet. Native registration and permission enforcement must be checked in the actual host; generated files alone are not proof.
+- The build emits the Codex worker TOML but hosts can register it manually where supported. If the host has no custom worker type, the main can use its generic agent with the worker instructions and complete rendered packet. Native registration and permission enforcement must be checked in the actual host; generated files alone are not proof.
 
 ## Findings that shaped the design
 

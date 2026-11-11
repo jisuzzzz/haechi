@@ -17,7 +17,7 @@ Define the number and the rule that decides success. Example: "p50 time from ope
 
 ## Settings and storage
 
-Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. If either is missing, ask on first use and offer to write it.
+Read `perf` from `.haechi.json` and `notesDir` from `~/.haechi/user.json`. Resolve missing paths from repository conventions or ask for the paths needed for this measurement. Save personal preferences only when requested.
 
 | What | Where |
 |---|---|

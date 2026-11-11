@@ -1,6 +1,6 @@
 # Python backends
 
-For example, changing `app/orders.py` can run `tests/test_orders.py` even when the test file has not changed. Declare that relationship in the repository's `.haechi.json`:
+For example, changing `app/orders.py` can run `tests/test_orders.py` even when the test file has not changed. The default verifier reads that relationship from an existing `.haechi.json`:
 
 ```json
 {
@@ -15,7 +15,7 @@ For example, changing `app/orders.py` can run `tests/test_orders.py` even when t
 }
 ```
 
-Replace `<haechi-tools>` with the installed plugin's tools directory. This is an excerpt, not a complete setup configuration. Keep the repository's other settings. Existing custom verifiers remain valid; the map is used only by the default verifier.
+Replace `<haechi-tools>` with the installed plugin's tools directory. The example shows the settings relevant to Python test selection. Existing custom verifiers remain valid; the map is used only by the default verifier.
 
 ## Test selection
 

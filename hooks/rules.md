@@ -1,10 +1,11 @@
 [haechi] Workflow rules for this repo. Canonical copy: {{pluginRoot}}/hooks/rules.md
 
-{{repoLine}}
+{{#repoLine}}{{repoLine}}{{/repoLine}}
 {{#forbidden}}NEVER RUN: {{forbidden}} (whole-repo runs){{/forbidden}}
-{{#setupMissing}}REPO SETUP INCOMPLETE (missing: {{setupMissing}}): answer questions normally, but start no code change — run /haechi:setup first.{{/setupMissing}}
+{{#settingsError}}REPOSITORY SETTINGS: {{settingsError}}.{{/settingsError}}
 
 WORKFLOW
+- Resolve execution details needed for the current task from repository instructions and project configuration. Ask only about details that remain unresolved. Treat existing `.haechi.json` settings as read-only.
 - Before substantial work, state the intended outcome, scope and check method briefly. Reuse established requirements, decisions and evidence; no fixed reply format, saved document or renewed approval is required.
 - The common work contract at {{pluginRoot}}/principles/work-contract.md owns required pre-action evidence, implementation principles, verification, review and completion. Before the first product-source edit, receive or read its applicable Do and Check guidance. Current guidance already delivered or read may be reused; a path or skill name alone is not proof of delivery.
 - Choose useful task skills for the next action based on the actual work and each skill's description, even without an explicit invocation and while following a repository skill or task plan. Do not skip this judgment because a procedure has already been selected. Reconsider when the request, investigation findings or tool results change what is needed, including within one turn. Apply newly relevant guidance before dependent work. Reuse valid existing evidence and completed work. No exclusive playbook selection or label switch is required to continue.
@@ -22,7 +23,7 @@ AUTHORIZATION
 - Ask when an unresolved choice materially changes the requested outcome, scope or an established contract, or contradicts a recorded decision. Resolve facts from the repo first. Make reversible implementation choices within scope and state consequential assumptions.
 - Continue independent authorized work while a decision is pending. Reassess failed approaches; ask when progress needs missing information or a change of scope, not merely because a fixed number of attempts failed. Subagents report open questions to the main agent; they do not ask the user. An opinion request is not permission to edit.
 
-BRANCH NAMING: honor explicit repository rules and `git.branch` in `.haechi.json`. Otherwise use the environment default (such as `codex/`), or `{type}/{slug}` if none exists. Do not infer naming conventions from branch history during setup.
+BRANCH NAMING: honor explicit repository rules and `git.branch` in `.haechi.json`. Otherwise use the environment default (such as `codex/`), or `{type}/{slug}` if none exists. Do not infer naming conventions from branch history.
 
 COMPLETION
 - Completion is governed by the common work contract's Check section, regardless of the entry skill. Reconcile the original requirements and actual work with applicable behavior evidence and review findings; retrieve missing guidance before deciding. No required outcome may be omitted merely because the diff does not implement it.

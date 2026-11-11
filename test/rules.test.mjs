@@ -4,12 +4,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
-import { spawnSync } from 'node:child_process'
 
 import { buildFiles, loadSource } from '../build/build.mjs'
 import {
   fullBlock,
-  missingRequired,
   nextInjection,
   parseSettings,
   reminderBlock,
@@ -32,41 +30,22 @@ const complete = {
 
 const executionSettings = { ...complete, git: { host: 'github', base: 'main', protected: ['main'] } }
 
-test('Git settings are resolved at operation time and do not block local work', () => {
-  for (const git of [undefined, {}, { host: 'github' }, { base: '', protected: [] }, complete.git]) {
-    const loaded = parseSettings(JSON.stringify({ ...executionSettings, git }))
-    assert.deepEqual(missingRequired(loaded), [])
-    assert.doesNotMatch(fullBlock({ template, loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
-    assert.doesNotMatch(reminderBlock({ loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
-    if (git === complete.git) assert.deepEqual(loaded.settings.git, complete.git)
-  }
+test('existing Git settings are read even when execution settings are absent', () => {
+  const loaded = parseSettings(JSON.stringify({ git: complete.git }))
+  assert.deepEqual(loaded.settings.git, complete.git)
+  const block = fullBlock({ template, loaded, pluginRoot: '/p' })
+  assert.match(block, /REPO: base main/)
+  assert.doesNotMatch(block, /REPO SETUP INCOMPLETE|not set up/)
 })
 
-test('missing execution requirements still block setup without Git settings', () => {
-  const required = [
-    ['commands', 'verify', 'verify command'],
-    ['commands', 'testOne', 'single-test command'],
-    [null, 'forbidden', 'forbidden commands'],
-    [null, 'testDirs', 'test location'],
-    [null, 'sensitiveData', 'sensitive data rule'],
-  ]
-  for (const [parent, key, label] of required) {
-    const settings = { ...structuredClone(executionSettings), git: undefined }
-    delete (parent ? settings[parent] : settings)[key]
-    const loaded = { settings }
-    assert.deepEqual(missingRequired(loaded), [label])
-    assert.match(fullBlock({ template, loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
-    assert.match(reminderBlock({ loaded, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
+test('invalid existing settings are reported without blocking work', () => {
+  for (const invalid of ['{oops', 'null', '[]', 'true']) {
+    const loaded = parseSettings(invalid)
+    const block = fullBlock({ template, loaded, pluginRoot: '/p' })
+    assert.match(block, /REPOSITORY SETTINGS: \.haechi\.json must contain a valid JSON object/)
+    assert.match(block, /Resolve execution details needed for the current task/)
+    assert.doesNotMatch(block, /REPO SETUP INCOMPLETE|start no code change/)
   }
-})
-
-test('missing settings file, broken JSON and partial settings are all reported', () => {
-  assert.deepEqual(missingRequired(parseSettings(undefined)), ['.haechi.json'])
-  assert.deepEqual(missingRequired(parseSettings('{oops')), ['.haechi.json is not valid JSON'])
-  assert.deepEqual(missingRequired({ settings: { ...complete, forbidden: [], git: undefined } }), [])
-  assert.deepEqual(missingRequired({ settings: { ...complete, testDirs: [] } }), ['test location'])
-  assert.deepEqual(missingRequired({ settings: { ...complete, forbidden: 'npm test' } }), ['forbidden commands'])
-  assert.deepEqual(missingRequired({ settings: complete }), [])
 })
 
 test('full block on first prompt and after compaction, reminder otherwise', () => {
@@ -96,37 +75,28 @@ test('full block fills repo facts and leaves no template markers', () => {
   assert.doesNotMatch(text, /\{\{[#/]?\w+\}\}/)
 })
 
-test('full block without setup names missing execution settings', () => {
-  const text = fullBlock({ template, loaded: {}, pluginRoot: '/p' })
-  assert.match(text, /REPO: not set up/)
-  assert.match(text, /REPO SETUP INCOMPLETE \(missing: \.haechi\.json\)/)
-  assert.doesNotMatch(text, /ANSWER FORMATS|NEVER RUN/)
+test('full block without settings directs the agent to repository instructions', () => {
+  const text = fullBlock({ template, loaded: parseSettings(undefined), pluginRoot: '/p' })
+  assert.match(text, /Resolve execution details needed for the current task from repository instructions and project configuration/)
+  assert.doesNotMatch(text, /ANSWER FORMATS|NEVER RUN|REPO:|REPO SETUP INCOMPLETE|\/haechi:setup/)
 })
 
-test('reminders do not reintroduce first-reply formats', () => {
-  for (const loaded of [{}, { settings: complete }]) {
-    const text = reminderBlock({ loaded, pluginRoot: '/p' })
-    assert.doesNotMatch(text, /First reply|Current\/Target\/Keep\/Proof|Verdict line/)
-    assert.match(text, /\/p\/hooks\/rules\.md/)
-  }
+test('reminders reassess applicable guidance and reconcile completion evidence', () => {
+  const text = reminderBlock('/p')
+  assert.match(text, /check which skills and shared guidance apply/)
+  assert.match(text, /reconcile the original requirements and actual work/)
+  assert.match(text, /\/p\/hooks\/rules\.md/)
+  assert.doesNotMatch(text, /First reply|Current\/Target\/Keep\/Proof|Verdict line|REPO SETUP INCOMPLETE|\/haechi:setup/)
 })
 
-test('later requests reassess applicable guidance and reconcile completion evidence', () => {
-  assert.equal(reminderBlock({ loaded: { settings: complete }, pluginRoot: '/p' }),
-    '[haechi] Before the next action, check which skills and shared guidance apply to the current request and findings, including evidence needed before acting. Reuse guidance already read when it still applies. Preserve scope and authorization. Before claiming completion, reconcile the original requirements and actual work with applicable implementation, verification and review evidence; report missing evidence. Rules if needed: /p/hooks/rules.md.')
-})
-
-test('reminder warns about setup only when it is incomplete', () => {
-  assert.doesNotMatch(reminderBlock({ loaded: { settings: complete }, pluginRoot: '/p' }), /INCOMPLETE/)
-  assert.match(reminderBlock({ loaded: {}, pluginRoot: '/p' }), /REPO SETUP INCOMPLETE/)
-})
-
-test('subagent appendix carries the tools folder and commands, or says setup is missing', () => {
+test('subagent appendix carries the tools folder and commands, and tells workers how to resolve missing commands', () => {
   const withSettings = spawnAppendix({ settings: complete }, '/p')
   assert.match(withSettings, /haechi tools: \/p\/tools\//)
   assert.match(withSettings, /single test: `npx vitest run \{file\}`/)
   assert.match(withSettings, /never run: npm test, npm run lint/)
-  assert.match(spawnAppendix({}, '/p'), /repo setup is missing/)
+  const withoutSettings = spawnAppendix({}, '/p')
+  assert.match(withoutSettings, /use repository instructions and project configuration, then ask the orchestrator if needed/)
+  assert.doesNotMatch(withoutSettings, /setup is missing|\/haechi:setup/)
 })
 
 const builtFixture = async (t) => {
@@ -232,7 +202,7 @@ test('Claude registration and repository state are isolated and control commands
   const engine = (root) => ({ session: { root: async () => root }, fs: { read: async (path) => readFileSync(path) }, plugin: { root: pluginRoot } })
   const next = async (event) => event
   const full = fullBlock({ template, loaded: { settings: complete }, pluginRoot })
-  const reminder = reminderBlock({ loaded: { settings: complete }, pluginRoot })
+  const reminder = reminderBlock(pluginRoot)
   const submit = (handlers, root = repo, event = {}) => handlers.get('prompt.submit')(engine(root), event, next)
   for (const command of ['help', 'clear', 'compact']) {
     const event = { command, context: ['original'], prompt: 'unchanged' }
@@ -252,7 +222,7 @@ test('Claude registration and repository state are isolated and control commands
   assert.deepEqual((await submit(first)).context, [full])
 })
 
-test('built hooks and setup checkers accept execution settings without Git or presentation preferences', async (t) => {
+test('built hooks read existing execution settings without Git or presentation preferences', async (t) => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'haechi-rules-')))
   t.after(() => rmSync(scratch, { recursive: true, force: true }))
   const out = join(scratch, 'dist')
@@ -293,12 +263,6 @@ test('built hooks and setup checkers accept execution settings without Git or pr
   handle('PostCompact', legacyInput, env)
   assert.equal(handle('UserPromptSubmit', legacyInput, env), expected)
 
-  for (const platform of ['claude', 'codex']) {
-    const checked = spawnSync(process.execPath, [join(out, platform, 'tools/check-settings.mjs'), repo], { encoding: 'utf8' })
-    assert.equal(checked.status, 0, checked.stderr + checked.stdout)
-    assert.equal(JSON.parse(checked.stdout).complete, true)
-  }
-
   const pluginRoot = join(out, 'claude')
   const { register } = await import(pathToFileURL(join(pluginRoot, 'hooks/register.ts')).href)
   const handlers = new Map()
@@ -313,7 +277,7 @@ test('built hooks and setup checkers accept execution settings without Git or pr
   const claudeFull = fullBlock({ template, loaded, pluginRoot })
   const originalContext = ['existing context']
   assert.deepEqual((await submit({ context: originalContext })).context, [...originalContext, claudeFull])
-  assert.deepEqual((await submit()).context, [reminderBlock({ loaded, pluginRoot })])
+  assert.deepEqual((await submit()).context, [reminderBlock(pluginRoot)])
   await handlers.get('session.compact')(engine, {}, next)
   assert.deepEqual((await submit()).context, [claudeFull])
   const spawned = await handlers.get('agent.spawn')(engine, { prompt: 'review' }, next)
@@ -325,4 +289,35 @@ test('built hooks and setup checkers accept execution settings without Git or pr
   const noForbiddenCommands = (await submit()).context[0]
   assert.doesNotMatch(noForbiddenCommands, /REPO SETUP INCOMPLETE|NEVER RUN/)
   assert.match(noForbiddenCommands, /verify `npm run verify/)
+})
+
+test('Claude continues through repeated prompts and compaction without a settings file', async (t) => {
+  const { out, repo } = await builtFixture(t)
+  const path = join(repo, '.haechi.json')
+  rmSync(path)
+  const pluginRoot = join(out, 'claude')
+  const { register } = await import(pathToFileURL(join(pluginRoot, 'hooks/register.ts')).href)
+  const handlers = new Map()
+  register((name, handler) => handlers.set(name, handler))
+  const engine = { session: { root: async () => repo }, fs: { read: async (path) => readFileSync(path) }, plugin: { root: pluginRoot } }
+  const next = async (event) => event
+  const submit = async () => (await handlers.get('prompt.submit')(engine, {}, next)).context[0]
+
+  const full = await submit()
+  assert.match(full, /Resolve execution details needed for the current task/)
+  assert.doesNotMatch(full, /REPO SETUP INCOMPLETE|\/haechi:setup/)
+  assert.equal(await submit(), reminderBlock(pluginRoot))
+  await handlers.get('session.compact')(engine, {}, next)
+  assert.equal(await submit(), full)
+  const spawned = await handlers.get('agent.spawn')(engine, { prompt: 'review' }, next)
+  assert.doesNotMatch(spawned.prompt, /setup is missing|\/haechi:setup/)
+  assert.throws(() => readFileSync(path), { code: 'ENOENT' })
+
+  const partial = JSON.stringify({ forbidden: ['npm test'] })
+  writeFileSync(path, partial)
+  await handlers.get('session.compact')(engine, {}, next)
+  const withRestriction = await submit()
+  assert.match(withRestriction, /NEVER RUN: npm test/)
+  assert.doesNotMatch(withRestriction, /REPO SETUP INCOMPLETE|\/haechi:setup/)
+  assert.equal(readFileSync(path, 'utf8'), partial)
 })

@@ -169,7 +169,7 @@ export const buildFiles = (core) => {
   }
   for (const agent of core.agents) {
     files.set(`claude/agents/${agent.fields.name}.md`, claudeAgent(agent, core))
-    // Codex plugins cannot carry agents, so setup installs these TOML files (P0 finding)
+    // Ship the TOML for hosts that support manual worker registration.
     files.set(`codex/agents/${agent.fields.name}.toml`, codexAgent(agent, core))
   }
   const { hooks } = core
@@ -178,9 +178,7 @@ export const buildFiles = (core) => {
     files.set('codex/hooks/rules.md', hooks.rulesTemplate)
     // The Claude mod imports the TypeScript as is; the Codex hook runs on plain node, so it gets the types stripped
     files.set('claude/hooks/rules.ts', hooks.rulesSource)
-    // Plain-node tools (check-settings) import rules.mjs in both targets
     const rulesJs = stripTypeScriptTypes(hooks.rulesSource, { mode: 'strip' }).replace(/[ \t]+$/gm, '')
-    files.set('claude/hooks/rules.mjs', rulesJs)
     files.set('codex/hooks/rules.mjs', rulesJs)
     for (const target of ['claude', 'codex']) {
       for (const [name, text] of Object.entries(hooks[target])) files.set(`${target}/hooks/${name}`, text)
