@@ -91,6 +91,7 @@ Choose a useful method or describe the task naturally. Existing commands remain 
 | Add or change behavior | [/haechi:feature](skills/feature/SKILL.md) | Establish the required behavior, build it, and check each acceptance criterion. |
 | Restructure existing code | [/haechi:refactor](skills/refactor/SKILL.md) | Change the structure and verify that behavior stays the same. |
 | Review code | [/haechi:review](skills/review/SKILL.md) | Report defects and open questions with evidence. |
+| Complete an implementation | [/haechi:complete](skills/complete/SKILL.md) | Check whether the current Git diff has a passing review. |
 | Measure or improve performance | [/haechi:perf](skills/perf/SKILL.md) | Establish a baseline, measure candidates, and audit the result. |
 | Strengthen existing tests | [/haechi:test-hardening](skills/test-hardening/SKILL.md) | Challenge the tests with mutations and improve what they catch. |
 

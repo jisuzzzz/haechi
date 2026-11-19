@@ -15,7 +15,7 @@ Apply the [common work contract](../../principles/work-contract.md) within the a
 4. **Choose units and interfaces.** Inspect entry points, existing components, tokens, consumers and tests. Prefer reuse or a compatible extension when it fits. Settle shared interfaces before dependent work; separate file ownership when delegation helps. A file count alone does not justify parallel work.
 5. **Implement the authorized change.** Work directly or assign bounded implementation through /haechi:delegate. Use another task method when a finding changes the next action; do not restart completed requirements or design work merely to enter that method.
 
-Use the common contract's Check section and relevant review/screen methods to decide completion. New behavior and preservation evidence must both cover the final relevant change.
+Use the common contract's Check section and relevant review/screen methods to decide completion. New behavior and preservation evidence must both cover the final relevant change. Use [complete](../complete/SKILL.md) to start review on the first working diff and check its recorded result at implementation completion.
 
 ## Delegation contracts
 
