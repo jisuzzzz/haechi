@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { once } from 'node:events'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
+
+const { NODE_TEST_CONTEXT, ...testEnv } = process.env
 
 const dist = host => fileURLToPath(new URL(`../dist/${host}/tools/complete.mjs`, import.meta.url))
 
@@ -30,11 +34,19 @@ function fixture(t, { commit = true } = {}) {
     git('checkout', '-qb', 'task')
   }
   const invoke = (host, args) => {
-    const result = spawnSync(process.execPath, [dist(host), ...args], { cwd, encoding: 'utf8' })
+    const result = spawnSync(process.execPath, [dist(host), ...args], { cwd, encoding: 'utf8', env: testEnv })
     assert.ifError(result.error)
     return { code: result.status, ...JSON.parse(result.stdout || result.stderr) }
   }
   return { cwd, git, write, run: (...args) => invoke('codex', args), claude: (...args) => invoke('claude', args) }
+}
+
+function verifyBytes(run, file, expected, ...options) {
+  return run('verify', ...options, '--', process.execPath, '-e',
+    `const assert = require('node:assert/strict')
+const { readFileSync } = require('node:fs')
+assert.equal(readFileSync(process.argv[1]).toString('hex'), process.argv[2])`,
+    file, Buffer.from(expected).toString('hex'))
 }
 
 test('holds a missing review and accepts the same reviewed diff after staging and committing', t => {
@@ -56,6 +68,8 @@ test('holds a missing review and accepts the same reviewed diff after staging an
     stagedAlternatives: false, reason: 'missing-review',
   })
   assert.equal(claude('record', snapshot.diff, 'pass', 'Verified the empty state and reviewed the filter.').status, 'recorded')
+  assert.equal(run().reason, 'missing-verification')
+  assert.equal(verifyBytes(claude, 'panel.txt', 'Filtered tasks\n').status, 'verified')
   assert.equal(run().status, 'completed')
   git('add', '.')
   assert.equal(run().diff, snapshot.diff)
@@ -70,6 +84,7 @@ test('holds a changed current diff and rejects recording an earlier review again
   write('panel.txt', 'Filtered tasks\n')
   const { diff } = run('snapshot')
   assert.equal(run('record', diff, 'pass', 'Reviewed the filter.').code, 0)
+  assert.equal(verifyBytes(run, 'panel.txt', 'Filtered tasks\n').code, 0)
   write('panel.txt', 'Unexpected new text\n')
   assert.equal(run('record', diff, 'pass', 'Earlier review.').reason, 'diff-changed')
   assert.equal(run().reason, 'stale-review')
@@ -101,6 +116,7 @@ test('includes different staged content and a working-tree replacement in review
   assert.equal(snap.patch, '')
   assert.match(snap.stagedPatch, /\+Version to commit/)
   assert.equal(run('record', snap.diff, 'pass', 'Reviewed both variants.').code, 0)
+  assert.equal(verifyBytes(run, 'panel.txt', 'All tasks\n').code, 0)
   assert.equal(run().status, 'completed')
   write('panel.txt', 'Different staged version\n')
   git('add', 'panel.txt')
@@ -121,6 +137,7 @@ test('uses the remote default branch or a call-specific base and keeps records w
   assert.equal(automatic.base, git('rev-parse', 'HEAD'))
   assert.equal(explicit.base, baseline)
   assert.equal(run('record', explicit.diff, 'pass', 'Reviewed both changes.', '--base', 'main').code, 0)
+  assert.equal(verifyBytes(run, 'panel.txt', 'Second change\n', '--base', 'main').code, 0)
   assert.equal(run('--base', 'main').status, 'completed')
   assert.equal(run().reason, 'stale-review')
   const sibling = join(cwd, 'scratch')
@@ -139,6 +156,7 @@ test('includes an untracked binary in a repository without a commit and holds ch
   assert.equal(snap.base, null)
   assert.match(snap.patch, /GIT binary patch/)
   assert.equal(run('record', snap.diff, 'pass', 'Reviewed the fixture bytes.').code, 0)
+  assert.equal(verifyBytes(run, 'assets/payload.bin', Buffer.from([0, 255, 17])).code, 0)
   assert.equal(run().code, 0)
   write('assets/payload.bin', Buffer.from([0, 255, 18]))
   assert.equal(run().reason, 'stale-review')
@@ -184,4 +202,74 @@ test('captures a changed submodule commit despite diff settings and holds its di
   const result = run('snapshot', '--base', 'HEAD')
   assert.equal(result.status, 'held')
   assert.match(result.reason, /uncommitted submodule edits/)
+})
+
+test('holds latest failed verification and stale verification with a current passing review', t => {
+  const { write, run } = fixture(t)
+  write('panel.txt', 'Filtered tasks\n')
+  const first = run('snapshot')
+  assert.equal(run('record', first.diff, 'pass', 'Reviewed the filter.').code, 0)
+  assert.equal(verifyBytes(run, 'panel.txt', 'Filtered tasks\n').code, 0)
+  assert.equal(verifyBytes(run, 'panel.txt', 'Wrong text').reason, 'verification-failed')
+  assert.equal(run().reason, 'verification-failed')
+  assert.equal(verifyBytes(run, 'panel.txt', 'Filtered tasks\n').code, 0)
+  write('panel.txt', 'New wording\n')
+  assert.equal(run('record', run('snapshot').diff, 'pass', 'Reviewed the new wording.').code, 0)
+  assert.equal(run().reason, 'stale-verification')
+})
+
+test('holds a command that edits the diff or leaves an incomplete test run', t => {
+  const { write, run } = fixture(t)
+  write('panel.txt', 'Filtered tasks\n')
+  assert.equal(run('record', run('snapshot').diff, 'pass', 'Reviewed the filter.').code, 0)
+  assert.equal(run('verify', '--', process.execPath, '-e',
+    "require('node:fs').writeFileSync('panel.txt','Unexpected change')").reason, 'diff-changed')
+  write('panel.txt', 'Filtered tasks\n')
+  assert.equal(run().reason, 'verification-incomplete')
+
+  const tests = (...args) => run('verify', ...args, '--', process.execPath, '--test', '--test-reporter=tap', 'panel.test.cjs')
+  assert.equal(run('verify', '--', process.execPath, '--test', '--test-reporter=tap').reason,
+    'verification-incomplete')
+  assert.equal(run('verify', '--', process.execPath, '-e', `
+    const result = require('node:child_process').spawnSync(process.execPath, ['--test'], {
+      env: { ...process.env, NODE_TEST_CONTEXT: 'child-v8' },
+      stdio: 'inherit',
+    })
+    process.exitCode = result.status ?? 1
+  `).reason, 'verification-incomplete')
+  write('panel.test.cjs', "require('node:test').skip('skipped', () => {})\n")
+  assert.equal(tests('--require-tests').reason, 'verification-incomplete')
+  write('panel.test.cjs', "require('node:test')('reads the implemented filter', () => require('node:assert/strict').match(require('node:fs').readFileSync('panel.txt', 'utf8'), /Filtered/))\n")
+  assert.equal(tests('--require-tests').status, 'verified')
+  assert.equal(run('record', run('snapshot').diff, 'pass', 'Reviewed the filter and test.').code, 0)
+  assert.equal(run().status, 'completed')
+})
+
+test('an older successful command cannot replace a newer failed attempt', async t => {
+  const { cwd, write, run } = fixture(t)
+  write('panel.txt', 'Filtered tasks\n')
+  assert.equal(run('record', run('snapshot').diff, 'pass', 'Reviewed the filter.').code, 0)
+  const slow = spawn(process.execPath, [dist('codex'), 'verify', '--', process.execPath, '-e', `
+    const { readFileSync, writeFileSync } = require('node:fs')
+    const assert = require('node:assert/strict')
+    writeFileSync('scratch.txt', 'running')
+    const timer = setInterval(() => {
+      if (readFileSync('scratch.txt', 'utf8') !== 'finish') return
+      clearInterval(timer)
+      assert.match(readFileSync('panel.txt', 'utf8'), /Filtered tasks/)
+    }, 20)
+  `], { cwd, stdio: ['ignore', 'pipe', 'ignore'] })
+  t.after(() => { if (slow.exitCode === null) slow.kill() })
+  let output = ''
+  slow.stdout.setEncoding('utf8').on('data', text => { output += text })
+  const closed = once(slow, 'close')
+  for (let attempt = 0; attempt < 250 && !existsSync(join(cwd, 'scratch.txt')); attempt++) await delay(20)
+  assert(existsSync(join(cwd, 'scratch.txt')), 'The older verifier did not start')
+  assert.equal(run().reason, 'verification-incomplete')
+  assert.equal(verifyBytes(run, 'panel.txt', 'Wrong text').reason, 'verification-failed')
+  write('scratch.txt', 'finish')
+  const [code] = await closed
+  assert.equal(code, 1)
+  assert.equal(JSON.parse(output).reason, 'verification-superseded')
+  assert.equal(run().reason, 'verification-failed')
 })

@@ -125,7 +125,7 @@ const changedFiles = (root: string) => {
 
 // Recognize runner summaries, not arbitrary "passed" text. Unknown output stays unverified.
 // These counts attest execution only; the caller still checks behavior coverage and final-change validity.
-const testEvidence = (output: string): TestStatus => {
+export const testEvidence = (output: string): TestStatus | undefined => {
   const text = output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, '').replaceAll('\r', '')
   const summaries: TestStatus[] = []
   let executed = false
@@ -193,7 +193,10 @@ const testEvidence = (output: string): TestStatus => {
     else record(tap.pass! > 0 && tap.skipped === 0 && tap.todo === 0 ? 'passed' : 'unverified', true)
   }
   if (summaries.includes('failed')) return 'failed'
-  if (/no tests (?:found|collected)|collected 0 items/i.test(text)) return 'unverified'
+  if (/no test(?:s| files) (?:found|collected|ran)|collected 0 items|node:test run\(\) is being called recursively/i.test(text)) {
+    return 'unverified'
+  }
+  if (!summaries.length) return undefined
   return executed && summaries.every((status) => status === 'passed') ? 'passed' : 'unverified'
 }
 
@@ -235,7 +238,7 @@ const main = () => {
     if (result.error) console.error(`verify-default: ${result.error.message}`)
     if (result.status === 0 && !result.error) exitedSuccessfully += 1
     const status = result.status !== 0 || result.error ? 'failed'
-      : step.test ? testEvidence(`${result.stdout}\n${result.stderr}`) : 'passed'
+      : step.test ? testEvidence(`${result.stdout}\n${result.stderr}`) ?? 'unverified' : 'passed'
     if (status === 'failed') failed += 1
     if (status === 'unverified') unverified += 1
     console.log(`verify-default: ${step.name} ${status}${status === 'unverified' ? ' — test execution evidence is missing or incomplete' : ''}`)

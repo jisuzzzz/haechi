@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { verificationHold, verifyCurrentDiff } from './complete-verification.mjs'
 import { digest, hasCode, isDigest, publishFile, readLocalFile } from './work-graph-storage.mjs'
 
 
@@ -13,6 +14,7 @@ const reviewResults = ['pass', 'changes-required']
 const summaryLimit = 4096
 const usage = [
   'Usage: node complete.mjs [check] [--base REF]',
+  '       node complete.mjs verify [--base REF] [--require-tests] -- COMMAND [ARG ...]',
   '       node complete.mjs snapshot [--base REF] [--patch]',
   '       node complete.mjs record DIFF pass|changes-required SUMMARY [--base REF]',
 ].join('\n')
@@ -139,10 +141,11 @@ function readReview(path        )                     {
 
 function main(argv          ) {
   if (argv.length === 1 && argv[0] === '--help') return console.log(usage)
-  const options = { base: undefined                      , patch: false }
+  const options = { base: undefined                      , patch: false, requireTests: false }
+  let verifyArgs           = []
   // Positional arguments precede flags so a review summary can contain arbitrary text.
   const command = argv[0] && !argv[0].startsWith('--') ? argv.shift() : 'check'
-  if (!['check', 'snapshot', 'record'].includes(command ?? '')) throw new Error(usage)
+  if (!['check', 'snapshot', 'record', 'verify'].includes(command ?? '')) throw new Error(usage)
   const [id, result, summary] = command === 'record' ? argv.splice(0, 3) : []
   while (argv.length) {
     const option = argv.shift()
@@ -150,13 +153,20 @@ function main(argv          ) {
       options.base = argv.shift()
     } else if (option === '--patch' && command === 'snapshot' && !options.patch) {
       options.patch = true
+    } else if (option === '--require-tests' && command === 'verify' && !options.requireTests) {
+      options.requireTests = true
+    } else if (option === '--' && command === 'verify') {
+      verifyArgs = argv.splice(0)
     } else throw new Error(usage)
   }
+  if (command === 'verify' && !verifyArgs[0]?.trim()) throw new Error(usage)
   if (command === 'record' && (!isDigest(id) || !reviewResults.includes(result) || !summary?.trim() || summary.length > summaryLimit)) {
     throw new Error(`Supply a snapshot diff, a review result and a nonempty summary of up to ${summaryLimit} characters.\n${usage}`)
   }
 
-  const { reviewPath, empty, ...change } = snapshot(process.cwd(), options.base, options.patch)
+  const cwd = process.cwd()
+  const { reviewPath, empty, ...change } = snapshot(cwd, options.base, options.patch)
+  const verificationDirectory = dirname(reviewPath)
   const report = (status        , fields = {}) => console.log(JSON.stringify({ status, ...change, ...fields }))
   const hold = (reason        ) => {
     report('held', { reason })
@@ -171,11 +181,19 @@ function main(argv          ) {
     return report('recorded', { review: review.result })
   }
 
+  if (command === 'verify') {
+    const reason = verifyCurrentDiff(verificationDirectory, change.diff, cwd, verifyArgs, options.requireTests,
+      () => snapshot(cwd, options.base, false).diff)
+    return reason ? hold(reason) : report('verified', { verification: 'pass' })
+  }
+
   const review = readReview(reviewPath)
   if (!review) return hold('missing-review')
   if (review.diff !== change.diff) return hold('stale-review')
   if (review.result !== 'pass') return hold('changes-required')
-  report('completed', { review: review.result, summary: review.summary })
+  const reason = verificationHold(verificationDirectory, change.diff)
+  if (reason) return hold(reason)
+  report('completed', { review: review.result, verification: 'pass', summary: review.summary })
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
