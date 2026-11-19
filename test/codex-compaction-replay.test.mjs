@@ -83,3 +83,57 @@ test('rejects out-of-scope and post-review source changes', () => {
   assert.equal(verdict.ok, false)
   assert.equal(verdict.checks.passingTestsAfterRecovery, false)
 })
+
+const completionDiff = 'a'.repeat(64)
+const integrated = { ...result, complete: true, finalCompletionDiff: completionDiff }
+const tool = 'node ../complete-tools/complete.mjs'
+const decisionOutput = (status, fields) => JSON.stringify({ status, diff: completionDiff, ...fields })
+
+function completeTrace() {
+  const records = trace()
+  records[5].command = tool + ' verify --require-tests -- node --test --test-reporter=tap badge.test.mjs'
+  records[5].output = tap + '\n' + decisionOutput('verified', { verification: 'pass' })
+  records.splice(6, 0, { ...records[5], command: tool + ' snapshot', output: decisionOutput('snapshot') })
+  records.splice(8, 0,
+    { ...records[5], command: tool + ' record ' + completionDiff + ' pass "Numeric strings return an em dash."',
+      output: decisionOutput('recorded', { review: 'pass' }) },
+    { ...records[5], command: tool,
+      output: decisionOutput('completed', { review: 'pass', verification: 'pass', summary: 'Numeric strings return an em dash.' }) })
+  return records.map((event, index) => ({ ...event, sequence: index + 1 }))
+}
+
+test('requires real verification, review and complete in the recovered turn', () => {
+  const verdict = checkReplay(completeTrace(), integrated)
+  assert.equal(verdict.ok, true)
+  assert.equal(verdict.evidence.capture, 7)
+  assert.equal(verdict.evidence.recordReview, 9)
+  assert.equal(verdict.evidence.completeChange, 10)
+})
+
+test('holds a missing, echoed or rejected completion command', () => {
+  assert.equal(checkReplay(trace(), integrated).ok, false)
+  const records = completeTrace()
+  records[9].command = 'echo ' + tool
+  assert.equal(checkReplay(records, integrated).checks.completeAcceptedCurrentDiff, false)
+  records[9] = { ...completeTrace()[9], exitCode: 1, output: decisionOutput('held', { reason: 'missing-verification' }) }
+  assert.equal(checkReplay(records, integrated).checks.completeAcceptedCurrentDiff, false)
+})
+
+test('rejects verification for a different diff and completion after the fixture changes', () => {
+  const records = completeTrace()
+  records[5].output = records[5].output.replace(completionDiff, 'b'.repeat(64))
+  assert.equal(checkReplay(records, integrated).checks.passingTestsAfterRecovery, false)
+  records[5] = completeTrace()[5]
+  records[9].source = 'changed-after-review'
+  assert.equal(checkReplay(records, integrated).checks.completeAcceptedCurrentDiff, false)
+})
+
+test('accepts a recorded fallback description when the final review identifies the display', () => {
+  const records = completeTrace()
+  records[9].output = decisionOutput('completed', {
+    review: 'pass', verification: 'pass', summary: 'Numeric strings continue to use the fallback.',
+  })
+  assert.equal(checkReplay(records, integrated).ok, true)
+  records[9].output = decisionOutput('completed', { review: 'pass', verification: 'pass', summary: 'Looks good.' })
+  assert.equal(checkReplay(records, integrated).ok, false)
+})
