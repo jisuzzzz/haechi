@@ -17,6 +17,12 @@ The first command uses the configured Codex model. The second uses the model and
 
 The command prints a fresh evidence directory under the Git-ignored `evals/codex-compaction-runs/`. Set `--output DIRECTORY` to retain evidence elsewhere or `HAECHI_CODEX_BIN` to select the Codex executable. Use `--help` for the available flags.
 
+To include the packaged completion command in the same turn, add `--complete`.
+
+    node evals/codex-compaction-replay.mjs --complete --model gpt-6-astra --effort high
+
+This mode copies the packaged Codex completion tool into the isolated workspace. After compaction the agent must run the four fixture tests through `complete verify`, inspect the final diff, record a passing review, and invoke `complete` before the final response. The runner checks that all results match the independently captured final diff and retains the tool hashes and command outputs.
+
 The default thread threshold is 32,000 tokens. A synthetic fixture command supplies the context after the source edit without calling the manual compaction API. If the edit and tests happen without a compaction between them, the run fails. A different model or local tool configuration can change when the threshold is reached. Use a fresh run and `--compact-limit TOKENS` when investigating that boundary. Keep the previous run when comparing thresholds.
 
 ## Read the evidence
