@@ -10,6 +10,8 @@ The publication candidate uses the completed local product sources at `6b6fe118c
 
 Run `npm run check` and the relevant individual tests: `test/rules.test.mjs`, `test/agent-procedures.test.mjs`, `test/delegate-task.test.mjs`, `test/delegate-return.test.mjs`, `test/delegate-graph.test.mjs`, `test/skill-context.test.mjs` and `test/build.test.mjs`. They cover rule delivery and recovery, state isolation, mandatory worker guidance, packet integrity, source hashes, explicit command context and generated runtime execution.
 
+Run the [same-turn Codex compaction scenario](../evals/codex-compaction-replay.md) to check that a live task resumes testing and final diff review after the installed plugin restores its workflow rules.
+
 ## Earlier observations and limits
 
 The earlier controlled D/E comparison completed twelve fresh conversations and sixteen turns. Both variants passed six conversations each. Exact packet measurements found a 15.36% size reduction for the matched implementation jobs while preserving required assets. This is a packet-size result, not a general latency, billing or reliability guarantee. Model behavior, caching and host load were not all separately isolated.

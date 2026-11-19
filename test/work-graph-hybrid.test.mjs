@@ -39,9 +39,10 @@ const interrupt = ({ root, cwd }, args, payload, point) => {
     const operation = fs[method]
     fs[method] = (from, to) => {
       operation(from, to)
-      if (point === 'staged' && to.includes('/requests/') ||
-          point === 'prepared' && to.includes('/requests/') ||
-          point === 'committed' && to.endsWith('/work-graph.json')) {
+      const requestWrite = to.includes('/requests/')
+      if ((point === 'staged' || point === 'prepared') && requestWrite ||
+          point === 'committed' && to.endsWith('/work-graph.json') ||
+          point === 'applied' && requestWrite && JSON.parse(fs.readFileSync(to, 'utf8')).checkpoint.applied) {
         process.kill(process.pid, 'SIGKILL')
       }
     }
@@ -77,42 +78,77 @@ test('a staged create survives a real process kill and replays once across workt
   assert.equal(view.tasks[0].next, 'Newer state')
 })
 
-test('recovering a pending completion preserves a newer cancellation', t => {
+const completion = { expectedVersion: 1, requestId: 'finish-one', session, status: 'completed', evidence: [proof] }
+const retries = {
+  recover: cwd => cli(cwd, ['recover', completion.requestId], { session }),
+  resend: cwd => cli(cwd, ['update', 'one'], completion),
+}
+const cancellationReason = 'Cancelled by user'
+const cancel = (cwd, expectedVersion) => cli(cwd, ['update', 'one'], {
+  expectedVersion, status: 'cancelled', reason: cancellationReason, session: { ...session, sessionId: 'another-session' },
+})
+const show = cwd => success(cli(cwd, ['show', 'one']))
+const completionState = cwd => success(cli(cwd, ['requests'])).requests.find(
+  request => request.requestId === completion.requestId,
+).state
+
+test('cancelling before recovery rejects both ways of retrying a staged completion', t => {
   const f = fixture(t)
   success(cli(f.cwd, ['create'], create))
-  interrupt(f, ['update', 'one'], {
-    expectedVersion: 1, requestId: 'finish-one', session, status: 'completed', evidence: [proof],
-  }, 'staged')
-  const cancel = success(cli(f.cwd, ['update', 'one'], {
-    expectedVersion: 1, status: 'cancelled', reason: 'Cancelled by user', session: { ...session, sessionId: 'another-session' },
-  }))
-  rejected(cli(f.cwd, ['recover', 'finish-one'], { session }), /Version conflict: expected 1, current 2/)
-  const actual = success(cli(f.cwd, ['show', 'one']))
-  assert.equal(actual.task.status, 'cancelled')
-  assert.equal(actual.version, cancel.version)
-  assert.deepEqual(actual.task.evidence, [])
-  assert.equal(success(cli(f.cwd, ['requests'])).requests.find(r => r.requestId === 'finish-one').state, 'pending')
+  interrupt(f, ['update', 'one'], completion, 'staged')
+  assert.equal(success(cancel(f.cwd, 1)).version, 2)
+  const cancelled = show(f.cwd)
+  assert.equal(cancelled.task.status, 'cancelled')
+  assert.equal(cancelled.task.reason, cancellationReason)
+  assert.deepEqual(cancelled.task.evidence, [])
+  for (const retry of Object.values(retries)) {
+    rejected(retry(f.cwd), /Version conflict: expected 1, current 2/)
+    assert.deepEqual(show(f.cwd), cancelled)
+  }
+  assert.equal(completionState(f.cwd), 'pending')
 })
 
-for (const point of ['prepared', 'committed']) {
-  test(`recovery after the graph write is ${point} records exactly one successful update`, t => {
-    const f = fixture(t)
-    success(cli(f.cwd, ['create'], create))
-    const payload = { expectedVersion: 1, requestId: 'finish-one', session, status: 'completed', evidence: [proof] }
-    const pid = interrupt(f, ['update', 'one'], payload, point)
-    assert.equal(success(cli(f.cwd, ['show', 'one'])).version, point === 'committed' ? 2 : 1)
-    rejected(cli(f.cwd, ['recover', 'finish-one'], { session }), /locked/)
-    // The existing lock contract requires a confirmed dead writer before removal.
-    const lock = f.store + '.lock'
-    assert.equal(JSON.parse(readFileSync(lock, 'utf8')).pid, pid)
-    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
-    unlinkSync(lock)
-    const applied = success(cli(f.cwd, ['recover', 'finish-one'], { session }))
-    assert.equal(applied.version, 2)
-    assert.equal(applied.task.status, 'completed')
-    assert.deepEqual(success(cli(f.cwd, ['update', 'one'], payload)), applied)
-    assert.equal(success(cli(f.cwd, ['show', 'one'])).version, 2)
-  })
+for (const [point, versionAtCrash, stateAtCrash] of [
+  ['staged', 1, 'pending'],
+  ['prepared', 1, 'prepared'],
+  ['committed', 2, 'prepared'],
+  ['applied', 2, 'applied'],
+]) {
+  for (const [method, retry] of Object.entries(retries)) {
+    test(`completion interrupted at ${point}, replayed by ${method}, and then cancelled applies only once`, t => {
+      const f = fixture(t)
+      success(cli(f.cwd, ['create'], create))
+      const pid = interrupt(f, ['update', 'one'], completion, point)
+      assert.equal(show(f.cwd).version, versionAtCrash)
+      assert.equal(completionState(f.cwd), stateAtCrash)
+      if (point !== 'staged') {
+        rejected(retry(f.cwd), /locked/)
+        rejected(cancel(f.cwd, versionAtCrash), /locked/)
+        // The existing lock contract requires a confirmed dead writer before removal.
+        const lock = f.store + '.lock'
+        assert.equal(JSON.parse(readFileSync(lock, 'utf8')).pid, pid)
+        assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' })
+        unlinkSync(lock)
+      }
+
+      const receipt = success(retry(f.cwd))
+      assert.equal(receipt.version, 2)
+      assert.equal(receipt.task.status, 'completed')
+      assert.deepEqual(receipt.task.evidence, [proof])
+      assert.equal(show(f.cwd).version, 2)
+      assert.equal(completionState(f.cwd), 'applied')
+
+      assert.equal(success(cancel(f.cwd, 2)).version, 3)
+      const cancelled = show(f.cwd)
+      assert.equal(cancelled.task.status, 'cancelled')
+      assert.equal(cancelled.task.reason, cancellationReason)
+      assert.deepEqual(cancelled.task.evidence, [proof])
+      for (const repeat of Object.values(retries)) {
+        assert.deepEqual(success(repeat(f.cwd)), receipt)
+        assert.deepEqual(show(f.cwd), cancelled)
+      }
+    })
+  }
 }
 
 test('a copied request cannot be recovered in another Git repository', t => {
